@@ -9,18 +9,18 @@ import net.webtide.cluster.rpc.RemoteNode;
 
 public class CommandLineUtil
 {
-    public static File defaultRootPath(String hostname)
+    public static File defaultRootPath(String remoteHostId)
     {
-        return new File(System.getProperty("user.home") + "/.wtc/" + hostname);
+        return new File(System.getProperty("user.home") + "/.wtc/" + remoteHostId);
     }
 
-    public static File defaultLibPath(String hostname)
+    public static File defaultLibPath(String remoteHostId)
     {
-        File rootPath = defaultRootPath(hostname);
+        File rootPath = defaultRootPath(remoteHostId);
         return new File(rootPath, "lib");
     }
 
-    public static List<String> remoteNodeCommandLine(JvmSettings jvmSettings, File libPath, String hostname, String connectString)
+    public static List<String> remoteNodeCommandLine(JvmSettings jvmSettings, File libPath, String remoteHostId, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
         String jvmHome = jvmSettings.jvm().getHome();
@@ -32,7 +32,7 @@ public class CommandLineUtil
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
         cmdLine.add(RemoteNode.class.getName());
-        cmdLine.add(hostname);
+        cmdLine.add(remoteHostId);
         cmdLine.add(connectString);
         return cmdLine;
     }

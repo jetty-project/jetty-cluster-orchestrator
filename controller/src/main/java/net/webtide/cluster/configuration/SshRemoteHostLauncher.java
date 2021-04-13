@@ -25,8 +25,9 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
     @Override
     public void close()
     {
-        for (Process process : nodeProcesses.values())
+        for (Map.Entry<String, Process> entry : nodeProcesses.entrySet())
         {
+            Process process = entry.getValue();
             process.destroy();
             try
             {
@@ -36,14 +37,17 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
             {
                 // ignore
             }
+            String remoteHostId = entry.getKey();
+            File rootPath = CommandLineUtil.defaultRootPath(remoteHostId);
+            IOUtil.deltree(rootPath);
         }
         nodeProcesses.clear();
     }
 
     @Override
-    public void launch(String hostname, String connectString) throws Exception
+    public void launch(String remoteHostId, String connectString) throws Exception
     {
-        if (nodeProcesses.containsKey(hostname))
+        if (nodeProcesses.containsKey(remoteHostId))
             return;
 
         String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
@@ -55,20 +59,20 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
                 String filename = cpFile.getName();
                 try (InputStream is = new FileInputStream(cpFile))
                 {
-                    uploadFile(hostname, filename, is);
+                    uploadFile(remoteHostId, filename, is);
                 }
             }
             else
             {
-                uploadDir(hostname, cpFile, 1);
+                uploadDir(remoteHostId, cpFile, 1);
             }
         }
 
         try
         {
-            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(jvmSettings, CommandLineUtil.defaultLibPath(hostname), hostname, connectString);
+            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(jvmSettings, CommandLineUtil.defaultLibPath(remoteHostId), remoteHostId, connectString);
             Process process = new ProcessBuilder(cmdLine).inheritIO().start();
-            nodeProcesses.put(hostname, process);
+            nodeProcesses.put(remoteHostId, process);
         }
         catch (Exception e)
         {
@@ -77,9 +81,9 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
     }
 
 
-    private void uploadFile(String hostname, String filename, InputStream contents) throws Exception
+    private void uploadFile(String remoteHostId, String filename, InputStream contents) throws Exception
     {
-        File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostname);
+        File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + remoteHostId);
         File libPath = new File(rootPath, "lib");
 
         File file = new File(libPath, filename);
@@ -90,7 +94,7 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
         }
     }
 
-    private void uploadDir(String hostname, File cpFile, int depth) throws Exception
+    private void uploadDir(String remoteHostId, File cpFile, int depth) throws Exception
     {
         File[] files = cpFile.listFiles();
         if (files == null)
@@ -110,12 +114,12 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
                 }
                 try (InputStream is = new FileInputStream(file))
                 {
-                    uploadFile(hostname, filename, is);
+                    uploadFile(remoteHostId, filename, is);
                 }
             }
             else
             {
-                uploadDir(hostname, file, depth + 1);
+                uploadDir(remoteHostId, file, depth + 1);
             }
         }
     }

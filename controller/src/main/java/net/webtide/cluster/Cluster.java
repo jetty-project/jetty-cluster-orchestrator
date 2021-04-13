@@ -11,6 +11,7 @@ import net.webtide.cluster.rpc.RpcClient;
 import net.webtide.cluster.rpc.command.SpawnNodeCommand;
 import net.webtide.cluster.configuration.Node;
 import net.webtide.cluster.configuration.RemoteHostLauncher;
+import net.webtide.cluster.util.CommandLineUtil;
 import net.webtide.cluster.util.IOUtil;
 import net.webtide.cluster.configuration.ClusterConfiguration;
 import net.webtide.cluster.configuration.NodeArrayConfiguration;
@@ -31,11 +32,17 @@ public class Cluster implements AutoCloseable
 
     public Cluster(String id, ClusterConfiguration configuration) throws Exception
     {
-        this.id = id;
+        this.id = sanitize(id);
         this.configuration = configuration;
         this.remoteHostLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
 
         init();
+    }
+
+    private static String sanitize(String id)
+    {
+        return id.replace(':', '_')
+            .replace('/', '_');
     }
 
     private void init() throws Exception
@@ -45,15 +52,15 @@ public class Cluster implements AutoCloseable
         curator.start();
         curator.blockUntilConnected();
 
-        List<String> hostnames = configuration.nodeArrays().stream()
+        List<String> remoteHostIds = configuration.nodeArrays().stream()
             .flatMap(cfg -> cfg.topology().nodes().stream())
-            .map(Node::getHostname)
+            .map(n -> id + "/" + sanitize(n.getHostname()))
             .distinct()
             .collect(Collectors.toList());
-        for (String hostname : hostnames)
+        for (String remoteHostId : remoteHostIds)
         {
-            remoteHostLauncher.launch(hostname, zkServer.getConnectString());
-            hostClients.put(hostname, new RpcClient(curator, hostname));
+            remoteHostLauncher.launch(remoteHostId, zkServer.getConnectString());
+            hostClients.put(remoteHostId, new RpcClient(curator, remoteHostId));
         }
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
@@ -61,11 +68,12 @@ public class Cluster implements AutoCloseable
             Collection<String> remoteNodeIds = new ArrayList<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
-                String remoteNodeId = node.getHostname() + "/" + nodeArrayConfiguration.id() + "/" + node.getId();
+                String remoteHostId = id + "/" + sanitize(node.getHostname());
+                String remoteNodeId = remoteHostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
                 remoteNodeIds.add(remoteNodeId);
 
-                RpcClient rpcClient = hostClients.get(node.getHostname());
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvmSettings(), node.getHostname(), remoteNodeId, zkServer.getConnectString()));
+                RpcClient rpcClient = hostClients.get(remoteHostId);
+                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvmSettings(), remoteHostId, remoteNodeId, zkServer.getConnectString()));
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(remoteNodeIds, curator));
         }
@@ -81,6 +89,7 @@ public class Cluster implements AutoCloseable
         hostClients.clear();
         nodeArrays.clear();
         IOUtil.close(remoteHostLauncher);
+        CommandLineUtil.defaultRootPath(id).delete();
         IOUtil.close(curator);
         IOUtil.close(zkServer);
     }

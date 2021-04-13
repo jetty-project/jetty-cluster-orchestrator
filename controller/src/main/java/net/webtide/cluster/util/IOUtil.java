@@ -36,22 +36,14 @@ public class IOUtil
         }
     }
 
-    public static void copyFile(File source, File target) throws IOException
-    {
-        if (target.isDirectory())
-            target = new File(target, source.getName());
-
-        byte[] buffer = new byte[64 * 1024];
-        try (InputStream is = new FileInputStream(source);
-             OutputStream os = new FileOutputStream(target))
+    public static boolean deltree(File folder) {
+        File[] files = folder.listFiles();
+        if (files != null)
         {
-            while (true)
-            {
-                int read = is.read(buffer);
-                if (read == -1)
-                    break;
-                os.write(buffer, 0, read);
+            for (File file : files) {
+                deltree(file);
             }
         }
+        return folder.delete();
     }
 }
