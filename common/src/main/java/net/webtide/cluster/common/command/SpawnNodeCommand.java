@@ -25,15 +25,12 @@ public class SpawnNodeCommand implements Command
     }
 
     @Override
-    public Object execute() throws Exception
+    public Object execute()
     {
         File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostname);
         File libPath = new File(rootPath, "lib");
         File nodeRootPath = new File(System.getProperty("user.home") + "/.wtc/" + remoteNodeId);
         nodeRootPath.mkdirs();
-
-        String jarOfCurrentClass = getClass().getProtectionDomain().getCodeSource().getLocation().getFile();
-        IOUtil.copyFile(new File(jarOfCurrentClass), libPath);
 
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.getHome() + "/bin/java");
@@ -63,7 +60,8 @@ public class SpawnNodeCommand implements Command
         {
             sb.append(entry.getPath()).append(File.pathSeparatorChar);
         }
-        sb.deleteCharAt(sb.length() - 1);
+        if (sb.length() > 0)
+            sb.deleteCharAt(sb.length() - 1);
         return sb.toString();
     }
 }
