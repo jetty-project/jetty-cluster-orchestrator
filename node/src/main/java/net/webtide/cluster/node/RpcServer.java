@@ -48,13 +48,13 @@ public class RpcServer
                 active = false;
                 throw new RuntimeException("Error reading command on node " + nodeId, e);
             }
-            Object obj = deserialize(cmdBytes);
-            if (!(obj instanceof Command))
-                continue;
-            Command command = (Command)obj;
             Object result;
             try
             {
+                Object obj = deserialize(cmdBytes);
+                if (!(obj instanceof Command))
+                    continue;
+                Command command = (Command)obj;
                 result = command.execute();
             }
             catch (AbortCommand.AbortException e)
@@ -71,7 +71,16 @@ public class RpcServer
             {
                 result = e;
             }
-            byte[] resBytes = serialize(result);
+
+            byte[] resBytes;
+            try
+            {
+                resBytes = serialize(result);
+            }
+            catch (IOException e)
+            {
+                resBytes = serialize(e);
+            }
             responseQueue.offer(resBytes);
         }
     }
