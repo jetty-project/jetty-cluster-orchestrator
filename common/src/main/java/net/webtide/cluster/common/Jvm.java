@@ -1,6 +1,8 @@
 package net.webtide.cluster.common;
 
-public class Jvm
+import java.io.Serializable;
+
+public class Jvm implements Serializable
 {
     private final String home;
     private final String version;

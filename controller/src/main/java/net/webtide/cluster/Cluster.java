@@ -3,7 +3,6 @@ package net.webtide.cluster;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.webtide.cluster.common.Jvm;
 import net.webtide.cluster.common.command.SpawnNodeCommand;
@@ -45,12 +44,11 @@ public class Cluster implements AutoCloseable
         {
             NodeArrayTopology topology = nodeArrayConfiguration.topology();
 
-            List<String> hostnames = topology.nodes().stream().map(Node::getHostname).collect(Collectors.toList());
-            for (String hostname : hostnames)
+            topology.nodes().stream().map(Node::getHostname).forEach(hostname ->
             {
                 remoteHostLauncher.launch(hostname, zkServer.getConnectString());
                 hostClients.put(hostname, new RpcClient(curator, hostname));
-            }
+            });
 
             for (Node node : topology.nodes())
             {
