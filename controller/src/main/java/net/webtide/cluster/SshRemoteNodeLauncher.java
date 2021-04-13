@@ -1,6 +1,5 @@
 package net.webtide.cluster;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,24 +37,35 @@ public class SshRemoteNodeLauncher implements RemoteNodeLauncher
         for (Process process : nodeProcesses.values())
         {
             process.destroy();
+            try
+            {
+                process.waitFor();
+            }
+            catch (InterruptedException e)
+            {
+                // ignore
+            }
         }
         nodeProcesses.clear();
     }
 
     @Override
-    public void launch(String nodeId, String connectString)
+    public void launch(String hostname, String connectString)
     {
+        if (nodeProcesses.containsKey(hostname))
+            return;
+
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvmSettings.jvm().getHome() + "/bin/java");
         cmdLine.addAll(jvmSettings.getOpts());
-        cmdLine.addAll(Arrays.asList("-jar", System.getProperty("java.io.tmpdir") + "/node.jar", nodeId, connectString));
+        cmdLine.addAll(Arrays.asList("-jar", System.getProperty("java.io.tmpdir") + "/node.jar", hostname, connectString));
 
         try
         {
             ProcessBuilder processBuilder = new ProcessBuilder(cmdLine);
             processBuilder.inheritIO();
             Process process = processBuilder.start();
-            nodeProcesses.put(nodeId, process);
+            nodeProcesses.put(hostname, process);
         }
         catch (Exception e)
         {
