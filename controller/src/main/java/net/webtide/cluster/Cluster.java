@@ -19,7 +19,7 @@ public class Cluster implements AutoCloseable
 {
     private final String id;
     private final ClusterConfiguration configuration;
-    private final RemoteNodeLauncher remoteNodeLauncher;
+    private final RemoteHostLauncher remoteHostLauncher;
     private final Map<String, NodeArray> nodeArrays = new HashMap<>();
     private final Map<String, RpcClient> hostClients = new HashMap<>();
     private TestingServer zkServer;
@@ -29,7 +29,7 @@ public class Cluster implements AutoCloseable
     {
         this.id = id;
         this.configuration = configuration;
-        this.remoteNodeLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
+        this.remoteHostLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
 
         init();
     }
@@ -48,7 +48,7 @@ public class Cluster implements AutoCloseable
             List<String> hostnames = topology.nodes().stream().map(Node::getHostname).collect(Collectors.toList());
             for (String hostname : hostnames)
             {
-                remoteNodeLauncher.launch(hostname, zkServer.getConnectString());
+                remoteHostLauncher.launch(hostname, zkServer.getConnectString());
                 hostClients.put(hostname, new RpcClient(curator, hostname));
             }
 
@@ -73,7 +73,7 @@ public class Cluster implements AutoCloseable
         }
         hostClients.clear();
         nodeArrays.clear();
-        IOUtil.close(remoteNodeLauncher);
+        IOUtil.close(remoteHostLauncher);
         IOUtil.close(curator);
         IOUtil.close(zkServer);
     }

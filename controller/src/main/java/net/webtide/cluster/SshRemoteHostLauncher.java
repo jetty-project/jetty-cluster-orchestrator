@@ -11,12 +11,12 @@ import java.util.Map;
 
 import net.webtide.cluster.common.util.IOUtil;
 
-public class SshRemoteNodeLauncher implements RemoteNodeLauncher
+public class SshRemoteHostLauncher implements RemoteHostLauncher
 {
     private final Map<String, Process> nodeProcesses = new HashMap<>();
     private final JvmSettings jvmSettings;
 
-    public SshRemoteNodeLauncher(JvmSettings jvmSettings)
+    public SshRemoteHostLauncher(JvmSettings jvmSettings)
     {
         this.jvmSettings = jvmSettings;
         try (InputStream is = getClass().getResourceAsStream("/node.jar");

@@ -1,8 +1,8 @@
 package net.webtide.cluster.configuration;
 
 import net.webtide.cluster.JvmSettings;
-import net.webtide.cluster.RemoteNodeLauncher;
-import net.webtide.cluster.SshRemoteNodeLauncher;
+import net.webtide.cluster.RemoteHostLauncher;
+import net.webtide.cluster.SshRemoteHostLauncher;
 
 public class SimpleRemotingConfiguration implements RemotingConfiguration
 {
@@ -20,8 +20,8 @@ public class SimpleRemotingConfiguration implements RemotingConfiguration
     }
 
     @Override
-    public RemoteNodeLauncher buildRemoteNodeLauncher()
+    public RemoteHostLauncher buildRemoteNodeLauncher()
     {
-        return new SshRemoteNodeLauncher(jvmSettings);
+        return new SshRemoteHostLauncher(jvmSettings);
     }
 }

@@ -1,8 +1,8 @@
 package net.webtide.cluster.configuration;
 
-import net.webtide.cluster.RemoteNodeLauncher;
+import net.webtide.cluster.RemoteHostLauncher;
 
 public interface RemotingConfiguration
 {
-    RemoteNodeLauncher buildRemoteNodeLauncher();
+    RemoteHostLauncher buildRemoteNodeLauncher();
 }
