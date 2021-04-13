@@ -1,6 +1,6 @@
 package net.webtide.cluster;
 
-public interface RemoteNodeLauncher
+public interface RemoteNodeLauncher extends AutoCloseable
 {
-    void launch(JvmSettings jvmSettings, Node node, String rendezVous);
+    void launch(Node node, String rendezVous);
 }
