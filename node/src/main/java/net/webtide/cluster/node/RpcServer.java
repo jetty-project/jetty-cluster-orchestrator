@@ -45,6 +45,7 @@ public class RpcServer
             }
             catch (Exception e)
             {
+                active = false;
                 throw new RuntimeException("Error reading command on node " + nodeId, e);
             }
             Object obj = deserialize(cmdBytes);
