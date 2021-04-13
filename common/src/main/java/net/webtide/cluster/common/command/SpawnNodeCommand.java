@@ -1,11 +1,11 @@
 package net.webtide.cluster.common.command;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import net.webtide.cluster.common.Jvm;
-import net.webtide.cluster.common.util.IOUtil;
+import net.webtide.cluster.common.JvmSettings;
+import net.webtide.cluster.common.util.CommandLineUtil;
 
 public class SpawnNodeCommand implements Command
 {
@@ -27,22 +27,12 @@ public class SpawnNodeCommand implements Command
     @Override
     public Object execute()
     {
-        File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostname);
-        File libPath = new File(rootPath, "lib");
-        File nodeRootPath = new File(System.getProperty("user.home") + "/.wtc/" + remoteNodeId);
-        nodeRootPath.mkdirs();
-
-        List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvm.getHome() + "/bin/java");
-        cmdLine.addAll(opts);
-        cmdLine.add("-classpath");
-        cmdLine.add(buildClassPath(libPath));
-        cmdLine.add("net.webtide.cluster.node.RemoteNode");
-        cmdLine.add(remoteNodeId);
-        cmdLine.add(connectString);
-
         try
         {
+            File nodeRootPath = CommandLineUtil.defaultRootPath(remoteNodeId);
+            nodeRootPath.mkdirs();
+            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(new JvmSettings(() -> jvm, opts.toArray(new String[0])), CommandLineUtil.defaultLibPath(hostname), remoteNodeId, connectString);
+
             new ProcessBuilder(cmdLine).directory(nodeRootPath).inheritIO().start();
             return null;
         }
@@ -50,18 +40,5 @@ public class SpawnNodeCommand implements Command
         {
             throw new RuntimeException(e);
         }
-    }
-
-    private static String buildClassPath(File libPath)
-    {
-        File[] entries = libPath.listFiles();
-        StringBuilder sb = new StringBuilder();
-        for (File entry : entries)
-        {
-            sb.append(entry.getPath()).append(File.pathSeparatorChar);
-        }
-        if (sb.length() > 0)
-            sb.deleteCharAt(sb.length() - 1);
-        return sb.toString();
     }
 }

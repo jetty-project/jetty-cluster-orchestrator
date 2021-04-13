@@ -1,4 +1,4 @@
-package net.webtide.cluster;
+package net.webtide.cluster.common;
 
 import java.util.Arrays;
 import java.util.List;

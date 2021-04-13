@@ -5,11 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.webtide.cluster.common.JvmSettings;
+import net.webtide.cluster.common.util.CommandLineUtil;
 import net.webtide.cluster.common.util.IOUtil;
 
 public class SshRemoteHostLauncher implements RemoteHostLauncher
@@ -64,25 +65,10 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
             }
         }
 
-        File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostname);
-        File libPath = new File(rootPath, "lib");
-
-        List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvmSettings.jvm().getHome() + "/bin/java");
-        cmdLine.addAll(jvmSettings.getOpts());
-        cmdLine.add("-classpath");
-        cmdLine.add(buildClassPath(libPath));
-        cmdLine.add("net.webtide.cluster.node.RemoteNode");
-        cmdLine.add(hostname);
-        cmdLine.add(connectString);
-
-        System.out.println("command line: " + cmdLine);
-
         try
         {
-            ProcessBuilder processBuilder = new ProcessBuilder(cmdLine);
-            processBuilder.inheritIO();
-            Process process = processBuilder.start();
+            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(jvmSettings, CommandLineUtil.defaultLibPath(hostname), hostname, connectString);
+            Process process = new ProcessBuilder(cmdLine).inheritIO().start();
             nodeProcesses.put(hostname, process);
         }
         catch (Exception e)
@@ -91,18 +77,6 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
         }
     }
 
-    private static String buildClassPath(File libPath)
-    {
-        File[] entries = libPath.listFiles();
-        StringBuilder sb = new StringBuilder();
-        for (File entry : entries)
-        {
-            sb.append(entry.getPath()).append(File.pathSeparatorChar);
-        }
-        if (sb.length() > 0)
-            sb.deleteCharAt(sb.length() - 1);
-        return sb.toString();
-    }
 
     private void uploadFile(String hostname, String filename, InputStream contents) throws Exception
     {

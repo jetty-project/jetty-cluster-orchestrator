@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.webtide.cluster.JvmSettings;
+import net.webtide.cluster.common.JvmSettings;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration
 {
