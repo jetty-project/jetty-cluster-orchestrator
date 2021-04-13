@@ -23,7 +23,11 @@ public class CommandLineUtil
     public static List<String> remoteNodeCommandLine(JvmSettings jvmSettings, File libPath, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvmSettings.jvm().getHome() + "/bin/java");
+        String jvmHome = jvmSettings.jvm().getHome();
+        if (jvmHome != null)
+            cmdLine.add(jvmHome + "/bin/java");
+        else
+            cmdLine.add("java");
         cmdLine.addAll(jvmSettings.getOpts());
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));

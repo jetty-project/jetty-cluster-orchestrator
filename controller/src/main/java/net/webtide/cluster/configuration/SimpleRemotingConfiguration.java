@@ -2,12 +2,12 @@ package net.webtide.cluster.configuration;
 
 public class SimpleRemotingConfiguration implements RemotingConfiguration
 {
-    private JvmSettings jvmSettings;
+    private JvmSettings jvmSettings = JvmSettings.DEFAULT;
 
-    public SimpleRemotingConfiguration jvmSettings(JvmSettings jvmSettings)
+    @Override
+    public RemoteHostLauncher buildRemoteNodeLauncher()
     {
-        this.jvmSettings = jvmSettings;
-        return this;
+        return new SshRemoteHostLauncher(jvmSettings);
     }
 
     public JvmSettings jvmSettings()
@@ -15,9 +15,9 @@ public class SimpleRemotingConfiguration implements RemotingConfiguration
         return jvmSettings;
     }
 
-    @Override
-    public RemoteHostLauncher buildRemoteNodeLauncher()
+    public SimpleRemotingConfiguration jvmSettings(JvmSettings jvmSettings)
     {
-        return new SshRemoteHostLauncher(jvmSettings);
+        this.jvmSettings = jvmSettings;
+        return this;
     }
 }

@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.webtide.cluster.configuration.JvmSettings;
-import net.webtide.cluster.configuration.RemoteHostLauncher;
 import net.webtide.cluster.util.CommandLineUtil;
 import net.webtide.cluster.util.IOUtil;
 

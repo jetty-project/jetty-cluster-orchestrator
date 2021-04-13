@@ -3,7 +3,7 @@ package net.webtide.cluster.configuration;
 public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
 {
     private final String id;
-    private JvmSettings jvmSettings;
+    private JvmSettings jvmSettings = JvmSettings.DEFAULT;
     private NodeArrayTopology nodeArrayTopology;
 
     public SimpleNodeArrayConfiguration(String id)

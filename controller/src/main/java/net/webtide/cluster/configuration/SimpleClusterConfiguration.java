@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration
 {
-    private JvmSettings jvmSettings;
+    private JvmSettings jvmSettings = JvmSettings.DEFAULT;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private RemotingConfiguration remotingConfiguration = new SimpleRemotingConfiguration();
 
