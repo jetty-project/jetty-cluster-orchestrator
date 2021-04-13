@@ -14,13 +14,15 @@ public class RemoteNode
         CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new ExponentialBackoffRetry(1000, 3));
         curator.start();
         curator.blockUntilConnected();
-        Runtime.getRuntime().addShutdownHook(new Thread(curator::close));
+        Runtime.getRuntime().addShutdownHook(new Thread(() ->
+        {
+            curator.close();
+            System.out.println("Remote node [" + nodeId + "] stopped");
+        }));
 
         System.out.println("Remote node [" + nodeId + "] connected to " + connectString);
-
-        try (CommandProcessor commandProcessor = new CommandProcessor(curator, nodeId))
-        {
-            commandProcessor.run();
-        }
+        RpcServer rpcServer = new RpcServer(curator, nodeId);
+        rpcServer.run();
+        System.out.println("Remote node [" + nodeId + "] stopping");
     }
 }

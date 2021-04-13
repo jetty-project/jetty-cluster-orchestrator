@@ -41,16 +41,21 @@ public class Cluster implements AutoCloseable
             NodeArrayTopology topology = nodeArrayConfiguration.topology();
             for (Node node : topology.nodes())
             {
-                String id = nodeArrayConfiguration.id() + "#" + node.getId();
-                remoteNodeLauncher.launch(id, zkServer.getConnectString());
+                String remoteNodeId = nodeArrayConfiguration.id() + "#" + node.getId();
+                remoteNodeLauncher.launch(remoteNodeId, zkServer.getConnectString());
             }
-            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray());
+            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeArrayConfiguration.id(), nodeArrayConfiguration.topology(), curator));
         }
     }
 
     @Override
     public void close()
     {
+        for (NodeArray nodeArray : nodeArrays.values())
+        {
+            nodeArray.close();
+        }
+        nodeArrays.clear();
         IOUtil.close(remoteNodeLauncher);
         IOUtil.close(curator);
         IOUtil.close(zkServer);

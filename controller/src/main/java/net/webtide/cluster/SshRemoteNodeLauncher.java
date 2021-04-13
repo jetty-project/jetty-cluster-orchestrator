@@ -1,5 +1,6 @@
 package net.webtide.cluster;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
