@@ -24,7 +24,7 @@ public class Cluster implements AutoCloseable
     {
         this.id = id;
         this.configuration = configuration;
-        remoteNodeLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
+        this.remoteNodeLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
 
         init();
     }
@@ -41,7 +41,8 @@ public class Cluster implements AutoCloseable
             NodeArrayTopology topology = nodeArrayConfiguration.topology();
             for (Node node : topology.nodes())
             {
-                remoteNodeLauncher.launch(node, zkServer.getConnectString());
+                String id = nodeArrayConfiguration.id() + "#" + node.getId();
+                remoteNodeLauncher.launch(id, zkServer.getConnectString());
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray());
         }

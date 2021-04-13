@@ -15,6 +15,12 @@ public class SimpleClusterConfiguration implements ClusterConfiguration
     public SimpleClusterConfiguration jvmSettings(JvmSettings jvmSettings)
     {
         this.jvmSettings = jvmSettings;
+        if (remotingConfiguration instanceof SimpleRemotingConfiguration)
+        {
+            SimpleRemotingConfiguration simpleRemotingConfiguration = (SimpleRemotingConfiguration)remotingConfiguration;
+            if (simpleRemotingConfiguration.jvmSettings() == null)
+                simpleRemotingConfiguration.jvmSettings(jvmSettings);
+        }
         return this;
     }
 

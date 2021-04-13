@@ -14,6 +14,11 @@ public class SimpleRemotingConfiguration implements RemotingConfiguration
         return this;
     }
 
+    public JvmSettings jvmSettings()
+    {
+        return jvmSettings;
+    }
+
     @Override
     public RemoteNodeLauncher buildRemoteNodeLauncher()
     {

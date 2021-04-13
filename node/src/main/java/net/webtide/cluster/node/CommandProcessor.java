@@ -18,7 +18,7 @@ public class CommandProcessor implements AutoCloseable
     public CommandProcessor(CuratorFramework curator, String nodeId) throws Exception
     {
         commandQueue = InitHelper.buildCommandQueue(curator, nodeId, queueConsumer);
-        responseQueue = InitHelper.buildResponseQueue(curator, nodeId, new QueueConsumer<>() {
+        responseQueue = InitHelper.buildResponseQueue(curator, nodeId, new QueueConsumer<Object>() {
             @Override
             public void consumeMessage(Object message)
             {

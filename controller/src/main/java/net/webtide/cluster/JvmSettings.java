@@ -14,4 +14,14 @@ public class JvmSettings
         this.jvmSupplier = jvmSupplier;
         this.opts = Arrays.asList(opts);
     }
+
+    public Jvm jvm()
+    {
+        return jvmSupplier.get();
+    }
+
+    public List<String> getOpts()
+    {
+        return opts;
+    }
 }
