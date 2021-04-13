@@ -1,4 +1,4 @@
-package net.webtide.cluster;
+package net.webtide.cluster.configuration;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,9 +9,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.webtide.cluster.common.JvmSettings;
-import net.webtide.cluster.common.util.CommandLineUtil;
-import net.webtide.cluster.common.util.IOUtil;
+import net.webtide.cluster.configuration.JvmSettings;
+import net.webtide.cluster.configuration.RemoteHostLauncher;
+import net.webtide.cluster.util.CommandLineUtil;
+import net.webtide.cluster.util.IOUtil;
 
 public class SshRemoteHostLauncher implements RemoteHostLauncher
 {

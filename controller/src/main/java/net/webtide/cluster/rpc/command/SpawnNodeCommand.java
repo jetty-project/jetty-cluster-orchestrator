@@ -1,10 +1,10 @@
-package net.webtide.cluster.common.command;
+package net.webtide.cluster.rpc.command;
 
 import java.io.File;
 import java.util.List;
 
-import net.webtide.cluster.common.JvmSettings;
-import net.webtide.cluster.common.util.CommandLineUtil;
+import net.webtide.cluster.configuration.JvmSettings;
+import net.webtide.cluster.util.CommandLineUtil;
 
 public class SpawnNodeCommand implements Command
 {

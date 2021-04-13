@@ -1,7 +1,9 @@
-package net.webtide.cluster;
+package net.webtide.cluster.configuration;
 
 import java.util.Arrays;
 import java.util.Collection;
+
+import net.webtide.cluster.configuration.Node;
 
 public class NodeArrayTopology
 {

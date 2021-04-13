@@ -1,10 +1,10 @@
-package net.webtide.cluster.common;
+package net.webtide.cluster.configuration;
 
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-import net.webtide.cluster.common.util.SerializableSupplier;
+import net.webtide.cluster.util.SerializableSupplier;
 
 public class JvmSettings implements Serializable
 {

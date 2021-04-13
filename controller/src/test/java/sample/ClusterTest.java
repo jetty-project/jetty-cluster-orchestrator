@@ -1,14 +1,14 @@
 package sample;
 
 import net.webtide.cluster.Cluster;
-import net.webtide.cluster.Node;
-import net.webtide.cluster.NodeArrayFuture;
-import net.webtide.cluster.NodeArrayTopology;
-import net.webtide.cluster.configuration.ClusterConfiguration;
-import net.webtide.cluster.configuration.SimpleClusterConfiguration;
-import net.webtide.cluster.common.Jvm;
-import net.webtide.cluster.common.JvmSettings;
 import net.webtide.cluster.NodeArray;
+import net.webtide.cluster.NodeArrayFuture;
+import net.webtide.cluster.configuration.ClusterConfiguration;
+import net.webtide.cluster.configuration.Jvm;
+import net.webtide.cluster.configuration.JvmSettings;
+import net.webtide.cluster.configuration.Node;
+import net.webtide.cluster.configuration.NodeArrayTopology;
+import net.webtide.cluster.configuration.SimpleClusterConfiguration;
 import net.webtide.cluster.configuration.SimpleNodeArrayConfiguration;
 import org.junit.jupiter.api.Test;
 

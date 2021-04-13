@@ -1,6 +1,6 @@
-package net.webtide.cluster.common.command;
+package net.webtide.cluster.rpc.command;
 
-import net.webtide.cluster.common.NodeJob;
+import net.webtide.cluster.NodeJob;
 
 public class ExecuteNodeJobCommand implements Command
 {

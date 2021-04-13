@@ -4,9 +4,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.webtide.cluster.common.NodeJob;
-import net.webtide.cluster.common.command.ExecuteNodeJobCommand;
-import net.webtide.cluster.common.command.ShutdownCommand;
+import net.webtide.cluster.rpc.command.ExecuteNodeJobCommand;
+import net.webtide.cluster.rpc.RpcClient;
+import net.webtide.cluster.rpc.command.ShutdownCommand;
+import net.webtide.cluster.configuration.Node;
+import net.webtide.cluster.configuration.NodeArrayTopology;
 import org.apache.curator.framework.CuratorFramework;
 
 public class NodeArray implements AutoCloseable

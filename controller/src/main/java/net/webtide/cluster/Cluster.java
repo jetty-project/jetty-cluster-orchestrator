@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import net.webtide.cluster.common.Jvm;
-import net.webtide.cluster.common.command.SpawnNodeCommand;
-import net.webtide.cluster.common.util.IOUtil;
+import net.webtide.cluster.rpc.RpcClient;
+import net.webtide.cluster.rpc.command.SpawnNodeCommand;
+import net.webtide.cluster.configuration.Node;
+import net.webtide.cluster.configuration.NodeArrayTopology;
+import net.webtide.cluster.configuration.RemoteHostLauncher;
+import net.webtide.cluster.util.IOUtil;
 import net.webtide.cluster.configuration.ClusterConfiguration;
 import net.webtide.cluster.configuration.NodeArrayConfiguration;
 import org.apache.curator.framework.CuratorFramework;

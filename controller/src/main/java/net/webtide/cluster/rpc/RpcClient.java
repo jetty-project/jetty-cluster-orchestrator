@@ -1,4 +1,4 @@
-package net.webtide.cluster;
+package net.webtide.cluster.rpc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.ExecutionException;
 
-import net.webtide.cluster.common.command.Command;
+import net.webtide.cluster.rpc.command.Command;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
 

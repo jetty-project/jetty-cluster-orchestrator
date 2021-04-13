@@ -1,5 +1,6 @@
-package net.webtide.cluster.node;
+package net.webtide.cluster.rpc;
 
+import net.webtide.cluster.rpc.RpcServer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;

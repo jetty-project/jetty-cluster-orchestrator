@@ -1,10 +1,11 @@
-package net.webtide.cluster.common.util;
+package net.webtide.cluster.util;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.webtide.cluster.common.JvmSettings;
+import net.webtide.cluster.configuration.JvmSettings;
+import net.webtide.cluster.rpc.RemoteNode;
 
 public class CommandLineUtil
 {
@@ -26,7 +27,7 @@ public class CommandLineUtil
         cmdLine.addAll(jvmSettings.getOpts());
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
-        cmdLine.add("net.webtide.cluster.node.RemoteNode");
+        cmdLine.add(RemoteNode.class.getName());
         cmdLine.add(hostname);
         cmdLine.add(connectString);
         return cmdLine;
@@ -44,5 +45,4 @@ public class CommandLineUtil
             sb.deleteCharAt(sb.length() - 1);
         return sb.toString();
     }
-
 }

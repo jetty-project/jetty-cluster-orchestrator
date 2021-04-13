@@ -1,4 +1,4 @@
-package net.webtide.cluster.common;
+package net.webtide.cluster.configuration;
 
 import java.io.Serializable;
 

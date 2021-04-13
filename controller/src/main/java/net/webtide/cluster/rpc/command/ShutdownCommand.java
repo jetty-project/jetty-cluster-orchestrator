@@ -1,4 +1,4 @@
-package net.webtide.cluster.common.command;
+package net.webtide.cluster.rpc.command;
 
 public class ShutdownCommand implements Command
 {

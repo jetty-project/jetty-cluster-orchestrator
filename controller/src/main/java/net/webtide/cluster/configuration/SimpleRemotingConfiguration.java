@@ -1,9 +1,5 @@
 package net.webtide.cluster.configuration;
 
-import net.webtide.cluster.common.JvmSettings;
-import net.webtide.cluster.RemoteHostLauncher;
-import net.webtide.cluster.SshRemoteHostLauncher;
-
 public class SimpleRemotingConfiguration implements RemotingConfiguration
 {
     private JvmSettings jvmSettings;

@@ -1,4 +1,4 @@
-package net.webtide.cluster.common.util;
+package net.webtide.cluster.util;
 
 import java.io.Serializable;
 import java.util.function.Supplier;

@@ -1,8 +1,5 @@
 package net.webtide.cluster.configuration;
 
-import net.webtide.cluster.common.JvmSettings;
-import net.webtide.cluster.NodeArrayTopology;
-
 public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
 {
     private final String id;

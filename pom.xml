@@ -13,9 +13,7 @@
   </properties>
 
   <modules>
-    <module>common</module>
     <module>controller</module>
-    <module>node</module>
   </modules>
 
 </project>
