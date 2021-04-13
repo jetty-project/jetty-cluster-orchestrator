@@ -6,7 +6,7 @@ import net.webtide.cluster.NodeArrayFuture;
 import net.webtide.cluster.NodeArrayTopology;
 import net.webtide.cluster.configuration.ClusterConfiguration;
 import net.webtide.cluster.configuration.SimpleClusterConfiguration;
-import net.webtide.cluster.Jvm;
+import net.webtide.cluster.common.Jvm;
 import net.webtide.cluster.JvmSettings;
 import net.webtide.cluster.NodeArray;
 import net.webtide.cluster.configuration.SimpleNodeArrayConfiguration;

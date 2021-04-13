@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
+import net.webtide.cluster.common.Jvm;
+
 public class JvmSettings
 {
     private final Supplier<Jvm> jvmSupplier;

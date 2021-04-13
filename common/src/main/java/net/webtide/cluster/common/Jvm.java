@@ -1,4 +1,4 @@
-package net.webtide.cluster;
+package net.webtide.cluster.common;
 
 public class Jvm
 {

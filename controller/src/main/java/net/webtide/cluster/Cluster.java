@@ -1,12 +1,11 @@
 package net.webtide.cluster;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import net.webtide.cluster.common.Jvm;
 import net.webtide.cluster.common.command.SpawnNodeCommand;
 import net.webtide.cluster.common.util.IOUtil;
 import net.webtide.cluster.configuration.ClusterConfiguration;
@@ -57,12 +56,9 @@ public class Cluster implements AutoCloseable
             {
                 String remoteNodeId = node.getHostname() + "/" + nodeArrayConfiguration.id() + "/" + node.getId();
 
-                List<String> cmdLine = new ArrayList<>();
-                cmdLine.add(nodeArrayConfiguration.jvmSettings().jvm().getHome() + "/bin/java");
-                cmdLine.addAll(nodeArrayConfiguration.jvmSettings().getOpts());
-                cmdLine.addAll(Arrays.asList("-jar", System.getProperty("java.io.tmpdir") + "/node.jar", remoteNodeId, zkServer.getConnectString()));
-
-                hostClients.get(node.getHostname()).call(new SpawnNodeCommand(cmdLine));
+                Jvm jvm = nodeArrayConfiguration.jvmSettings().jvm();
+                List<String> opts = nodeArrayConfiguration.jvmSettings().getOpts();
+                hostClients.get(node.getHostname()).call(new SpawnNodeCommand(jvm, opts, remoteNodeId, zkServer.getConnectString()));
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeArrayConfiguration.id(), nodeArrayConfiguration.topology(), curator));
         }
