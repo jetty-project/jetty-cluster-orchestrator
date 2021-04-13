@@ -1,17 +1,17 @@
 package net.webtide.cluster.common;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 
-import net.webtide.cluster.common.Jvm;
+import net.webtide.cluster.common.util.SerializableSupplier;
 
-public class JvmSettings
+public class JvmSettings implements Serializable
 {
-    private final Supplier<Jvm> jvmSupplier;
+    private final SerializableSupplier<Jvm> jvmSupplier;
     private final List<String> opts;
 
-    public JvmSettings(Supplier<Jvm> jvmSupplier, String... opts)
+    public JvmSettings(SerializableSupplier<Jvm> jvmSupplier, String... opts)
     {
         this.jvmSupplier = jvmSupplier;
         this.opts = Arrays.asList(opts);
