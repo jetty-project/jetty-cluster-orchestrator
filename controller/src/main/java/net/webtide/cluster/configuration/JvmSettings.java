@@ -8,7 +8,7 @@ import net.webtide.cluster.util.SerializableSupplier;
 
 public class JvmSettings implements Serializable
 {
-    public static JvmSettings DEFAULT = new JvmSettings(() -> new Jvm(null, "unknown"));
+    public static JvmSettings DEFAULT = new JvmSettings(() -> new Jvm(null));
 
     private final SerializableSupplier<Jvm> jvmSupplier;
     private final List<String> opts;

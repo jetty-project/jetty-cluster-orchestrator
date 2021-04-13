@@ -4,24 +4,20 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.webtide.cluster.rpc.command.ExecuteNodeJobCommand;
 import net.webtide.cluster.rpc.RpcClient;
+import net.webtide.cluster.rpc.command.ExecuteNodeJobCommand;
 import net.webtide.cluster.rpc.command.ShutdownCommand;
-import net.webtide.cluster.configuration.Node;
-import net.webtide.cluster.configuration.NodeArrayTopology;
 import org.apache.curator.framework.CuratorFramework;
 
 public class NodeArray implements AutoCloseable
 {
     private final Map<String, RpcClient> nodes = new HashMap<>();
 
-    public NodeArray(String topologyId, NodeArrayTopology topology, CuratorFramework curator)
+    public NodeArray(Collection<String> remoteNodeIds, CuratorFramework curator)
     {
-        Collection<Node> nodes = topology.nodes();
-        for (Node node : nodes)
+        for (String remoteNodeId : remoteNodeIds)
         {
-            String nodeId = node.getHostname() + "/" + topologyId + "/" + node.getId();
-            this.nodes.put(nodeId, new RpcClient(curator, nodeId));
+            this.nodes.put(remoteNodeId, new RpcClient(curator, remoteNodeId));
         }
     }
 

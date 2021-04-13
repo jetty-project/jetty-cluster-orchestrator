@@ -1,5 +1,7 @@
 package net.webtide.cluster;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +10,6 @@ import java.util.stream.Collectors;
 import net.webtide.cluster.rpc.RpcClient;
 import net.webtide.cluster.rpc.command.SpawnNodeCommand;
 import net.webtide.cluster.configuration.Node;
-import net.webtide.cluster.configuration.NodeArrayTopology;
 import net.webtide.cluster.configuration.RemoteHostLauncher;
 import net.webtide.cluster.util.IOUtil;
 import net.webtide.cluster.configuration.ClusterConfiguration;
@@ -57,16 +58,16 @@ public class Cluster implements AutoCloseable
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
         {
-            NodeArrayTopology topology = nodeArrayConfiguration.topology();
-
-            for (Node node : topology.nodes())
+            Collection<String> remoteNodeIds = new ArrayList<>();
+            for (Node node : nodeArrayConfiguration.topology().nodes())
             {
                 String remoteNodeId = node.getHostname() + "/" + nodeArrayConfiguration.id() + "/" + node.getId();
+                remoteNodeIds.add(remoteNodeId);
 
                 RpcClient rpcClient = hostClients.get(node.getHostname());
                 rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvmSettings(), node.getHostname(), remoteNodeId, zkServer.getConnectString()));
             }
-            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeArrayConfiguration.id(), nodeArrayConfiguration.topology(), curator));
+            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(remoteNodeIds, curator));
         }
     }
 
