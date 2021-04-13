@@ -4,7 +4,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.webtide.cluster.common.command.EchoCommand;
+import net.webtide.cluster.common.NodeJob;
+import net.webtide.cluster.common.command.ExecuteNodeJobCommand;
 import net.webtide.cluster.common.command.ShutdownCommand;
 import org.apache.curator.framework.CuratorFramework;
 
@@ -43,7 +44,7 @@ public class NodeArray implements AutoCloseable
     {
         for (RpcClient rpcClient : nodes.values())
         {
-            Object response = rpcClient.call(new EchoCommand("hello"));
+            rpcClient.call(new ExecuteNodeJobCommand(nodeJob));
         }
 
         return new NodeArrayFuture();

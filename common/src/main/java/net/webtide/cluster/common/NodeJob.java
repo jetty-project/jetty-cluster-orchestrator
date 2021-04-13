@@ -1,9 +1,9 @@
-package net.webtide.cluster;
+package net.webtide.cluster.common;
 
 import java.io.Serializable;
 
 @FunctionalInterface
 public interface NodeJob extends Serializable
 {
-    void execute(ClusterEnvironment env) throws Exception;
+    void execute(ClusterTools env) throws Exception;
 }

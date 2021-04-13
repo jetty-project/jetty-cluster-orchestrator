@@ -22,8 +22,6 @@ public class InstallClasspathFileCommand implements Command
     @Override
     public Object execute() throws Exception
     {
-        if (!append)
-            System.out.println("installing " + filename);
         File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostname);
         File libPath = new File(rootPath, "lib");
 

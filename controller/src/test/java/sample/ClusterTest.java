@@ -20,7 +20,7 @@ public class ClusterTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.8", "8")))
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"))).jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.11", "11"))))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"))).jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.11", "11"))))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"))).jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.15", "15"))))
             ;
 
         try (Cluster cluster = new Cluster("ClusterTest::test", cfg))
@@ -30,12 +30,14 @@ public class ClusterTest
 
             NodeArrayFuture sf = serverArray.executeOnAll(env ->
             {
-                System.out.println("servers: hello, world!");
+                String javaVersion = System.getProperty("java.version");
+                System.out.println("servers: hello, world! from java " + javaVersion);
             });
             sf.get();
             NodeArrayFuture cf = clientArray.executeOnAll(env ->
             {
-                System.out.println("clients: hello, world!");
+                String javaVersion = System.getProperty("java.version");
+                System.out.println("clients: hello, world! from java " + javaVersion);
             });
             cf.get();
         }
