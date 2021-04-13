@@ -47,7 +47,7 @@ public class Cluster implements AutoCloseable
             Collection<Node> nodes = topology.nodes();
             for (Node node : nodes)
             {
-                remoteNodeLauncher.launch(node, zkServer.getConnectString());
+                remoteNodeLauncher.launch(remotingConfiguration.jvmSettings(), node, zkServer.getConnectString());
             }
 
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray());

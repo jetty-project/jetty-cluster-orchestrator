@@ -16,6 +16,12 @@
       <artifactId>common</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>net.webtide.cluster</groupId>
+      <artifactId>node</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.curator</groupId>
@@ -46,5 +52,36 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.2</version>
+        <executions>
+          <execution>
+            <id>copy</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>net.webtide.cluster</groupId>
+                  <artifactId>node</artifactId>
+                  <version>${project.version}</version>
+                  <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                  <destFileName>node.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

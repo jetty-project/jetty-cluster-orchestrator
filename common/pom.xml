@@ -12,12 +12,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>net.webtide.cluster</groupId>
-      <artifactId>common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.curator</groupId>
       <artifactId>curator-framework</artifactId>
       <version>5.1.0</version>

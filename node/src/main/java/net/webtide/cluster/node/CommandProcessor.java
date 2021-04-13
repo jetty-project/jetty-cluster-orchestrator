@@ -1,4 +1,4 @@
-package net.webtide.cluster.nodemanager;
+package net.webtide.cluster.node;
 
 import net.webtide.cluster.common.InitHelper;
 import net.webtide.cluster.common.command.Command;
