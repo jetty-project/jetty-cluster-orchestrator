@@ -52,7 +52,7 @@ public class NodeProcess implements AutoCloseable
         String nodeId = args[0];
         String connectString = args[1];
         if (LOG.isDebugEnabled())
-            LOG.debug("Starting node [{}] connecting to {}", nodeId, connectString);
+            LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"), connectString);
         CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
