@@ -10,9 +10,11 @@ public class Barrier
 
     private final DistributedDoubleBarrier distributedDoubleBarrier;
     private final AtomicCounter atomicCounter;
+    private final int parties;
 
     public Barrier(CuratorFramework curator, String nodeId, String name, int parties)
     {
+        this.parties = parties;
         distributedDoubleBarrier = new DistributedDoubleBarrier(curator, "/clients/" + clusterIdOf(nodeId) + "/Barrier/" + name, parties);
         atomicCounter = new AtomicCounter(curator, nodeId, "Barrier/Counter", name);
     }
@@ -22,15 +24,23 @@ public class Barrier
         return nodeId.split("/")[0];
     }
 
+    private int calculateArrivalIndex()
+    {
+        int arrivalIndex = (int)atomicCounter.getAndIncrement();
+        if (arrivalIndex == parties - 1)
+            atomicCounter.set(0L);
+        return arrivalIndex;
+    }
+
     public int await() throws Exception
     {
         distributedDoubleBarrier.enter();
-        return (int)atomicCounter.getAndIncrement();
+        return calculateArrivalIndex();
     }
 
     public int await(long timeout, TimeUnit unit) throws Exception
     {
         distributedDoubleBarrier.enter(timeout, unit);
-        return (int)atomicCounter.getAndIncrement();
+        return calculateArrivalIndex();
     }
 }

@@ -1,6 +1,7 @@
 package sample;
 
 import net.webtide.cluster.Cluster;
+import net.webtide.cluster.ClusterTools;
 import net.webtide.cluster.NodeArray;
 import net.webtide.cluster.NodeArrayFuture;
 import net.webtide.cluster.configuration.ClusterConfiguration;
@@ -35,16 +36,22 @@ public class ClusterTest
             {
                 long counter = tools.atomicCounter("counter").incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
-                int pos = tools.barrier("barrier", 2).await();
+                int pos = tools.barrier("barrier", 3).await();
                 System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
             NodeArrayFuture cf = clientArray.executeOnAll(tools ->
             {
                 long counter = tools.atomicCounter("counter").incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
-                int pos = tools.barrier("barrier", 2).await();
+                int pos = tools.barrier("barrier", 3).await();
                 System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
+
+            ClusterTools tools = cluster.tools();
+            long counter = tools.atomicCounter("counter").incrementAndGet();
+            int pos = tools.barrier("barrier", 3).await();
+            System.out.println("test: hello, world! counter = " + counter + " arrival = " + pos);
+
             sf.get();
             cf.get();
         }

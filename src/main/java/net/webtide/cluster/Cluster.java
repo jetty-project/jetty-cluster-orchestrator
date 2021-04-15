@@ -68,7 +68,7 @@ public class Cluster implements AutoCloseable
             .collect(Collectors.toList());
         for (String hostname : hostnames)
         {
-            String hostId = id + "/" + sanitize(hostname);
+            String hostId = hostIdFor(hostname);
             hostLauncher.launch(hostname, hostId, zkServer.getConnectString());
             hostClients.put(hostId, new RpcClient(curator, hostId));
         }
@@ -78,7 +78,7 @@ public class Cluster implements AutoCloseable
             Collection<String> nodeIds = new ArrayList<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
-                String hostId = id + "/" + sanitize(node.getHostname());
+                String hostId = hostIdFor(node.getHostname());
                 String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
                 nodeIds.add(nodeId);
 
@@ -89,10 +89,14 @@ public class Cluster implements AutoCloseable
         }
     }
 
+    private String hostIdFor(String hostname)
+    {
+        return id + "/" + sanitize(hostname);
+    }
+
     public ClusterTools tools()
     {
-        //return new ClusterTools();
-        throw new UnsupportedOperationException();
+        return new ClusterTools(curator, hostIdFor("localhost"));
     }
 
     @Override
