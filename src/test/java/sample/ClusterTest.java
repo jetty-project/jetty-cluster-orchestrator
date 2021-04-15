@@ -1,5 +1,7 @@
 package sample;
 
+import java.util.stream.Stream;
+
 import net.webtide.cluster.Cluster;
 import net.webtide.cluster.ClusterTools;
 import net.webtide.cluster.NodeArray;
@@ -10,26 +12,37 @@ import net.webtide.cluster.configuration.Node;
 import net.webtide.cluster.configuration.NodeArrayTopology;
 import net.webtide.cluster.configuration.SimpleClusterConfiguration;
 import net.webtide.cluster.configuration.SimpleNodeArrayConfiguration;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class ClusterTest
 {
-    @Test
-    public void test() throws Exception
-    {
-        ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .jvm(new Jvm(() -> "/work/tools/jdk/1.8/bin/java"))
+    private static Stream<ClusterConfiguration> clusterConfigurations() {
+        ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
                 .jvm(new Jvm(() -> "/work/tools/jdk/1.11/bin/java"))
             )
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
-                .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
+                .jvm(new Jvm(() -> "/work/tools/jdk/1.8/bin/java"))
             )
             ;
-        final int participantCount = cfg.nodeArrays().stream().mapToInt(cc -> cc.topology().nodes().size()).sum() + 1;
 
+        ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
+            .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"))))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"))))
+            ;
+
+        return Stream.of(cfg1, cfg2);
+    }
+
+    @ParameterizedTest
+    @MethodSource("clusterConfigurations")
+    public void test(ClusterConfiguration cfg) throws Exception
+    {
         try (Cluster cluster = new Cluster("ClusterTest::test", cfg))
         {
+            final int participantCount = cfg.nodeArrays().stream().mapToInt(cc -> cc.topology().nodes().size()).sum() + 1;
             NodeArray serverArray = cluster.nodeArray("server-array");
             NodeArray clientArray = cluster.nodeArray("client-array");
 
