@@ -7,7 +7,6 @@ import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 
 public class Barrier
 {
-
     private final DistributedDoubleBarrier distributedDoubleBarrier;
     private final AtomicCounter atomicCounter;
     private final int parties;
