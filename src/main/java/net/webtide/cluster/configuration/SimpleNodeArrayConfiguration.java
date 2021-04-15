@@ -1,9 +1,9 @@
 package net.webtide.cluster.configuration;
 
-public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
+public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
 {
     private final String id;
-    private Jvm jvm = Jvm.DEFAULT;
+    private Jvm jvm;
     private NodeArrayTopology nodeArrayTopology;
 
     public SimpleNodeArrayConfiguration(String id)

@@ -8,8 +8,6 @@ import net.webtide.cluster.util.SerializableSupplier;
 
 public class Jvm implements Serializable
 {
-    public static Jvm DEFAULT = new Jvm(() -> "java");
-
     private final SerializableSupplier<String> executableSupplier;
     private final List<String> opts;
 
