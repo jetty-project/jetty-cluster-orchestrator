@@ -6,6 +6,5 @@ public interface ClusterConfiguration
 {
     Jvm jvm();
     Collection<NodeArrayConfiguration> nodeArrays();
-    NodeArrayConfiguration nodeArray(String id);
-    RemotingConfiguration remotingConfiguration();
+    HostLauncher hostLauncher();
 }

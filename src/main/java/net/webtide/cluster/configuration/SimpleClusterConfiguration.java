@@ -10,12 +10,12 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
 
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
-    private RemotingConfiguration remotingConfiguration = new SimpleRemotingConfiguration();
+    private HostLauncher hostLauncher = new LocalHostLauncher();
 
     public SimpleClusterConfiguration jvm(Jvm jvm)
     {
         this.jvm = jvm;
-        ensureJvmSet(remotingConfiguration);
+        ensureJvmSet(hostLauncher);
         nodeArrayConfigurations.values().forEach(this::ensureJvmSet);
         return this;
     }
@@ -33,15 +33,9 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     }
 
     @Override
-    public NodeArrayConfiguration nodeArray(String id)
+    public HostLauncher hostLauncher()
     {
-        return nodeArrayConfigurations.get(id);
-    }
-
-    @Override
-    public RemotingConfiguration remotingConfiguration()
-    {
-        return remotingConfiguration;
+        return hostLauncher;
     }
 
     public SimpleClusterConfiguration nodeArray(NodeArrayConfiguration nodeArrayConfiguration)
@@ -54,10 +48,10 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
         return this;
     }
 
-    public SimpleClusterConfiguration remotingConfiguration(RemotingConfiguration remotingConfiguration)
+    public SimpleClusterConfiguration hostLauncher(HostLauncher hostLauncher)
     {
-        this.remotingConfiguration = remotingConfiguration;
-        ensureJvmSet(remotingConfiguration);
+        this.hostLauncher = hostLauncher;
+        ensureJvmSet(hostLauncher);
         return this;
     }
 

@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import net.webtide.cluster.configuration.LocalHostLauncher;
 import net.webtide.cluster.rpc.RpcClient;
 import net.webtide.cluster.rpc.command.SpawnNodeCommand;
 import net.webtide.cluster.configuration.Node;
-import net.webtide.cluster.configuration.RemoteHostLauncher;
-import net.webtide.cluster.util.CommandLineUtil;
+import net.webtide.cluster.configuration.HostLauncher;
 import net.webtide.cluster.util.IOUtil;
 import net.webtide.cluster.configuration.ClusterConfiguration;
 import net.webtide.cluster.configuration.NodeArrayConfiguration;
@@ -24,7 +24,8 @@ public class Cluster implements AutoCloseable
 {
     private final String id;
     private final ClusterConfiguration configuration;
-    private final RemoteHostLauncher remoteHostLauncher;
+    private final HostLauncher localHostLauncher = new LocalHostLauncher();
+    private final HostLauncher hostLauncher;
     private final Map<String, NodeArray> nodeArrays = new HashMap<>();
     private final Map<String, RpcClient> hostClients = new HashMap<>();
     private TestingServer zkServer;
@@ -34,7 +35,7 @@ public class Cluster implements AutoCloseable
     {
         this.id = sanitize(id);
         this.configuration = configuration;
-        this.remoteHostLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
+        this.hostLauncher = configuration.hostLauncher();
 
         try
         {
@@ -60,15 +61,16 @@ public class Cluster implements AutoCloseable
         curator.start();
         curator.blockUntilConnected();
 
-        List<String> remoteHostIds = configuration.nodeArrays().stream()
+        List<String> hostnames = configuration.nodeArrays().stream()
             .flatMap(cfg -> cfg.topology().nodes().stream())
-            .map(n -> id + "/" + sanitize(n.getHostname()))
+            .map(Node::getHostname)
             .distinct()
             .collect(Collectors.toList());
-        for (String remoteHostId : remoteHostIds)
+        for (String hostname : hostnames)
         {
-            remoteHostLauncher.launch(remoteHostId, zkServer.getConnectString());
-            hostClients.put(remoteHostId, new RpcClient(curator, remoteHostId));
+            String hostId = id + "/" + sanitize(hostname);
+            hostLauncher.launch(hostname, hostId, zkServer.getConnectString());
+            hostClients.put(hostId, new RpcClient(curator, hostId));
         }
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
@@ -76,12 +78,12 @@ public class Cluster implements AutoCloseable
             Collection<String> remoteNodeIds = new ArrayList<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
-                String remoteHostId = id + "/" + sanitize(node.getHostname());
-                String remoteNodeId = remoteHostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
+                String hostId = id + "/" + sanitize(node.getHostname());
+                String remoteNodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
                 remoteNodeIds.add(remoteNodeId);
 
-                RpcClient rpcClient = hostClients.get(remoteHostId);
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), remoteHostId, remoteNodeId, zkServer.getConnectString()));
+                RpcClient rpcClient = hostClients.get(hostId);
+                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, remoteNodeId, zkServer.getConnectString()));
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(remoteNodeIds, curator));
         }
@@ -96,8 +98,7 @@ public class Cluster implements AutoCloseable
         }
         hostClients.clear();
         nodeArrays.clear();
-        IOUtil.close(remoteHostLauncher);
-        CommandLineUtil.defaultRootPath(id).delete();
+        IOUtil.close(hostLauncher);
         IOUtil.close(curator);
         IOUtil.close(zkServer);
     }
