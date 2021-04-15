@@ -3,7 +3,7 @@ package net.webtide.cluster.configuration;
 public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
 {
     private final String id;
-    private JvmSettings jvmSettings = JvmSettings.DEFAULT;
+    private Jvm jvm = Jvm.DEFAULT;
     private NodeArrayTopology nodeArrayTopology;
 
     public SimpleNodeArrayConfiguration(String id)
@@ -18,9 +18,9 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
     }
 
     @Override
-    public JvmSettings jvmSettings()
+    public Jvm jvm()
     {
-        return jvmSettings;
+        return jvm;
     }
 
     @Override
@@ -29,9 +29,9 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration
         return nodeArrayTopology;
     }
 
-    public SimpleNodeArrayConfiguration jvmSettings(JvmSettings jvmSettings)
+    public SimpleNodeArrayConfiguration jvm(Jvm jvm)
     {
-        this.jvmSettings = jvmSettings;
+        this.jvm = jvm;
         return this;
     }
 

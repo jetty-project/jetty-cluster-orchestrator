@@ -73,7 +73,7 @@ public class Cluster implements AutoCloseable
                 remoteNodeIds.add(remoteNodeId);
 
                 RpcClient rpcClient = hostClients.get(remoteHostId);
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvmSettings(), remoteHostId, remoteNodeId, zkServer.getConnectString()));
+                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), remoteHostId, remoteNodeId, zkServer.getConnectString()));
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(remoteNodeIds, curator));
         }

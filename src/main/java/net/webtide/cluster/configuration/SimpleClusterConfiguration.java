@@ -6,26 +6,26 @@ import java.util.Map;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration
 {
-    private JvmSettings jvmSettings = JvmSettings.DEFAULT;
+    private Jvm jvm = Jvm.DEFAULT;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private RemotingConfiguration remotingConfiguration = new SimpleRemotingConfiguration();
 
-    public SimpleClusterConfiguration jvmSettings(JvmSettings jvmSettings)
+    public SimpleClusterConfiguration jvm(Jvm jvm)
     {
-        this.jvmSettings = jvmSettings;
+        this.jvm = jvm;
         if (remotingConfiguration instanceof SimpleRemotingConfiguration)
         {
             SimpleRemotingConfiguration simpleRemotingConfiguration = (SimpleRemotingConfiguration)remotingConfiguration;
-            if (simpleRemotingConfiguration.jvmSettings() == null)
-                simpleRemotingConfiguration.jvmSettings(jvmSettings);
+            if (simpleRemotingConfiguration.jvm() == null)
+                simpleRemotingConfiguration.jvm(jvm);
         }
         return this;
     }
 
     @Override
-    public JvmSettings jvmSettings()
+    public Jvm jvm()
     {
-        return jvmSettings;
+        return jvm;
     }
 
     @Override

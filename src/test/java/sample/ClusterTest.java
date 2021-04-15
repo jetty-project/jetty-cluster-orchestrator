@@ -5,7 +5,6 @@ import net.webtide.cluster.NodeArray;
 import net.webtide.cluster.NodeArrayFuture;
 import net.webtide.cluster.configuration.ClusterConfiguration;
 import net.webtide.cluster.configuration.Jvm;
-import net.webtide.cluster.configuration.JvmSettings;
 import net.webtide.cluster.configuration.Node;
 import net.webtide.cluster.configuration.NodeArrayTopology;
 import net.webtide.cluster.configuration.SimpleClusterConfiguration;
@@ -18,12 +17,12 @@ public class ClusterTest
     public void test() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.8")))
+            .jvm(new Jvm(() -> "/work/tools/jdk/1.8/bin/java"))
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost")))
-                .jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.11")))
+                .jvm(new Jvm(() -> "/work/tools/jdk/1.11/bin/java"))
             )
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost")))
-                .jvmSettings(new JvmSettings(() -> new Jvm("/work/tools/jdk/1.15")))
+                .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
             )
             ;
 

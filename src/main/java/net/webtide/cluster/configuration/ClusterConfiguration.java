@@ -4,7 +4,7 @@ import java.util.Collection;
 
 public interface ClusterConfiguration
 {
-    JvmSettings jvmSettings();
+    Jvm jvm();
     Collection<NodeArrayConfiguration> nodeArrays();
     NodeArrayConfiguration nodeArray(String id);
     RemotingConfiguration remotingConfiguration();

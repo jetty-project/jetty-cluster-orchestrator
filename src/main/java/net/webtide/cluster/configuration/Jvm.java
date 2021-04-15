@@ -1,26 +1,31 @@
 package net.webtide.cluster.configuration;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
+
+import net.webtide.cluster.util.SerializableSupplier;
 
 public class Jvm implements Serializable
 {
-    private final String home;
+    public static Jvm DEFAULT = new Jvm(() -> "java");
 
-    public Jvm(String home)
+    private final SerializableSupplier<String> executableSupplier;
+    private final List<String> opts;
+
+    public Jvm(SerializableSupplier<String> executableSupplier, String... opts)
     {
-        this.home = home;
+        this.executableSupplier = executableSupplier;
+        this.opts = Arrays.asList(opts);
     }
 
-    public String getHome()
+    public String executable()
     {
-        return home;
+        return executableSupplier.get();
     }
 
-    @Override
-    public String toString()
+    public List<String> getOpts()
     {
-        return "Jvm{" +
-            "home='" + home + '\'' +
-            '}';
+        return opts;
     }
 }

@@ -3,6 +3,6 @@ package net.webtide.cluster.configuration;
 public interface NodeArrayConfiguration
 {
     String id();
-    JvmSettings jvmSettings();
+    Jvm jvm();
     NodeArrayTopology topology();
 }

@@ -15,11 +15,11 @@ import net.webtide.cluster.util.IOUtil;
 public class SshRemoteHostLauncher implements RemoteHostLauncher
 {
     private final Map<String, Process> nodeProcesses = new HashMap<>();
-    private final JvmSettings jvmSettings;
+    private final Jvm jvm;
 
-    public SshRemoteHostLauncher(JvmSettings jvmSettings)
+    public SshRemoteHostLauncher(Jvm jvm)
     {
-        this.jvmSettings = jvmSettings;
+        this.jvm = jvm;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class SshRemoteHostLauncher implements RemoteHostLauncher
 
         try
         {
-            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(jvmSettings, CommandLineUtil.defaultLibPath(remoteHostId), remoteHostId, connectString);
+            List<String> cmdLine = CommandLineUtil.remoteNodeCommandLine(jvm, CommandLineUtil.defaultLibPath(remoteHostId), remoteHostId, connectString);
             Process process = new ProcessBuilder(cmdLine).inheritIO().start();
             nodeProcesses.put(remoteHostId, process);
         }
