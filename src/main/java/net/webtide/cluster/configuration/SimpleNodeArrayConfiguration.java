@@ -4,7 +4,7 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
 {
     private final String id;
     private Jvm jvm;
-    private NodeArrayTopology nodeArrayTopology;
+    private NodeArrayTopology nodeArrayTopology = new NodeArrayTopology();
 
     public SimpleNodeArrayConfiguration(String id)
     {
