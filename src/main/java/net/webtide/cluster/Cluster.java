@@ -7,17 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import net.webtide.cluster.configuration.ClusterConfiguration;
+import net.webtide.cluster.configuration.HostLauncher;
 import net.webtide.cluster.configuration.LocalHostLauncher;
+import net.webtide.cluster.configuration.Node;
+import net.webtide.cluster.configuration.NodeArrayConfiguration;
 import net.webtide.cluster.rpc.RpcClient;
 import net.webtide.cluster.rpc.command.SpawnNodeCommand;
-import net.webtide.cluster.configuration.Node;
-import net.webtide.cluster.configuration.HostLauncher;
 import net.webtide.cluster.util.IOUtil;
-import net.webtide.cluster.configuration.ClusterConfiguration;
-import net.webtide.cluster.configuration.NodeArrayConfiguration;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
 
 public class Cluster implements AutoCloseable
@@ -57,7 +57,7 @@ public class Cluster implements AutoCloseable
     private void init() throws Exception
     {
         zkServer = new TestingServer(true);
-        curator = CuratorFrameworkFactory.newClient(zkServer.getConnectString(), new ExponentialBackoffRetry(1000, 3));
+        curator = CuratorFrameworkFactory.newClient(zkServer.getConnectString(), new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
 

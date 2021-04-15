@@ -9,7 +9,7 @@ import net.webtide.cluster.configuration.Jvm;
 import net.webtide.cluster.util.IOUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.retry.RetryNTimes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class NodeProcess implements AutoCloseable
         String connectString = args[1];
         if (LOG.isDebugEnabled())
             LOG.debug("Starting node [{}] connecting to {}", nodeId, connectString);
-        CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new ExponentialBackoffRetry(1000, 3));
+        CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
 
