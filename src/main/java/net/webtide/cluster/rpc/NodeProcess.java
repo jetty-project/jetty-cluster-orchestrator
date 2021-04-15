@@ -12,6 +12,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class NodeProcess implements AutoCloseable
 {
@@ -53,6 +54,7 @@ public class NodeProcess implements AutoCloseable
         String connectString = args[1];
         if (LOG.isDebugEnabled())
             LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"), connectString);
+        MDC.put("NodeId", nodeId);
         CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
