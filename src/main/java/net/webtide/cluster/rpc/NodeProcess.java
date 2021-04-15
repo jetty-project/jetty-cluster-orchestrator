@@ -63,26 +63,21 @@ public class NodeProcess implements AutoCloseable
             LOG.debug("Node [{}] connected to {}", nodeId, connectString);
         RpcServer rpcServer = new RpcServer(curator, nodeId);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() ->
+        Runnable shutdown = () ->
         {
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopping", nodeId);
-            try
-            {
-                rpcServer.abort();
-            }
-            catch (Exception e)
-            {
-                // ignore
-            }
-            curator.close();
+            IOUtil.close(rpcServer);
+            IOUtil.close(curator);
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopped", nodeId);
-        }));
+        };
+        Runtime.getRuntime().addShutdownHook(new Thread(shutdown));
 
         rpcServer.run();
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
+        shutdown.run();
     }
 
     public static NodeProcess spawn(Jvm jvm, String hostId, String nodeId, String connectString) throws IOException

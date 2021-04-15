@@ -92,12 +92,10 @@ public class Cluster implements AutoCloseable
     @Override
     public void close()
     {
-        for (NodeArray nodeArray : nodeArrays.values())
-        {
-            nodeArray.close();
-        }
-        hostClients.clear();
+        nodeArrays.values().forEach(IOUtil::close);
         nodeArrays.clear();
+        hostClients.values().forEach(IOUtil::close);
+        hostClients.clear();
         IOUtil.close(hostLauncher);
         IOUtil.close(curator);
         IOUtil.close(zkServer);

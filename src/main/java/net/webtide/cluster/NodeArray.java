@@ -1,12 +1,16 @@
 package net.webtide.cluster;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import net.webtide.cluster.rpc.RpcClient;
 import net.webtide.cluster.rpc.command.ExecuteNodeJobCommand;
 import net.webtide.cluster.rpc.command.ShutdownCommand;
+import net.webtide.cluster.util.IOUtil;
 import org.apache.curator.framework.CuratorFramework;
 
 public class NodeArray implements AutoCloseable
@@ -34,17 +38,19 @@ public class NodeArray implements AutoCloseable
             {
                 // ignore
             }
+            IOUtil.close(client);
         }
         nodes.clear();
     }
 
     public NodeArrayFuture executeOnAll(NodeJob nodeJob) throws Exception
     {
+        List<CompletableFuture<Object>> futures = new ArrayList<>();
         for (RpcClient rpcClient : nodes.values())
         {
-            rpcClient.call(new ExecuteNodeJobCommand(nodeJob));
+            CompletableFuture<Object> future = rpcClient.callAsync(new ExecuteNodeJobCommand(nodeJob));
+            futures.add(future);
         }
-
-        return new NodeArrayFuture();
+        return new NodeArrayFuture(futures);
     }
 }
