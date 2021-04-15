@@ -8,6 +8,7 @@ import java.io.ObjectOutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.webtide.cluster.ClusterTools;
 import net.webtide.cluster.rpc.command.Command;
 import net.webtide.cluster.rpc.command.ShutdownCommand;
 import org.apache.curator.framework.CuratorFramework;
@@ -24,6 +25,7 @@ public class RpcServer implements AutoCloseable
     private final SimpleDistributedQueue responseQueue;
     private final ExecutorService executorService;
     private volatile boolean active;
+    private final ClusterTools clusterTools;
 
     public RpcServer(CuratorFramework curator, String nodeId)
     {
@@ -31,6 +33,7 @@ public class RpcServer implements AutoCloseable
         commandQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/commandQ");
         responseQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/responseQ");
         executorService = Executors.newCachedThreadPool();
+        clusterTools = new ClusterTools(curator, nodeId);
     }
 
     @Override
@@ -87,7 +90,7 @@ public class RpcServer implements AutoCloseable
                     try
                     {
                         requestId = request.getId();
-                        result = request.getCommand().execute();
+                        result = request.getCommand().execute(clusterTools);
                     }
                     catch (ShutdownCommand.ShutdownException e)
                     {
@@ -154,7 +157,7 @@ public class RpcServer implements AutoCloseable
     private static class AbortCommand implements Command
     {
         @Override
-        public Object execute() throws Exception
+        public Object execute(ClusterTools clusterTools)
         {
             return null;
         }

@@ -1,5 +1,6 @@
 package net.webtide.cluster.rpc.command;
 
+import net.webtide.cluster.ClusterTools;
 import net.webtide.cluster.NodeJob;
 
 public class ExecuteNodeJobCommand implements Command
@@ -12,9 +13,9 @@ public class ExecuteNodeJobCommand implements Command
     }
 
     @Override
-    public Object execute() throws Exception
+    public Object execute(ClusterTools clusterTools) throws Exception
     {
-        nodeJob.execute(null);
+        nodeJob.execute(clusterTools);
         return null;
     }
 }

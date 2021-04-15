@@ -1,5 +1,6 @@
 package net.webtide.cluster.rpc.command;
 
+import net.webtide.cluster.ClusterTools;
 import net.webtide.cluster.configuration.Jvm;
 import net.webtide.cluster.rpc.NodeProcess;
 
@@ -19,7 +20,7 @@ public class SpawnNodeCommand implements Command
     }
 
     @Override
-    public Object execute()
+    public Object execute(ClusterTools clusterTools)
     {
         try
         {

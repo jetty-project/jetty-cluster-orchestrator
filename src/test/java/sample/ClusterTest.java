@@ -31,17 +31,21 @@ public class ClusterTest
             NodeArray serverArray = cluster.nodeArray("server-array");
             NodeArray clientArray = cluster.nodeArray("client-array");
 
-            NodeArrayFuture sf = serverArray.executeOnAll(env ->
+            NodeArrayFuture sf = serverArray.executeOnAll(tools ->
             {
+                long counter = tools.atomicCounter("counter").incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
-                System.out.println("servers: hello, world! from java " + javaVersion);
+                int pos = tools.barrier("barrier", 2).await();
+                System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
+            });
+            NodeArrayFuture cf = clientArray.executeOnAll(tools ->
+            {
+                long counter = tools.atomicCounter("counter").incrementAndGet();
+                String javaVersion = System.getProperty("java.version");
+                int pos = tools.barrier("barrier", 2).await();
+                System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
             sf.get();
-            NodeArrayFuture cf = clientArray.executeOnAll(env ->
-            {
-                String javaVersion = System.getProperty("java.version");
-                System.out.println("clients: hello, world! from java " + javaVersion);
-            });
             cf.get();
         }
     }

@@ -89,6 +89,12 @@ public class Cluster implements AutoCloseable
         }
     }
 
+    public ClusterTools tools()
+    {
+        //return new ClusterTools();
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public void close()
     {
