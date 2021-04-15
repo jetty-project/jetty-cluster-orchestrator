@@ -36,7 +36,15 @@ public class Cluster implements AutoCloseable
         this.configuration = configuration;
         this.remoteHostLauncher = configuration.remotingConfiguration().buildRemoteNodeLauncher();
 
-        init();
+        try
+        {
+            init();
+        }
+        catch (Exception e)
+        {
+            close();
+            throw e;
+        }
     }
 
     private static String sanitize(String id)
