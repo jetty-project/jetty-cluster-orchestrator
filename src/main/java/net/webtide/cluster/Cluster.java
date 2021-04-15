@@ -75,17 +75,17 @@ public class Cluster implements AutoCloseable
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
         {
-            Collection<String> remoteNodeIds = new ArrayList<>();
+            Collection<String> nodeIds = new ArrayList<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
                 String hostId = id + "/" + sanitize(node.getHostname());
-                String remoteNodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
-                remoteNodeIds.add(remoteNodeId);
+                String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
+                nodeIds.add(nodeId);
 
                 RpcClient rpcClient = hostClients.get(hostId);
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, remoteNodeId, zkServer.getConnectString()));
+                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, zkServer.getConnectString()));
             }
-            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(remoteNodeIds, curator));
+            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeIds, curator));
         }
     }
 

@@ -13,11 +13,11 @@ public class NodeArray implements AutoCloseable
 {
     private final Map<String, RpcClient> nodes = new HashMap<>();
 
-    public NodeArray(Collection<String> remoteNodeIds, CuratorFramework curator)
+    public NodeArray(Collection<String> nodeIds, CuratorFramework curator)
     {
-        for (String remoteNodeId : remoteNodeIds)
+        for (String nodeId : nodeIds)
         {
-            this.nodes.put(remoteNodeId, new RpcClient(curator, remoteNodeId));
+            this.nodes.put(nodeId, new RpcClient(curator, nodeId));
         }
     }
 

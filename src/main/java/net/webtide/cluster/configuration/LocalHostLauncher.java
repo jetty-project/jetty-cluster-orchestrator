@@ -6,12 +6,12 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import net.webtide.cluster.rpc.RemoteNode;
+import net.webtide.cluster.rpc.NodeProcess;
 import net.webtide.cluster.util.IOUtil;
 
 public class LocalHostLauncher implements HostLauncher, JvmDependent
 {
-    private RemoteNode localhostProcess;
+    private NodeProcess localhostProcess;
     private Jvm jvm;
 
     @Override
@@ -55,7 +55,7 @@ public class LocalHostLauncher implements HostLauncher, JvmDependent
 
         try
         {
-            this.localhostProcess = RemoteNode.spawn(jvm, hostId, hostId, connectString);
+            this.localhostProcess = NodeProcess.spawn(jvm, hostId, hostId, connectString);
         }
         catch (Exception e)
         {

@@ -11,12 +11,12 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
-public class RemoteNode implements AutoCloseable
+public class NodeProcess implements AutoCloseable
 {
     private final File rootPath;
-    private final java.lang.Process process;
+    private final Process process;
 
-    private RemoteNode(File rootPath, java.lang.Process process)
+    private NodeProcess(File rootPath, Process process)
     {
         this.rootPath = rootPath;
         this.process = process;
@@ -47,17 +47,17 @@ public class RemoteNode implements AutoCloseable
     {
         String nodeId = args[0];
         String connectString = args[1];
-        System.out.println("Starting remote node [" + nodeId + "] connecting to " + connectString);
+        System.out.println("Starting node [" + nodeId + "] connecting to " + connectString);
         CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new ExponentialBackoffRetry(1000, 3));
         curator.start();
         curator.blockUntilConnected();
 
-        System.out.println("Remote node [" + nodeId + "] connected to " + connectString);
+        System.out.println("Node [" + nodeId + "] connected to " + connectString);
         RpcServer rpcServer = new RpcServer(curator, nodeId);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() ->
         {
-            System.out.println("Remote node [" + nodeId + "] stopping");
+            System.out.println("Node [" + nodeId + "] stopping");
             try
             {
                 rpcServer.abort();
@@ -67,20 +67,20 @@ public class RemoteNode implements AutoCloseable
                 // ignore
             }
             curator.close();
-            System.out.println("Remote node [" + nodeId + "] stopped");
+            System.out.println("Node [" + nodeId + "] stopped");
         }));
 
         rpcServer.run();
-        System.out.println("Remote node [" + nodeId + "] disconnecting from " + connectString);
+        System.out.println("Node [" + nodeId + "] disconnecting from " + connectString);
     }
 
-    public static RemoteNode spawn(Jvm jvm, String hostId, String remoteNodeId, String connectString) throws IOException
+    public static NodeProcess spawn(Jvm jvm, String hostId, String nodeId, String connectString) throws IOException
     {
-        File nodeRootPath = defaultRootPath(remoteNodeId);
+        File nodeRootPath = defaultRootPath(nodeId);
         nodeRootPath.mkdirs();
 
-        List<String> cmdLine = remoteNodeCommandLine(jvm, defaultLibPath(hostId), remoteNodeId, connectString);
-        return new RemoteNode(nodeRootPath, new ProcessBuilder(cmdLine)
+        List<String> cmdLine = buildCommandLine(jvm, defaultLibPath(hostId), nodeId, connectString);
+        return new NodeProcess(nodeRootPath, new ProcessBuilder(cmdLine)
             .directory(nodeRootPath)
             .inheritIO()
             .start());
@@ -97,15 +97,15 @@ public class RemoteNode implements AutoCloseable
         return new File(rootPath, "lib");
     }
 
-    private static List<String> remoteNodeCommandLine(Jvm jvm, File libPath, String remoteNodeId, String connectString)
+    private static List<String> buildCommandLine(Jvm jvm, File libPath, String nodeId, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable());
         cmdLine.addAll(jvm.getOpts());
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
-        cmdLine.add(RemoteNode.class.getName());
-        cmdLine.add(remoteNodeId);
+        cmdLine.add(NodeProcess.class.getName());
+        cmdLine.add(nodeId);
         cmdLine.add(connectString);
         return cmdLine;
     }

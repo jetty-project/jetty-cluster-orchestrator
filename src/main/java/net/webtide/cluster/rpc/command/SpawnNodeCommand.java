@@ -1,20 +1,20 @@
 package net.webtide.cluster.rpc.command;
 
 import net.webtide.cluster.configuration.Jvm;
-import net.webtide.cluster.rpc.RemoteNode;
+import net.webtide.cluster.rpc.NodeProcess;
 
 public class SpawnNodeCommand implements Command
 {
     private final Jvm jvm;
     private final String hostId;
-    private final String remoteNodeId;
+    private final String nodeId;
     private final String connectString;
 
-    public SpawnNodeCommand(Jvm jvm, String hostId, String remoteNodeId, String connectString)
+    public SpawnNodeCommand(Jvm jvm, String hostId, String nodeId, String connectString)
     {
         this.jvm = jvm;
         this.hostId = hostId;
-        this.remoteNodeId = remoteNodeId;
+        this.nodeId = nodeId;
         this.connectString = connectString;
     }
 
@@ -23,7 +23,7 @@ public class SpawnNodeCommand implements Command
     {
         try
         {
-            RemoteNode.spawn(jvm, hostId, remoteNodeId, connectString);
+            NodeProcess.spawn(jvm, hostId, nodeId, connectString);
             return null;
         }
         catch (Exception e)
