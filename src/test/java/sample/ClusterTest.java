@@ -19,13 +19,14 @@ public class ClusterTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm(() -> "/work/tools/jdk/1.8/bin/java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
                 .jvm(new Jvm(() -> "/work/tools/jdk/1.11/bin/java"))
             )
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
                 .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
             )
             ;
+        final int participantCount = cfg.nodeArrays().stream().mapToInt(cc -> cc.topology().nodes().size()).sum() + 1;
 
         try (Cluster cluster = new Cluster("ClusterTest::test", cfg))
         {
@@ -36,20 +37,20 @@ public class ClusterTest
             {
                 long counter = tools.atomicCounter("counter").incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
-                int pos = tools.barrier("barrier", 3).await();
+                int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
             NodeArrayFuture cf = clientArray.executeOnAll(tools ->
             {
                 long counter = tools.atomicCounter("counter").incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
-                int pos = tools.barrier("barrier", 3).await();
+                int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
 
             ClusterTools tools = cluster.tools();
             long counter = tools.atomicCounter("counter").incrementAndGet();
-            int pos = tools.barrier("barrier", 3).await();
+            int pos = tools.barrier("barrier", participantCount).await();
             System.out.println("test: hello, world! counter = " + counter + " arrival = " + pos);
 
             sf.get();
