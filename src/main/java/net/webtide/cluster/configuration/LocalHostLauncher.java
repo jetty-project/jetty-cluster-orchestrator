@@ -11,6 +11,8 @@ import net.webtide.cluster.util.IOUtil;
 
 public class LocalHostLauncher implements HostLauncher, JvmDependent
 {
+    public static final String HOSTNAME = "localhost";
+
     private NodeProcess localhostProcess;
     private Jvm jvm;
 

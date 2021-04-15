@@ -24,7 +24,7 @@ public class Cluster implements AutoCloseable
 {
     private final String id;
     private final ClusterConfiguration configuration;
-    private final HostLauncher localHostLauncher = new LocalHostLauncher();
+    private final LocalHostLauncher localHostLauncher = new LocalHostLauncher();
     private final HostLauncher hostLauncher;
     private final Map<String, NodeArray> nodeArrays = new HashMap<>();
     private final Map<String, RpcClient> hostClients = new HashMap<>();
@@ -36,6 +36,8 @@ public class Cluster implements AutoCloseable
         this.id = sanitize(id);
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
+        if (localHostLauncher.jvm() == null)
+            localHostLauncher.jvm(configuration.jvm());
 
         try
         {
@@ -69,7 +71,10 @@ public class Cluster implements AutoCloseable
         for (String hostname : hostnames)
         {
             String hostId = hostIdFor(hostname);
-            hostLauncher.launch(hostname, hostId, zkServer.getConnectString());
+            HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+            if (launcher == null)
+                throw new IllegalStateException("No configured host launcher to start node on " + hostname);
+            launcher.launch(hostname, hostId, zkServer.getConnectString());
             hostClients.put(hostId, new RpcClient(curator, hostId));
         }
 
@@ -96,7 +101,7 @@ public class Cluster implements AutoCloseable
 
     public ClusterTools tools()
     {
-        return new ClusterTools(curator, hostIdFor("localhost"));
+        return new ClusterTools(curator, hostIdFor(LocalHostLauncher.HOSTNAME));
     }
 
     @Override
@@ -107,6 +112,7 @@ public class Cluster implements AutoCloseable
         hostClients.values().forEach(IOUtil::close);
         hostClients.clear();
         IOUtil.close(hostLauncher);
+        IOUtil.close(localHostLauncher);
         IOUtil.close(curator);
         IOUtil.close(zkServer);
     }
