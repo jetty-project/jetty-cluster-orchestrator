@@ -1,5 +1,6 @@
 package net.webtide.cluster;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -57,7 +58,8 @@ public class Cluster implements AutoCloseable
     private void init() throws Exception
     {
         zkServer = new TestingServer(true);
-        curator = CuratorFrameworkFactory.newClient(zkServer.getConnectString(), new RetryNTimes(0, 0));
+        String connectString = InetAddress.getLocalHost().getHostName() + ":" + zkServer.getPort();
+        curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
 
@@ -72,7 +74,7 @@ public class Cluster implements AutoCloseable
             HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
             if (launcher == null)
                 throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            launcher.launch(hostname, hostId, zkServer.getConnectString());
+            launcher.launch(hostname, hostId, connectString);
             hostClients.put(hostId, new RpcClient(curator, hostId));
         }
 
@@ -86,7 +88,7 @@ public class Cluster implements AutoCloseable
                 nodeIds.add(nodeId);
 
                 RpcClient rpcClient = hostClients.get(hostId);
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, zkServer.getConnectString()));
+                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeIds, curator));
         }
