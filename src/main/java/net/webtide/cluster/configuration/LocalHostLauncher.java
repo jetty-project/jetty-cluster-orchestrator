@@ -54,9 +54,12 @@ public class LocalHostLauncher implements HostLauncher
     @Override
     public void close() throws Exception
     {
-        thread.interrupt();
-        thread.join();
-        thread = null;
+        if (thread != null)
+        {
+            thread.interrupt();
+            thread.join();
+            thread = null;
+        }
     }
 
     private void copyFile(String hostId, String filename, InputStream contents) throws Exception
