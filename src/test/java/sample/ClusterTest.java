@@ -1,5 +1,11 @@
 package sample;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.stream.Stream;
 
 import net.webtide.cluster.Cluster;
@@ -65,6 +71,13 @@ public class ClusterTest
                 String javaVersion = System.getProperty("java.version");
                 int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
+
+                File f = new File("data.txt");
+                try (FileOutputStream fos = new FileOutputStream(f))
+                {
+                    fos.write("hello, clients in file\n".getBytes(StandardCharsets.UTF_8));
+                }
+                System.out.println("wrote file " + f.getAbsolutePath());
             });
 
             ClusterTools tools = cluster.tools();
@@ -74,6 +87,19 @@ public class ClusterTest
 
             sf.get();
             cf.get();
+
+            Path dataPath = clientArray.rootPathOf("1").resolve("data.txt");
+
+            try (InputStream is = Files.newInputStream(dataPath))
+            {
+                while (true)
+                {
+                    int b = is.read();
+                    if (b == -1)
+                        break;
+                    System.out.print((char) b);
+                }
+            }
         }
     }
 }

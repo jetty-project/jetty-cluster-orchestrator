@@ -1,7 +1,9 @@
 package net.webtide.cluster;
 
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,13 +18,24 @@ import org.apache.curator.framework.CuratorFramework;
 public class NodeArray implements AutoCloseable
 {
     private final Map<String, RpcClient> nodes = new HashMap<>();
+    private final Map<String, String> nodeIds;
 
-    public NodeArray(Collection<String> nodeIds, CuratorFramework curator)
+    NodeArray(Map<String, String> nodeIds, CuratorFramework curator)
     {
-        for (String nodeId : nodeIds)
+        this.nodeIds = nodeIds;
+        for (String nodeId : nodeIds.values())
         {
             this.nodes.put(nodeId, new RpcClient(curator, nodeId));
         }
+    }
+
+    public Path rootPathOf(String nodeId)
+    {
+        String id = nodeIds.get(nodeId);
+        if (id == null)
+            throw new IllegalArgumentException("No such node with ID " + nodeId);
+        URI uri = URI.create("wtc:" + id + "!/");
+        return Paths.get(uri);
     }
 
     @Override

@@ -1,8 +1,6 @@
 package net.webtide.cluster;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +72,12 @@ public class Cluster implements AutoCloseable
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
         {
-            Collection<String> nodeIds = new ArrayList<>();
+            Map<String, String> nodeIds = new HashMap<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
                 String hostId = hostIdFor(node.getHostname());
                 String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
-                nodeIds.add(nodeId);
+                nodeIds.put(node.getId(), nodeId);
 
                 RpcClient rpcClient = hostClients.get(hostId);
                 rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));

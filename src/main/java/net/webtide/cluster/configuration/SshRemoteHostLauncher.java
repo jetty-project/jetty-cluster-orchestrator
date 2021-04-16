@@ -2,6 +2,9 @@ package net.webtide.cluster.configuration;
 
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -104,7 +107,11 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             .bufSize(1)
             .spawnDaemon("stderr-" + hostname);
 
-        RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(hostId, sshClient, session, cmd);
+        HashMap<String, Object> env = new HashMap<>();
+        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        FileSystem fileSystem = FileSystems.newFileSystem(URI.create("wtc:" + hostId), env);
+
+        RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(hostId, fileSystem, sshClient, session, cmd);
         nodes.put(hostname, remoteNodeHolder);
     }
 
@@ -157,21 +164,25 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     private static class RemoteNodeHolder implements AutoCloseable {
-        RemoteNodeHolder(String hostId, SSHClient sshClient, Session session, Session.Command command) {
+        private final String hostId;
+        private final FileSystem fileSystem;
+        private final SSHClient sshClient;
+        private final Session session;
+        private final Session.Command command;
+
+        private RemoteNodeHolder(String hostId, FileSystem fileSystem, SSHClient sshClient, Session session, Session.Command command) {
             this.hostId = hostId;
+            this.fileSystem = fileSystem;
             this.sshClient = sshClient;
             this.session = session;
             this.command = command;
         }
 
-        private final String hostId;
-        private final SSHClient sshClient;
-        private final Session session;
-        private final Session.Command command;
-
         @Override
         public void close() throws Exception
         {
+            IOUtil.close(fileSystem);
+
             // 0x03 is the character for CTRL-C -> send it to the remote PTY
             session.getOutputStream().write(0x03);
             // also send TERM signal
