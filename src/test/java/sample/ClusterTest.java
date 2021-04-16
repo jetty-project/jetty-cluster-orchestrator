@@ -45,7 +45,7 @@ public class ClusterTest
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "lorban-linux"))))
             ;
 
-        return Stream.of(cfg2);
+        return Stream.of(cfg1, cfg2, cfg3);
     }
 
     @ParameterizedTest
