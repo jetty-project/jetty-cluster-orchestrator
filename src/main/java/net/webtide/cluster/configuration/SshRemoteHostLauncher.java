@@ -1,6 +1,7 @@
 package net.webtide.cluster.configuration;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +12,8 @@ import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.StreamCopier;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Signal;
+import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
+import net.schmizz.sshj.connection.channel.forwarded.SocketForwardingConnectListener;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
@@ -53,7 +56,26 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         sshClient.loadKnownHosts();
         sshClient.connect(hostname);
 
+        // key auth
         sshClient.authPublickey(System.getProperty("user.name"));
+
+        // try remote port forwarding
+        String remoteConnectString;
+        try
+        {
+            int zkPort = Integer.parseInt(rendezVous.split(":")[1]);
+            RemotePortForwarder.Forward forward = sshClient.getRemotePortForwarder().bind(
+                new RemotePortForwarder.Forward(0), // remote port, dynamically choose one
+                new SocketForwardingConnectListener(new InetSocketAddress("localhost", zkPort))
+            );
+            remoteConnectString = "localhost:" + forward.getPort();
+        }
+        catch (Exception e)
+        {
+            // remote port forwarding failed, try direct TCP connection
+            remoteConnectString = rendezVous;
+        }
+
         Session session = sshClient.startSession();
         session.allocateDefaultPTY();
 
@@ -69,7 +91,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 copyDir(sshClient, hostId, cpFile, 1);
         }
         String remoteClasspath = String.join(":", remoteClasspathEntries);
-        String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, hostId, rendezVous));
+        String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, hostId, remoteConnectString));
 
         Session.Command cmd = session.exec(cmdLine);
         new StreamCopier(cmd.getInputStream(), System.out, net.schmizz.sshj.common.LoggerFactory.DEFAULT)
