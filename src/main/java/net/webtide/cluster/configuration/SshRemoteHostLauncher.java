@@ -14,6 +14,7 @@ import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Signal;
 import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
 import net.schmizz.sshj.connection.channel.forwarded.SocketForwardingConnectListener;
+import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
@@ -76,23 +77,25 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             remoteConnectString = rendezVous;
         }
 
-        Session session = sshClient.startSession();
-        session.allocateDefaultPTY();
-
         List<String> remoteClasspathEntries = new ArrayList<>();
         String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
-        for (String classpathEntry : classpathEntries)
+        try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
         {
-            File cpFile = new File(classpathEntry);
-            remoteClasspathEntries.add(".wtc/" + hostId + "/lib/" + cpFile.getName());
-            if (!cpFile.isDirectory())
-                copyFile(sshClient, hostId, cpFile.getName(), new FileSystemFile(cpFile));
-            else
-                copyDir(sshClient, hostId, cpFile, 1);
+            for (String classpathEntry : classpathEntries)
+            {
+                File cpFile = new File(classpathEntry);
+                remoteClasspathEntries.add(".wtc/" + hostId + "/lib/" + cpFile.getName());
+                if (!cpFile.isDirectory())
+                    copyFile(sftpClient, hostId, cpFile.getName(), new FileSystemFile(cpFile));
+                else
+                    copyDir(sftpClient, hostId, cpFile, 1);
+            }
         }
         String remoteClasspath = String.join(":", remoteClasspathEntries);
         String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, hostId, remoteConnectString));
 
+        Session session = sshClient.startSession();
+        session.allocateDefaultPTY();
         Session.Command cmd = session.exec(cmdLine);
         new StreamCopier(cmd.getInputStream(), System.out, net.schmizz.sshj.common.LoggerFactory.DEFAULT)
             .bufSize(1)
@@ -118,21 +121,16 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         return cmdLine;
     }
 
-    private void copyFile(SSHClient sshClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
+    private void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
     {
         String destFilename = ".wtc/" + hostId + "/lib/" + filename;
         String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
-        try (Session session = sshClient.startSession())
-        {
-            try (Session.Command cmd = session.exec("mkdir -p \"" + parentFilename + "\""))
-            {
-                cmd.join();
-            }
-        }
-        sshClient.newSCPFileTransfer().upload(localSourceFile, destFilename);
+
+        sftpClient.mkdirs(parentFilename);
+        sftpClient.put(localSourceFile, destFilename);
     }
 
-    private void copyDir(SSHClient sshClient, String hostId, File cpFile, int depth) throws Exception
+    private void copyDir(SFTPClient sftpClient, String hostId, File cpFile, int depth) throws Exception
     {
         File[] files = cpFile.listFiles();
         if (files == null)
@@ -149,11 +147,11 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                     currentFile = currentFile.getParentFile();
                     filename = currentFile.getName() + "/" + filename;
                 }
-                copyFile(sshClient, hostId, filename, new FileSystemFile(file));
+                copyFile(sftpClient, hostId, filename, new FileSystemFile(file));
             }
             else
             {
-                copyDir(sshClient, hostId, file, depth + 1);
+                copyDir(sftpClient, hostId, file, depth + 1);
             }
         }
     }
