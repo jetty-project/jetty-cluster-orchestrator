@@ -78,7 +78,7 @@ public class ClusterTest
                 File f = new File("data.txt");
                 try (FileOutputStream fos = new FileOutputStream(f))
                 {
-                    fos.write("hello, clients in file\n".getBytes(StandardCharsets.UTF_8));
+                    fos.write(("client arrived #" + pos + "\n").getBytes(StandardCharsets.UTF_8));
                 }
                 System.out.println("wrote file " + f.getAbsolutePath());
             });
@@ -91,17 +91,21 @@ public class ClusterTest
             sf.get();
             cf.get();
 
-            Path dataPath = clientArray.rootPathOf("1").resolve("data.txt");
-
-            try (InputStream is = Files.newInputStream(dataPath))
+            for (String id : clientArray.ids())
             {
-                while (true)
+                Path dataPath = clientArray.rootPathOf(id).resolve("data.txt");
+                System.out.println("=== data.txt contents of node " + id + " ===");
+                try (InputStream is = Files.newInputStream(dataPath))
                 {
-                    int b = is.read();
-                    if (b == -1)
-                        break;
-                    System.out.print((char) b);
+                    while (true)
+                    {
+                        int b = is.read();
+                        if (b == -1)
+                            break;
+                        System.out.print((char) b);
+                    }
                 }
+                System.out.println("=== === === === === === === === ===");
             }
         }
     }

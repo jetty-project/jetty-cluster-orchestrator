@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import net.webtide.cluster.configuration.LocalHostLauncher;
@@ -37,6 +38,11 @@ public class NodeArray implements AutoCloseable
             URI uri = URI.create("wtc:" + node.nodeId + "!/");
             return Paths.get(uri);
         }
+    }
+
+    public Set<String> ids()
+    {
+        return nodes.keySet();
     }
 
     @Override
