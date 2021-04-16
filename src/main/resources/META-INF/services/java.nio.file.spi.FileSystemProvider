@@ -11,4 +11,4 @@
 ## ========================================================================
 ##
 
-net.webtide.cluster.nodefs.NodeFileSystemProvider
+org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider

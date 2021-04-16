@@ -22,22 +22,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import net.webtide.cluster.Cluster;
-import net.webtide.cluster.ClusterTools;
-import net.webtide.cluster.NodeArray;
-import net.webtide.cluster.NodeArrayFuture;
-import net.webtide.cluster.configuration.ClusterConfiguration;
-import net.webtide.cluster.configuration.Jvm;
-import net.webtide.cluster.configuration.Node;
-import net.webtide.cluster.configuration.NodeArrayTopology;
-import net.webtide.cluster.configuration.SimpleClusterConfiguration;
-import net.webtide.cluster.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.Cluster;
+import org.mortbay.jetty.orchestrator.ClusterTools;
+import org.mortbay.jetty.orchestrator.NodeArray;
+import org.mortbay.jetty.orchestrator.NodeArrayFuture;
+import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.mortbay.jetty.orchestrator.configuration.Node;
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayTopology;
+import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class ClusterTest
 {
-    private static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
+    public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
@@ -66,7 +66,7 @@ public class ClusterTest
 
     @ParameterizedTest
     @MethodSource("clusterConfigurations")
-    public void test(ClusterConfiguration cfg) throws Exception
+    public void testCluster(ClusterConfiguration cfg) throws Exception
     {
         try (Cluster cluster = new Cluster("ClusterTest::test", cfg))
         {
