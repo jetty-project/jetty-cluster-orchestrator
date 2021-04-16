@@ -3,6 +3,7 @@ package sample;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +24,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class ClusterTest
 {
-    private static Stream<ClusterConfiguration> clusterConfigurations() {
+    private static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
+    {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "localhost"), new Node("2", "localhost")))
                 .jvm(new Jvm(() -> "/work/tools/jdk/1.11/bin/java"))
@@ -39,10 +41,11 @@ public class ClusterTest
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"))))
             ;
 
+        String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "lorban-linux"))))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "lorban-linux"))))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", localHostname))))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", localHostname))))
             ;
 
         return Stream.of(cfg1, cfg2, cfg3);
