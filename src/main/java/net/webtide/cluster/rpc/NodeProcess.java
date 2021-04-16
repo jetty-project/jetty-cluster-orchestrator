@@ -92,6 +92,26 @@ public class NodeProcess implements AutoCloseable
             .start());
     }
 
+    public static Thread spawnThread(String nodeId, String connectString)
+    {
+        File nodeRootPath = defaultRootPath(nodeId);
+        nodeRootPath.mkdirs();
+
+        Thread t = new Thread(() ->
+        {
+            try
+            {
+                NodeProcess.main(new String[]{nodeId, connectString});
+            }
+            catch (Exception e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
+        t.start();
+        return t;
+    }
+
     private static File defaultRootPath(String hostId)
     {
         return new File(System.getProperty("user.home") + "/.wtc/" + hostId);

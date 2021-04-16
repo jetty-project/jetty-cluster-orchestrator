@@ -132,6 +132,11 @@ public class RpcServer implements AutoCloseable
                     }
                 });
             }
+            catch (InterruptedException e)
+            {
+                active = false;
+                return;
+            }
             catch (Exception e)
             {
                 active = false;

@@ -36,8 +36,6 @@ public class Cluster implements AutoCloseable
         this.id = sanitize(id);
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
-        if (localHostLauncher.jvm() == null)
-            localHostLauncher.jvm(configuration.jvm());
 
         try
         {

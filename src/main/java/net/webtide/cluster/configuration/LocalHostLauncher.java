@@ -9,33 +9,19 @@ import java.io.OutputStream;
 import net.webtide.cluster.rpc.NodeProcess;
 import net.webtide.cluster.util.IOUtil;
 
-public class LocalHostLauncher implements HostLauncher, JvmDependent
+public class LocalHostLauncher implements HostLauncher
 {
     public static final String HOSTNAME = "localhost";
 
-    private NodeProcess localhostProcess;
-    private Jvm jvm;
-
-    @Override
-    public Jvm jvm()
-    {
-        return jvm;
-    }
-
-    @Override
-    public LocalHostLauncher jvm(Jvm jvm)
-    {
-        this.jvm = jvm;
-        return this;
-    }
+    private Thread thread;
 
     @Override
     public void launch(String hostname, String hostId, String connectString) throws Exception
     {
         if (!"localhost".equals(hostname))
             throw new IllegalArgumentException("local launcher can only work with 'localhost' hostname");
-        if (localhostProcess != null)
-            throw new IllegalStateException("local launcher already spawned 'localhost' process");
+        if (thread != null)
+            throw new IllegalStateException("local launcher already spawned 'localhost' thread");
 
         String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
         for (String classpathEntry : classpathEntries)
@@ -57,7 +43,7 @@ public class LocalHostLauncher implements HostLauncher, JvmDependent
 
         try
         {
-            this.localhostProcess = NodeProcess.spawn(jvm, hostId, hostId, connectString);
+            this.thread = NodeProcess.spawnThread(hostId, connectString);
         }
         catch (Exception e)
         {
@@ -66,10 +52,11 @@ public class LocalHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public void close()
+    public void close() throws Exception
     {
-        IOUtil.close(localhostProcess);
-        localhostProcess = null;
+        thread.interrupt();
+        thread.join();
+        thread = null;
     }
 
     private void copyFile(String hostId, String filename, InputStream contents) throws Exception
