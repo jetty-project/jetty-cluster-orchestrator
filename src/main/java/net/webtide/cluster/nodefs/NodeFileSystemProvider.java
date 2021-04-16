@@ -1,4 +1,4 @@
-package net.webtide.cluster.fs;
+package net.webtide.cluster.nodefs;
 
 import java.io.IOException;
 import java.io.InputStream;

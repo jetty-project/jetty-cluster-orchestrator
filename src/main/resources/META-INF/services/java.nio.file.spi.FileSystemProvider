@@ -1,1 +1,1 @@
-net.webtide.cluster.fs.NodeFileSystemProvider
+net.webtide.cluster.nodefs.NodeFileSystemProvider
