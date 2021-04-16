@@ -62,9 +62,14 @@ public class LocalHostLauncher implements HostLauncher
         }
     }
 
+    public static File rootPathOf(String hostId)
+    {
+        return new File(System.getProperty("user.home") + "/.wtc/" + hostId);
+    }
+
     private void copyFile(String hostId, String filename, InputStream contents) throws Exception
     {
-        File rootPath = new File(System.getProperty("user.home") + "/.wtc/" + hostId);
+        File rootPath = rootPathOf(hostId);
         File libPath = new File(rootPath, "lib");
 
         File file = new File(libPath, filename);

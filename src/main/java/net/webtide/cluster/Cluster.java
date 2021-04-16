@@ -72,17 +72,19 @@ public class Cluster implements AutoCloseable
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
         {
-            Map<String, String> nodeIds = new HashMap<>();
+            Map<String, NodeArray.Node> nodes = new HashMap<>();
             for (Node node : nodeArrayConfiguration.topology().nodes())
             {
-                String hostId = hostIdFor(node.getHostname());
+                String hostname = node.getHostname();
+                boolean localNode = hostname.equals(LocalHostLauncher.HOSTNAME);
+                String hostId = hostIdFor(hostname);
                 String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
-                nodeIds.put(node.getId(), nodeId);
+                nodes.put(node.getId(), new NodeArray.Node(nodeId, new RpcClient(curator, nodeId), localNode));
 
                 RpcClient rpcClient = hostClients.get(hostId);
                 rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));
             }
-            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeIds, curator));
+            nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodes));
         }
     }
 
