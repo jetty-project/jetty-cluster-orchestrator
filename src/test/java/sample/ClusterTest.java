@@ -33,7 +33,13 @@ public class ClusterTest
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "localhost"))))
             ;
 
-        return Stream.of(cfg1, cfg2);
+        ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
+            .jvm(new Jvm(() -> "/work/tools/jdk/1.15/bin/java"))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").topology(new NodeArrayTopology(new Node("1", "lorban-linux"))))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").topology(new NodeArrayTopology(new Node("1", "lorban-linux"))))
+            ;
+
+        return Stream.of(cfg1, cfg2, cfg3);
     }
 
     @ParameterizedTest

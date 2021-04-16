@@ -10,7 +10,7 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
 
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
-    private HostLauncher hostLauncher;
+    private HostLauncher hostLauncher = new SshRemoteHostLauncher();
 
     public SimpleClusterConfiguration jvm(Jvm jvm)
     {

@@ -6,6 +6,7 @@
     </encoder>
   </appender>
 
+  <logger name="net.schmizz.sshj" level="error" />
   <logger name="org.apache.zookeeper" level="error" />
   <logger name="org.apache.curator" level="error" />
 
