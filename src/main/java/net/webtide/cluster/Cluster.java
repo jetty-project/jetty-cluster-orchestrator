@@ -49,12 +49,6 @@ public class Cluster implements AutoCloseable
         }
     }
 
-    private static String sanitize(String id)
-    {
-        return id.replace(':', '_')
-            .replace('/', '_');
-    }
-
     private void init() throws Exception
     {
         zkServer = new TestingServer(true);
@@ -92,6 +86,12 @@ public class Cluster implements AutoCloseable
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodeIds, curator));
         }
+    }
+
+    private static String sanitize(String id)
+    {
+        return id.replace(':', '_')
+            .replace('/', '_');
     }
 
     private String hostIdFor(String hostname)
