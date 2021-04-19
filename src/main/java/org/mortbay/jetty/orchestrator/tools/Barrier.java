@@ -28,7 +28,7 @@ public class Barrier
     {
         this.parties = parties;
         distributedDoubleBarrier = new DistributedDoubleBarrier(curator, "/clients/" + clusterIdOf(nodeId) + "/Barrier/" + name, parties);
-        atomicCounter = new AtomicCounter(curator, nodeId, "Barrier/Counter", name);
+        atomicCounter = new AtomicCounter(curator, nodeId, "Barrier/Counter", name, 0L);
     }
 
     private static String clusterIdOf(String nodeId)

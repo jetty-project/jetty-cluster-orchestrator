@@ -76,14 +76,14 @@ public class ClusterTest
 
             NodeArrayFuture sf = serverArray.executeOnAll(tools ->
             {
-                long counter = tools.atomicCounter("counter").incrementAndGet();
+                long counter = tools.atomicCounter("counter", 0L).incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
                 int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
             });
             NodeArrayFuture cf = clientArray.executeOnAll(tools ->
             {
-                long counter = tools.atomicCounter("counter").incrementAndGet();
+                long counter = tools.atomicCounter("counter", 0L).incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
                 int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
@@ -97,7 +97,7 @@ public class ClusterTest
             });
 
             ClusterTools tools = cluster.tools();
-            long counter = tools.atomicCounter("counter").incrementAndGet();
+            long counter = tools.atomicCounter("counter", 0L).incrementAndGet();
             int pos = tools.barrier("barrier", participantCount).await();
             System.out.println("test: hello, world! counter = " + counter + " arrival = " + pos);
 

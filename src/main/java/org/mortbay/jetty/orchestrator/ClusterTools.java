@@ -33,8 +33,8 @@ public class ClusterTools
         return new Barrier(curator, nodeId, name, count);
     }
 
-    public AtomicCounter atomicCounter(String name)
+    public AtomicCounter atomicCounter(String name, long initialValue)
     {
-        return new AtomicCounter(curator, nodeId, name);
+        return new AtomicCounter(curator, nodeId, name, initialValue);
     }
 }

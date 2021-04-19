@@ -13,11 +13,14 @@
 
 package org.mortbay.jetty.orchestrator.tools;
 
+import java.nio.ByteBuffer;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.atomic.AtomicValue;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong;
 import org.apache.curator.framework.recipes.atomic.PromotedToLock;
 import org.apache.curator.retry.RetryNTimes;
+import org.apache.zookeeper.KeeperException;
 
 public class AtomicCounter
 {
@@ -25,20 +28,36 @@ public class AtomicCounter
     private final String nodeId;
     private final String name;
 
-    public AtomicCounter(CuratorFramework curator, String nodeId, String name)
+    public AtomicCounter(CuratorFramework curator, String nodeId, String name, long initialValue)
     {
-        this(curator, nodeId, "AtomicCounter", name);
+        this(curator, nodeId, "AtomicCounter", name, initialValue);
     }
 
-    AtomicCounter(CuratorFramework curator, String nodeId, String internalPath, String name)
+    AtomicCounter(CuratorFramework curator, String nodeId, String internalPath, String name, long initialValue)
     {
         this.nodeId = nodeId;
         this.name = name;
         String prefix = "/clients/" + clusterIdOf(nodeId) + "/" + internalPath;
+        String counterName = prefix + "/" + name;
+        String lockName = prefix + "/Lock/" + name;
+        try
+        {
+            byte[] initialBytes = new byte[Long.BYTES];
+            ByteBuffer.wrap(initialBytes).putLong(initialValue);
+            curator.create().creatingParentsIfNeeded().forPath(counterName, initialBytes);
+        }
+        catch (KeeperException.NodeExistsException e)
+        {
+            // node already exists, no need to set its initial value
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Error accessing AtomicCounter " + counterName);
+        }
         this.distributedAtomicLong = new DistributedAtomicLong(curator,
-            prefix + "/" + name,
+            counterName,
             new RetryNTimes(0, 0),
-            PromotedToLock.builder().lockPath(prefix + "/Lock/" + name).build());
+            PromotedToLock.builder().lockPath(lockName).build());
     }
 
     private static String clusterIdOf(String nodeId)
