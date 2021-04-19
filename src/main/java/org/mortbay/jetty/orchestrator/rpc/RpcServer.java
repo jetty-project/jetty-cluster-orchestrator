@@ -27,6 +27,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class RpcServer implements AutoCloseable
 {
@@ -44,7 +45,12 @@ public class RpcServer implements AutoCloseable
         this.nodeId = nodeId;
         commandQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/commandQ");
         responseQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/responseQ");
-        executorService = Executors.newCachedThreadPool();
+        executorService = Executors.newCachedThreadPool(r ->
+            new Thread(() ->
+            {
+                MDC.put("NodeId", nodeId);
+                r.run();
+            }));
         clusterTools = new ClusterTools(curator, nodeId);
     }
 
