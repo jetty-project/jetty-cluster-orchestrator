@@ -25,10 +25,8 @@ import java.util.concurrent.CompletableFuture;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
 import org.mortbay.jetty.orchestrator.rpc.command.ExecuteNodeJobCommand;
-import org.mortbay.jetty.orchestrator.rpc.command.ShutdownCommand;
-import org.mortbay.jetty.orchestrator.util.IOUtil;
 
-public class NodeArray implements AutoCloseable
+public class NodeArray
 {
     private final Map<String, Node> nodes;
 
@@ -56,24 +54,6 @@ public class NodeArray implements AutoCloseable
     public Set<String> ids()
     {
         return nodes.keySet();
-    }
-
-    @Override
-    public void close()
-    {
-        for (Node node : nodes.values())
-        {
-            try
-            {
-                node.rpcClient.call(new ShutdownCommand());
-            }
-            catch (Exception e)
-            {
-                // ignore
-            }
-            IOUtil.close(node.rpcClient);
-        }
-        nodes.clear();
     }
 
     public NodeArrayFuture executeOnAll(NodeJob nodeJob) throws Exception

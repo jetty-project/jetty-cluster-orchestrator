@@ -14,23 +14,26 @@
 package org.mortbay.jetty.orchestrator;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.test.TestingServer;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
+import org.mortbay.jetty.orchestrator.rpc.command.KillNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.SpawnNodeCommand;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryNTimes;
-import org.apache.curator.test.TestingServer;
 
 public class Cluster implements AutoCloseable
 {
@@ -40,6 +43,7 @@ public class Cluster implements AutoCloseable
     private final HostLauncher hostLauncher;
     private final Map<String, NodeArray> nodeArrays = new HashMap<>();
     private final Map<String, RpcClient> hostClients = new HashMap<>();
+    private final Map<String, List<NodeProcess>> remoteProcesses = new HashMap<>();
     private TestingServer zkServer;
     private CuratorFramework curator;
 
@@ -95,7 +99,14 @@ public class Cluster implements AutoCloseable
                 nodes.put(node.getId(), new NodeArray.Node(nodeId, new RpcClient(curator, nodeId), localNode));
 
                 RpcClient rpcClient = hostClients.get(hostId);
-                rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));
+                NodeProcess remoteProcess = (NodeProcess)rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));
+                remoteProcesses.compute(hostId, (key, nodeProcesses) ->
+                {
+                    if (nodeProcesses == null)
+                        nodeProcesses = new ArrayList<>();
+                    nodeProcesses.add(remoteProcess);
+                    return nodeProcesses;
+                });
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodes));
         }
@@ -120,7 +131,22 @@ public class Cluster implements AutoCloseable
     @Override
     public void close()
     {
-        nodeArrays.values().forEach(IOUtil::close);
+        for (Map.Entry<String, List<NodeProcess>> entry : remoteProcesses.entrySet())
+        {
+            RpcClient rpcClient = hostClients.get(entry.getKey());
+            for (NodeProcess nodeProcess : entry.getValue())
+            {
+                try
+                {
+                    rpcClient.call(new KillNodeCommand(nodeProcess));
+                }
+                catch (Exception e)
+                {
+                    // ignore
+                }
+            }
+        }
+        remoteProcesses.clear();
         nodeArrays.clear();
         hostClients.values().forEach(IOUtil::close);
         hostClients.clear();
@@ -134,5 +160,4 @@ public class Cluster implements AutoCloseable
     {
         return nodeArrays.get(id);
     }
-
 }

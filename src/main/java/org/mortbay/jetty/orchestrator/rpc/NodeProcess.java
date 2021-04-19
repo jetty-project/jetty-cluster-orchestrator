@@ -15,40 +15,45 @@ package org.mortbay.jetty.orchestrator.rpc;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import org.mortbay.jetty.orchestrator.configuration.Jvm;
-import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
+import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.zeroturnaround.process.PidProcess;
+import org.zeroturnaround.process.ProcessUtil;
+import org.zeroturnaround.process.Processes;
 
-public class NodeProcess implements AutoCloseable
+public class NodeProcess implements Serializable, AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(NodeProcess.class);
     
     private final File rootPath;
-    private final Process process;
+    private final int pid;
 
     private NodeProcess(File rootPath, Process process)
     {
         this.rootPath = rootPath;
-        this.process = process;
+        this.pid = Processes.newPidProcess(process).getPid();
     }
 
     @Override
     public void close()
     {
-        process.destroy();
         try
         {
-            process.waitFor();
+            PidProcess process = Processes.newPidProcess(pid);
+            ProcessUtil.destroyGracefullyOrForcefullyAndWait(process, 10, TimeUnit.SECONDS, 10, TimeUnit.SECONDS);
         }
-        catch (InterruptedException e)
+        catch (Exception e)
         {
             // ignore
         }

@@ -14,16 +14,21 @@
 package org.mortbay.jetty.orchestrator.rpc.command;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
+import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 
-public class ShutdownCommand implements Command
+public class KillNodeCommand implements Command
 {
-    @Override
-    public Object execute(ClusterTools clusterTools) throws Exception
+    private final NodeProcess process;
+
+    public KillNodeCommand(NodeProcess process)
     {
-        throw new ShutdownException();
+        this.process = process;
     }
 
-    public static class ShutdownException extends Exception
+    @Override
+    public Object execute(ClusterTools clusterTools)
     {
+        process.close();
+        return null;
     }
 }

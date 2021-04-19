@@ -33,12 +33,11 @@ public class SpawnNodeCommand implements Command
     }
 
     @Override
-    public Object execute(ClusterTools clusterTools)
+    public NodeProcess execute(ClusterTools clusterTools)
     {
         try
         {
-            NodeProcess.spawn(jvm, hostId, nodeId, connectString);
-            return null;
+            return NodeProcess.spawn(jvm, hostId, nodeId, connectString);
         }
         catch (Exception e)
         {

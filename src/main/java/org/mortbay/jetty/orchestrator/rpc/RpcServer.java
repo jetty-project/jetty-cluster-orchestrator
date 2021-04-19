@@ -23,7 +23,6 @@ import java.util.concurrent.Executors;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
-import org.mortbay.jetty.orchestrator.rpc.command.ShutdownCommand;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
 import org.slf4j.Logger;
@@ -104,10 +103,6 @@ public class RpcServer implements AutoCloseable
                     {
                         requestId = request.getId();
                         result = request.getCommand().execute(clusterTools);
-                    }
-                    catch (ShutdownCommand.ShutdownException e)
-                    {
-                        abort();
                     }
                     catch (Exception e)
                     {

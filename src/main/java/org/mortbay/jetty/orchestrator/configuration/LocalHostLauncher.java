@@ -27,14 +27,16 @@ public class LocalHostLauncher implements HostLauncher
     public static final String HOSTNAME = "localhost";
 
     private Thread thread;
+    private String hostId;
 
     @Override
     public void launch(String hostname, String hostId, String connectString) throws Exception
     {
-        if (!"localhost".equals(hostname))
+        if (!HOSTNAME.equals(hostname))
             throw new IllegalArgumentException("local launcher can only work with 'localhost' hostname");
         if (thread != null)
             throw new IllegalStateException("local launcher already spawned 'localhost' thread");
+        this.hostId = hostId;
 
         String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
         for (String classpathEntry : classpathEntries)
@@ -72,6 +74,16 @@ public class LocalHostLauncher implements HostLauncher
             thread.interrupt();
             thread.join();
             thread = null;
+
+            File rootPath = rootPathOf(hostId);
+            File parentPath = rootPath.getParentFile();
+            if (IOUtil.deltree(rootPath) && parentPath != null)
+            {
+                String[] files = parentPath.list();
+                if (files != null && files.length == 0)
+                    IOUtil.deltree(parentPath);
+            }
+            hostId = null;
         }
     }
 
