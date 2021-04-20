@@ -68,7 +68,7 @@ public class ClusterTest
     @MethodSource("clusterConfigurations")
     public void testCluster(ClusterConfiguration cfg) throws Exception
     {
-        try (Cluster cluster = new Cluster("ClusterTest::test", cfg))
+        try (Cluster cluster = new Cluster(cfg))
         {
             final int participantCount = cfg.nodeArrays().stream().mapToInt(cc -> cc.topology().nodes().size()).sum() + 1;
             NodeArray serverArray = cluster.nodeArray("server-array");
