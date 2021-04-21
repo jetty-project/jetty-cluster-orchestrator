@@ -13,7 +13,7 @@
 
 package org.mortbay.jetty.orchestrator;
 
-import java.net.InetAddress;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +41,8 @@ public class Cluster implements AutoCloseable
     private final ClusterConfiguration configuration;
     private final LocalHostLauncher localHostLauncher = new LocalHostLauncher();
     private final HostLauncher hostLauncher;
-    private final Map<String, NodeArray> nodeArrays = new HashMap<>();
-    private final Map<String, RpcClient> hostClients = new HashMap<>();
-    private final Map<String, List<NodeProcess>> remoteProcesses = new HashMap<>();
+    private final Map<String, NodeArray> nodeArrays = new HashMap<>(); // keyed by NodeId
+    private final Map<String, Host> hosts = new HashMap<>(); // keyed by HostId
     private TestingServer zkServer;
     private CuratorFramework curator;
 
@@ -85,6 +84,7 @@ public class Cluster implements AutoCloseable
         curator.start();
         curator.blockUntilConnected();
 
+        Map<String, Map.Entry<String, RpcClient>> hostClients = new HashMap<>();
         List<String> hostnames = configuration.nodeArrays().stream()
             .flatMap(cfg -> cfg.topology().nodes().stream())
             .map(Node::getHostname)
@@ -96,8 +96,8 @@ public class Cluster implements AutoCloseable
             HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
             if (launcher == null)
                 throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            launcher.launch(hostname, hostId, connectString);
-            hostClients.put(hostId, new RpcClient(curator, hostId));
+            String remoteConnectString = launcher.launch(hostname, hostId, connectString);
+            hostClients.put(hostId, new AbstractMap.SimpleImmutableEntry<>(remoteConnectString, new RpcClient(curator, hostId)));
         }
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
@@ -111,15 +111,24 @@ public class Cluster implements AutoCloseable
                 String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
                 nodes.put(node.getId(), new NodeArray.Node(nodeId, new RpcClient(curator, nodeId), localNode));
 
-                RpcClient rpcClient = hostClients.get(hostId);
-                NodeProcess remoteProcess = (NodeProcess)rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, connectString));
-                remoteProcesses.compute(hostId, (key, nodeProcesses) ->
+                Map.Entry<String, RpcClient> entry = hostClients.get(hostId);
+                RpcClient rpcClient = entry.getValue();
+                String remoteConnectString = entry.getKey();
+                try
                 {
-                    if (nodeProcesses == null)
-                        nodeProcesses = new ArrayList<>();
-                    nodeProcesses.add(remoteProcess);
-                    return nodeProcesses;
-                });
+                    NodeProcess remoteProcess = (NodeProcess)rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, remoteConnectString));
+                    hosts.compute(hostId, (key, host) ->
+                    {
+                        if (host == null)
+                            host = new Host(rpcClient);
+                        host.nodeProcesses.add(remoteProcess);
+                        return host;
+                    });
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Error spawning node '" + nodeId + "'", e);
+                }
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodes));
         }
@@ -144,10 +153,34 @@ public class Cluster implements AutoCloseable
     @Override
     public void close()
     {
-        for (Map.Entry<String, List<NodeProcess>> entry : remoteProcesses.entrySet())
+        hosts.values().forEach(IOUtil::close);
+        hosts.clear();
+        nodeArrays.clear();
+        IOUtil.close(hostLauncher);
+        IOUtil.close(localHostLauncher);
+        IOUtil.close(curator);
+        IOUtil.close(zkServer);
+    }
+
+    public NodeArray nodeArray(String id)
+    {
+        return nodeArrays.get(id);
+    }
+
+    private static class Host implements AutoCloseable
+    {
+        private final RpcClient rpcClient;
+        private final List<NodeProcess> nodeProcesses = new ArrayList<>();
+
+        private Host(RpcClient rpcClient)
         {
-            RpcClient rpcClient = hostClients.get(entry.getKey());
-            for (NodeProcess nodeProcess : entry.getValue())
+            this.rpcClient = rpcClient;
+        }
+
+        @Override
+        public void close()
+        {
+            for (NodeProcess nodeProcess : nodeProcesses)
             {
                 try
                 {
@@ -158,19 +191,7 @@ public class Cluster implements AutoCloseable
                     // ignore
                 }
             }
+            IOUtil.close(rpcClient);
         }
-        remoteProcesses.clear();
-        nodeArrays.clear();
-        hostClients.values().forEach(IOUtil::close);
-        hostClients.clear();
-        IOUtil.close(hostLauncher);
-        IOUtil.close(localHostLauncher);
-        IOUtil.close(curator);
-        IOUtil.close(zkServer);
-    }
-
-    public NodeArray nodeArray(String id)
-    {
-        return nodeArrays.get(id);
     }
 }
