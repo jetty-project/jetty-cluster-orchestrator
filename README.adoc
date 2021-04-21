@@ -1,0 +1,201 @@
+= Jetty Cluster Orchestrator Project
+
+Jetty's `Cluster Orchestrator` is an API to ease writing tests that execute code over different JVMs, locally or across networks.
+
+== Cluster Orchestrator API
+
+=== A word of warning
+
+This cluster orchestration library is not meant to be used for writing production code! Any form of network failure will make
+this library fail without even an attempt at managing nor recovering the problem. This is a reasonable limitation for the scope
+of this library which is to ease writing multi-machine tests.
+
+=== Configuring a JVM cluster
+
+Creating a `ClusterConfiguration` instance is the first step to creating a cluster of JVMs. 
+
+[source,java]
+----
+ClusterConfiguration cfg = new SimpleClusterConfiguration()
+    .nodeArray(new SimpleNodeArrayConfiguration("my-array")  // (1)
+        .topology(new NodeArrayTopology(                     // (2)
+            new Node("1", "localhost"),                      // (3)
+            new Node("2", "localhost"))));
+
+----
+
+. Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
+ Any number of `NodeArray`s can be added to a cluster, as long as they have unique names.
+. Set the `Topology` the `NodeArray`. The topology contains the exact list of JVMs.
+. Have two `Node`s be part of the topology. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
+ while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Node that all node identifiers
+ must be unique.
+
+=== Using a configured JVM cluster
+
+Creating a `Cluster` instance using a `ClusterConfiguration` sets the cluster up then allows one to do useful things with it.
+
+[source,java]
+----
+try (Cluster cluster = new Cluster(cfg))                // (1)
+{
+    NodeArray myArray = cluster.nodeArray("my-array");  // (2)
+    NodeArrayFuture f = myArray.executeOnAll(tools ->   // (3)
+    {
+        System.out.println("hello, world!");            // (4)
+    });
+    f.get(5, TimeUnit.SECONDS);                         // (5)
+}
+----
+
+. Create a `Cluster` instance from the configuration.
+. Fetch the configured `NodeArray` named `my-array`.
+. Execute a lambda on all the nodes of the `NodeArray`.
+. Block until all nodes finished executing the lambda, or until a 5 seconds timeout elapsed.
+
+Running the above code will print the following on `System.out`:
+
+[source,asciidoc]
+----
+hello, world!
+hello, world!
+----
+
+which is expected as the lambda was executed on a `NodeArray` that contains two `Node`s, hence it got executed twice.
+
+=== Under the hood
+
+The above example triggered the creation of two JVMs: one for each node. Then the lambda passed to `executeOnAll()` was
+serialized and sent to those two JVMs which deserialized and executed it.
+To make the deserialization possible, the classpath of the JVM executing the code above was copied to a sub-folder
+of `$HOME/.wtc` and given as the classpath argument of the created JVMs. The `java` command on your `$PATH` was used to
+create those two JVMs. Finally, when the `Cluster` instance was closed, all processes were shut down, all created files were
+deleted and all other resources were reclaimed.
+
+=== Over the network
+
+If you want to use machines over the network, you can simply specify their names instead of `localhost` in the topology: 
+
+[source,java]
+----
+ClusterConfiguration cfg = new SimpleClusterConfiguration()
+    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+        .topology(new NodeArrayTopology(
+            new Node("1", "server-1"),
+            new Node("2", "server-2"))));
+----
+
+Running the above example with this configuration would create a JVM on a machine called `server-1`, another on a machine called
+`server-2` and execute the lambda on both of them, which would end up printing the exact same output as the standard output and
+error are piped from the remote machines to the local one. So by just changing the config, you can decide if the code has to
+run locally or remotely.
+
+The way the JVMs are created on the remote machines is the same as in the local case: the classpath is copied, then the `java`
+command is used to create a JVM. The only difference is that this time copying and creating a process is done over SSH
+so it is assumed that the remote machines are reachable over SSH with public key auth pre-configured. The keys in `$HOME/.ssh`
+are going to be used for that purpose.
+
+=== Specifying the JVM
+
+If you want to use a specific JVM over the one in your path, you can pass a `Jvm` instance to the `ClusterConfiguration`:
+
+[source,java]
+----
+ClusterConfiguration cfg = new SimpleClusterConfiguration()
+    .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
+    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+        .topology(new NodeArrayTopology(
+            new Node("1", "localhost"),
+            new Node("2", "localhost"))));
+----
+
+The configuration above is identical to the previous one, except that the `/some/path/to/jdk11/bin/java` command is going to be
+used to create the JVM process with the `-Xmx4g -Dmy.prop=SomeValue` arguments passed on its command line.
+
+Or you could be more specific by only configuring the JVM on the `NodeArray`:
+
+[source,java]
+----
+ClusterConfiguration cfg = new SimpleClusterConfiguration()
+    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+        .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
+        .topology(new NodeArrayTopology(
+            new Node("1", "localhost"),
+            new Node("2", "localhost"))));
+----
+
+In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
+this makes no difference overall. But when you want to run multiple `NodeArray`s it becomes useful to be able to different
+JVMs for each `NodeArray` and eventually have a default one for the cluster that is going to be used for `NodeArray`s
+whose JVM was not set.
+
+Please note that the `java` command argument is a lambda instead of a string so that it's going to be executed on the remote
+machine. This is useful if you use machines with heterogenous operating systems, or simply have installed your JVMs in
+different locations on your machines.
+
+=== Synchronizing the lambdas
+
+The lambda passed to `executeOnAll` is given a `tools` parameter which is an instance of `ClusterTools`. With it, you have access
+to clustered atomic counters and clustered cyclic barriers that you can use to exchange data across lambdas or to synchronize them.
+
+The `Cluster` class also has a `tools()` method that returns a `ClusterTools` instance you can use to synchronize the lambdas
+with the test code.
+
+=== Downloading reports
+
+If the lambdas you execute code that writes to the local disk, those files will be deleted when the `Cluster` instance gets closed,
+assuming that you create your files in the current working directory. It is sometimes useful to have each node write a report locally
+then collect all those reports and eventually merge and transform them.
+
+[source,java]
+----
+ClusterConfiguration cfg = new SimpleClusterConfiguration()            // (1)
+    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+        .topology(new NodeArrayTopology(
+            new Node("1", "server-1"),
+            new Node("2", "server-2"))));
+
+try (Cluster cluster = new Cluster(cfg))
+{
+    NodeArray myArray = cluster.nodeArray("my-array");
+    NodeArrayFuture f = myArray.executeOnAll(tools ->
+    {
+        try (FileOutputStream fos = new FileOutputStream("data.txt"))
+        {
+            fos.write("hello file!".getBytes(StandardCharsets.UTF_8));  // (2)
+        }
+    });
+    f.get(5, TimeUnit.SECONDS);
+
+    for (String id : myArray.ids())                                     // (3)
+    {
+        File outputFolder = new File("reports", id);
+        outputFolder.mkdirs();
+        try (FileOutputStream fos = new FileOutputStream(new File(outputFolder, "data.txt")))
+        {
+            Path path = myArray.rootPathOf(id).resolve("data.txt");     // (4)
+            Files.copy(path, fos);
+        }
+    }
+}
+----
+
+. Create a cluster with a single `NodeArray` named `my-array` that contains two nodes.
+. Execute a lambda on each of those two nodes to create a file called `data.txt` into the current working directory.
+. Iterate over the IDs of the nodes of the `my-array` `NodeArray`.
+. `NodeArray.rootPathOf(id)` returns a NIO `Path` instance that points to the node's current working directory. The NIO
+  `Path` API can be used to browse folders or read files which is done in this case to copy the files over to the local machine.
+
+After running this test, you should have a hierarchy on the local filesystem that looks like the following:
+
+[source]
+----
+ reports
+ +-- 1
+ |   +-- data.txt
+ +-- 2
+     +-- data.txt
+----
+
+A NIO `FileSystem` is created for each remote machine that transparently works across the SSH connection, or locally
+in case the node's machine is `localhost`. Please just note that the transparent remote filesystem is read-only.
