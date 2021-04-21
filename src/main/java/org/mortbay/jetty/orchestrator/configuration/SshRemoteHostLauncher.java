@@ -322,19 +322,19 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             }
         }
 
-        public void waitForExpectedString()
+        public void waitForExpectedString() throws Exception
         {
             while (!matched.get())
             {
                 if (failed.get() || !cmd.isOpen())
-                    throw new IllegalStateException("Node failed to start on host '" + hostname + "'");
+                    throw new Exception("Node failed to start on host '" + hostname + "'");
                 try
                 {
                     Thread.sleep(10);
                 }
                 catch (InterruptedException e)
                 {
-                    throw new RuntimeException(e);
+                    throw new Exception("Interrupted while starting node on host '" + hostname + "'", e);
                 }
             }
         }
