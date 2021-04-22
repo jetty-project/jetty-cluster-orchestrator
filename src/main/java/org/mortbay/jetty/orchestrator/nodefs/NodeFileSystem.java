@@ -53,7 +53,7 @@ public class NodeFileSystem extends FileSystem
 
     SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
     {
-        String sftpPath = ".wtc/" + path.getNodeId() + path.getRealPath();
+        String sftpPath = "." + NodeFileSystemProvider.PREFIX + "/" + path.getNodeId() + path.getRealPath();
         InMemoryFile inMemoryFile = new InMemoryFile();
         sftpClient.get(sftpPath, inMemoryFile);
         byte[] data = inMemoryFile.getOutputStream().toByteArray();
@@ -117,7 +117,7 @@ public class NodeFileSystem extends FileSystem
 
     DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException
     {
-        String sftpPath = ".wtc/" + dir.getNodeId() + dir.getRealPath();
+        String sftpPath = "." + NodeFileSystemProvider.PREFIX + "/" + dir.getNodeId() + dir.getRealPath();
         List<RemoteResourceInfo> content = sftpClient.ls(sftpPath);
         List<Path> filteredPaths = new ArrayList<>();
         for (RemoteResourceInfo remoteResourceInfo : content)
@@ -164,7 +164,7 @@ public class NodeFileSystem extends FileSystem
 
     InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
     {
-        String sftpPath = ".wtc/" + path.getNodeId() + path.getRealPath();
+        String sftpPath = "." + NodeFileSystemProvider.PREFIX + "/" + path.getNodeId() + path.getRealPath();
         InMemoryFile inMemoryFile = new InMemoryFile();
         sftpClient.get(sftpPath, inMemoryFile);
         byte[] data = inMemoryFile.getOutputStream().toByteArray();

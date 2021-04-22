@@ -24,6 +24,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,7 +132,7 @@ public class NodeProcess implements Serializable, AutoCloseable
 
     private static File defaultRootPath(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/.wtc/" + hostId);
+        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
     }
 
     private static File defaultLibPath(String hostId)

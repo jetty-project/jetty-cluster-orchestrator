@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 
@@ -90,7 +91,7 @@ public class LocalHostLauncher implements HostLauncher
 
     public static File rootPathOf(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/.wtc/" + hostId);
+        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
     }
 
     private void copyFile(String hostId, String filename, InputStream contents) throws Exception

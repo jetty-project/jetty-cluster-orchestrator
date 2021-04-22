@@ -68,7 +68,7 @@ which is expected as the lambda was executed on a `NodeArray` that contains two 
 The above example triggered the creation of two JVMs: one for each node. Then the lambda passed to `executeOnAll()` was
 serialized and sent to those two JVMs which deserialized and executed it.
 To make the deserialization possible, the classpath of the JVM executing the code above was copied to a sub-folder
-of `$HOME/.wtc` and given as the classpath argument of the created JVMs. The `java` command on your `$PATH` was used to
+of `$HOME/.jco` and given as the classpath argument of the created JVMs. The `java` command on your `$PATH` was used to
 create those two JVMs. Finally, when the `Cluster` instance was closed, all processes were shut down, all created files were
 deleted and all other resources were reclaimed.
 
