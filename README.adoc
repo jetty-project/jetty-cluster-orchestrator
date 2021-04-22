@@ -25,9 +25,9 @@ ClusterConfiguration cfg = new SimpleClusterConfiguration()
 ----
 
 . Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
- Any number of `NodeArray`s can be added to a cluster, as long as they have unique names.
+ Any number of `NodeArray` s can be added to a cluster, as long as they have unique names.
 . Set the `Topology` the `NodeArray`. The topology contains the exact list of JVMs.
-. Have two `Node`s be part of the topology. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
+. Have two `Node` s be part of the topology. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
  while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Node that all node identifiers
  must be unique.
 
@@ -125,7 +125,7 @@ ClusterConfiguration cfg = new SimpleClusterConfiguration()
 ----
 
 In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
-this makes no difference overall. But when you want to run multiple `NodeArray`s it becomes useful to be able to different
+this makes no difference overall. But when you want to run multiple `NodeArray` s it becomes useful to be able to different
 JVMs for each `NodeArray` and eventually have a default one for the cluster that is going to be used for `NodeArray`s
 whose JVM was not set.
 
