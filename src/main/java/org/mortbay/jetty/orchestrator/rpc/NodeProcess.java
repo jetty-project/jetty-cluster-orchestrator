@@ -36,6 +36,7 @@ import org.zeroturnaround.process.Processes;
 public class NodeProcess implements Serializable, AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(NodeProcess.class);
+    public static final String CLASSPATH_FOLDER_NAME = ".classpath";
 
     private final int pid;
 
@@ -138,7 +139,7 @@ public class NodeProcess implements Serializable, AutoCloseable
     private static File defaultLibPath(String hostId)
     {
         File rootPath = defaultRootPath(hostId);
-        return new File(rootPath, "lib");
+        return new File(rootPath, CLASSPATH_FOLDER_NAME);
     }
 
     private static List<String> buildCommandLine(Jvm jvm, File libPath, String nodeId, String connectString)

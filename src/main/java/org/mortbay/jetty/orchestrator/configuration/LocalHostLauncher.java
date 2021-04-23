@@ -97,7 +97,7 @@ public class LocalHostLauncher implements HostLauncher
     private void copyFile(String hostId, String filename, InputStream contents) throws Exception
     {
         File rootPath = rootPathOf(hostId);
-        File libPath = new File(rootPath, "lib");
+        File libPath = new File(rootPath, NodeProcess.CLASSPATH_FOLDER_NAME);
 
         File file = new File(libPath, filename);
         file.getParentFile().mkdirs();

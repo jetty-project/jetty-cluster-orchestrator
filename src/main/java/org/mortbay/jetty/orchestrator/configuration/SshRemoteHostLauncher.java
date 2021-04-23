@@ -119,7 +119,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 for (String classpathEntry : classpathEntries)
                 {
                     File cpFile = new File(classpathEntry);
-                    remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/lib/" + cpFile.getName());
+                    remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + cpFile.getName());
                     if (cpFile.isDirectory())
                         copyDir(sftpClient, hostId, cpFile, 1);
                     else
@@ -170,7 +170,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
     {
-        String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/lib/" + filename;
+        String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
         String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
 
         sftpClient.mkdirs(parentFilename);
