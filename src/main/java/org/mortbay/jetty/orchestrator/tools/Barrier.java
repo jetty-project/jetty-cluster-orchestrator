@@ -15,6 +15,8 @@ package org.mortbay.jetty.orchestrator.tools;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
@@ -23,15 +25,14 @@ public class Barrier
 {
     private final DistributedDoubleBarrier distributedDoubleBarrier;
     private final AtomicCounter atomicCounter;
-    private final CuratorFramework curator;
-    private final String barrierPath;
+    private final int parties;
+    private final AtomicBoolean guard = new AtomicBoolean();
 
     public Barrier(CuratorFramework curator, String nodeId, String name, int parties)
     {
-        this.curator = curator;
-        barrierPath = "/clients/" + clusterIdOf(nodeId) + "/Barrier/" + name;
-        distributedDoubleBarrier = new DistributedDoubleBarrier(curator, barrierPath, parties);
-        atomicCounter = new AtomicCounter(curator, nodeId, "Barrier", name + "/Counter", parties);
+        this.parties = parties;
+        distributedDoubleBarrier = new DistributedDoubleBarrier(curator, "/clients/" + clusterIdOf(nodeId) + "/Barrier/" + name, parties);
+        atomicCounter = new AtomicCounter(curator, nodeId, "BarrierCounter", name, parties);
     }
 
     private static String clusterIdOf(String nodeId)
@@ -41,23 +42,27 @@ public class Barrier
 
     public int await() throws Exception
     {
-        if (atomicCounter.get() == 0L)
+        if (!guard.compareAndSet(false, true))
             throw new BrokenBarrierException("Barrier is not cyclic");
         distributedDoubleBarrier.enter();
         int index = (int)atomicCounter.decrementAndGet();
         if (index == 0)
-            curator.delete().deletingChildrenIfNeeded().forPath(barrierPath);
+            atomicCounter.set(parties);
+        distributedDoubleBarrier.leave();
         return index;
     }
 
     public int await(long timeout, TimeUnit unit) throws Exception
     {
-        if (atomicCounter.get() == 0L)
+        if (!guard.compareAndSet(false, true))
             throw new BrokenBarrierException("Barrier is not cyclic");
-        distributedDoubleBarrier.enter(timeout, unit);
+        boolean success = distributedDoubleBarrier.enter(timeout, unit);
+        if (!success)
+            throw new TimeoutException("Timeout awaiting on barrier");
         int index = (int)atomicCounter.decrementAndGet();
         if (index == 0)
-            curator.delete().deletingChildrenIfNeeded().forPath(barrierPath);
+            atomicCounter.set(parties);
+        distributedDoubleBarrier.leave();
         return index;
     }
 }
