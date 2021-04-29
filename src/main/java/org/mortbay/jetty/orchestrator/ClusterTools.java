@@ -23,23 +23,23 @@ import org.apache.curator.framework.CuratorFramework;
 public class ClusterTools
 {
     private final CuratorFramework curator;
-    private final String nodeId;
+    private final GlobalNodeId globalNodeId;
     private final ConcurrentMap<String, Object> nodeEnvironment = new ConcurrentHashMap<>();
 
-    public ClusterTools(CuratorFramework curator, String nodeId)
+    public ClusterTools(CuratorFramework curator, GlobalNodeId globalNodeId)
     {
         this.curator = curator;
-        this.nodeId = nodeId;
+        this.globalNodeId = globalNodeId;
     }
 
     public Barrier barrier(String name, int count)
     {
-        return new Barrier(curator, nodeId, name, count);
+        return new Barrier(curator, globalNodeId, name, count);
     }
 
     public AtomicCounter atomicCounter(String name, long initialValue)
     {
-        return new AtomicCounter(curator, nodeId, name, initialValue);
+        return new AtomicCounter(curator, globalNodeId, name, initialValue);
     }
 
     public ConcurrentMap<String, Object> nodeEnvironment()

@@ -70,7 +70,7 @@ public class Cluster implements AutoCloseable
 
     public Cluster(String id, ClusterConfiguration configuration) throws Exception
     {
-        this.id = sanitize(id);
+        this.id = id;
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
 
@@ -92,7 +92,7 @@ public class Cluster implements AutoCloseable
         curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
         curator.blockUntilConnected();
-        clusterTools = new ClusterTools(curator, hostIdFor(LocalHostLauncher.HOSTNAME));
+        clusterTools = new ClusterTools(curator, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
         Map<String, Map.Entry<String, RpcClient>> hostClients = new HashMap<>();
         List<String> hostnames = configuration.nodeArrays().stream()
@@ -102,12 +102,12 @@ public class Cluster implements AutoCloseable
             .collect(Collectors.toList());
         for (String hostname : hostnames)
         {
-            String hostId = hostIdFor(hostname);
+            GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
             HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
             if (launcher == null)
                 throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            String remoteConnectString = launcher.launch(hostname, hostId, connectString);
-            hostClients.put(hostId, new AbstractMap.SimpleImmutableEntry<>(remoteConnectString, new RpcClient(curator, hostId)));
+            String remoteConnectString = launcher.launch(hostname, globalNodeId.getHostId(), connectString);
+            hostClients.put(globalNodeId.getHostId(), new AbstractMap.SimpleImmutableEntry<>(remoteConnectString, new RpcClient(curator, globalNodeId.getHostId())));
         }
 
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
@@ -115,23 +115,20 @@ public class Cluster implements AutoCloseable
             Map<String, NodeArray.Node> nodes = new HashMap<>();
             for (Node node : nodeArrayConfiguration.nodes())
             {
-                String hostname = node.getHostname();
-                boolean localNode = hostname.equals(LocalHostLauncher.HOSTNAME);
-                String hostId = hostIdFor(hostname);
-                String nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
-                NodeArray.Node n = new NodeArray.Node(hostname, nodeId, new RpcClient(curator, nodeId), localNode);
+                GlobalNodeId globalNodeId = new GlobalNodeId(id, nodeArrayConfiguration, node);
+                NodeArray.Node n = new NodeArray.Node(globalNodeId, new RpcClient(curator, globalNodeId.getNodeId()));
                 nodes.put(node.getId(), n);
 
-                Map.Entry<String, RpcClient> entry = hostClients.get(hostId);
+                Map.Entry<String, RpcClient> entry = hostClients.get(globalNodeId.getHostId());
                 RpcClient rpcClient = entry.getValue();
                 String remoteConnectString = entry.getKey();
                 try
                 {
-                    NodeProcess remoteProcess = (NodeProcess)rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), hostId, nodeId, remoteConnectString));
-                    hosts.compute(hostId, (key, host) ->
+                    NodeProcess remoteProcess = (NodeProcess)rpcClient.call(new SpawnNodeCommand(nodeArrayConfiguration.jvm(), globalNodeId.getHostId(), globalNodeId.getNodeId(), remoteConnectString));
+                    hosts.compute(globalNodeId.getHostId(), (key, host) ->
                     {
                         if (host == null)
-                            host = new Host(hostId, rpcClient);
+                            host = new Host(globalNodeId.getHostId(), rpcClient);
                         host.nodeProcesses.add(remoteProcess);
                         host.nodes.add(n);
                         return host;
@@ -139,7 +136,7 @@ public class Cluster implements AutoCloseable
                 }
                 catch (Exception e)
                 {
-                    throw new Exception("Error spawning node '" + nodeId + "'", e);
+                    throw new Exception("Error spawning node '" + globalNodeId.getHostId() + "'", e);
                 }
             }
             nodeArrays.put(nodeArrayConfiguration.id(), new NodeArray(nodes));
@@ -156,17 +153,6 @@ public class Cluster implements AutoCloseable
                 }
             }
         }, 5000, 5000);
-    }
-
-    private static String sanitize(String id)
-    {
-        return id.replace(':', '_')
-            .replace('/', '_');
-    }
-
-    private String hostIdFor(String hostname)
-    {
-        return id + "/" + sanitize(hostname);
     }
 
     public ClusterTools tools()

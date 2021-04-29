@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
+import org.mortbay.jetty.orchestrator.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
@@ -33,25 +34,25 @@ public class RpcServer implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
 
-    private final String nodeId;
+    private final GlobalNodeId globalNodeId;
     private final SimpleDistributedQueue commandQueue;
     private final SimpleDistributedQueue responseQueue;
     private final ExecutorService executorService;
     private volatile boolean active;
     private final ClusterTools clusterTools;
 
-    public RpcServer(CuratorFramework curator, String nodeId)
+    public RpcServer(CuratorFramework curator, GlobalNodeId globalNodeId)
     {
-        this.nodeId = nodeId;
-        commandQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/commandQ");
-        responseQueue = new SimpleDistributedQueue(curator, "/clients/" + nodeId + "/responseQ");
+        this.globalNodeId = globalNodeId;
+        commandQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/commandQ");
+        responseQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/responseQ");
         executorService = Executors.newCachedThreadPool(r ->
             new Thread(() ->
             {
-                MDC.put("NodeId", nodeId);
+                MDC.put("NodeId", globalNodeId.getNodeId());
                 r.run();
             }));
-        clusterTools = new ClusterTools(curator, nodeId);
+        clusterTools = new ClusterTools(curator, globalNodeId);
     }
 
     @Override
@@ -154,7 +155,7 @@ public class RpcServer implements AutoCloseable
             catch (Exception e)
             {
                 active = false;
-                throw new RuntimeException("Error reading command on node " + nodeId, e);
+                throw new RuntimeException("Error reading command on node " + globalNodeId.getNodeId(), e);
             }
         }
     }
