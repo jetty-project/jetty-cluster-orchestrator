@@ -31,6 +31,7 @@ import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
@@ -42,25 +43,25 @@ public class ClusterTest
     public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node("1", "localhost").node("2", "localhost")
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")).node(new Node("2", "localhost"))
                 .jvm(new Jvm(() -> "/work/tools/jdk/11/bin/java"))
             )
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node("1", "localhost").node("2", "localhost")
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost"))
                 .jvm(new Jvm(() -> "/work/tools/jdk/1.8/bin/java"))
             )
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .jvm(new Jvm(() -> "/work/tools/jdk/15/bin/java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node("1", "localhost"))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node("1", "localhost"))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")))
             ;
 
         String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .jvm(new Jvm(() -> "/work/tools/jdk/15/bin/java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node("1", localHostname))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node("1", localHostname))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
             ;
 
         return Stream.of(cfg1, cfg2, cfg3);
@@ -129,7 +130,7 @@ public class ClusterTest
     public void testInvalidJvmExecutableInNodeArray() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node("1", InetAddress.getLocalHost().getHostName())
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName()))
                 .jvm(new Jvm(() -> "/does/not/exist"))
             );
 
@@ -141,7 +142,7 @@ public class ClusterTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .hostLauncher(new SshRemoteHostLauncher().jvm(new Jvm(() -> "/does/not/exist")))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             ;
 
         assertThrows(Exception.class, () -> new Cluster(cfg));

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 
@@ -37,7 +38,7 @@ public class NodeFileSystemTest
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -72,7 +73,7 @@ public class NodeFileSystemTest
     public void testLargeFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

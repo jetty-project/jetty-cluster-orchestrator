@@ -23,6 +23,7 @@ import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.tools.Barrier;
@@ -33,7 +34,7 @@ public class BarrierTest
     public void testNoTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", "localhost"))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -61,7 +62,7 @@ public class BarrierTest
     public void testTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", "localhost"))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

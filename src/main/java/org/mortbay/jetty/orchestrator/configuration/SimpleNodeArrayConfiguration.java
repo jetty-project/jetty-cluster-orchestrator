@@ -40,9 +40,9 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
         return Collections.unmodifiableCollection(nodes);
     }
 
-    public SimpleNodeArrayConfiguration node(String id, String hostname)
+    public SimpleNodeArrayConfiguration node(Node node)
     {
-        nodes.add(new Node(id, hostname));
+        nodes.add(node);
         return this;
     }
 
