@@ -23,8 +23,6 @@ import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.Node;
-import org.mortbay.jetty.orchestrator.configuration.NodeArrayTopology;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 
@@ -38,7 +36,7 @@ public class NodeArrayFutureTest
     public void testDetectProcessDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -56,7 +54,7 @@ public class NodeArrayFutureTest
     public void testDetectTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()), new Node("2", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()).node("2", InetAddress.getLocalHost().getHostName()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -78,7 +76,7 @@ public class NodeArrayFutureTest
     public void testZeroTimeoutThenDetectDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -105,7 +103,7 @@ public class NodeArrayFutureTest
     public void testTimeoutIsSpread() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()), new Node("2", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()).node("2", InetAddress.getLocalHost().getHostName()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

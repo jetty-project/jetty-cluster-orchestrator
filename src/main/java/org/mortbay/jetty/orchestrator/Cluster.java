@@ -96,7 +96,7 @@ public class Cluster implements AutoCloseable
 
         Map<String, Map.Entry<String, RpcClient>> hostClients = new HashMap<>();
         List<String> hostnames = configuration.nodeArrays().stream()
-            .flatMap(cfg -> cfg.topology().nodes().stream())
+            .flatMap(cfg -> cfg.nodes().stream())
             .map(Node::getHostname)
             .distinct()
             .collect(Collectors.toList());
@@ -113,7 +113,7 @@ public class Cluster implements AutoCloseable
         for (NodeArrayConfiguration nodeArrayConfiguration : configuration.nodeArrays())
         {
             Map<String, NodeArray.Node> nodes = new HashMap<>();
-            for (Node node : nodeArrayConfiguration.topology().nodes())
+            for (Node node : nodeArrayConfiguration.nodes())
             {
                 String hostname = node.getHostname();
                 boolean localNode = hostname.equals(LocalHostLauncher.HOSTNAME);
