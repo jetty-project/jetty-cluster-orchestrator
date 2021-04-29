@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
-import org.mortbay.jetty.orchestrator.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;

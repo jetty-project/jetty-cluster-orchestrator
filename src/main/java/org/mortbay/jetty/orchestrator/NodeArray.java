@@ -24,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
+import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
+import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
 import org.mortbay.jetty.orchestrator.rpc.command.ExecuteNodeJobCommand;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
@@ -89,12 +91,19 @@ public class NodeArray
     static class Node implements AutoCloseable
     {
         private final GlobalNodeId globalNodeId;
+        private final NodeProcess nodeProcess;
         private final RpcClient rpcClient;
 
-        Node(GlobalNodeId globalNodeId, RpcClient rpcClient)
+        Node(GlobalNodeId globalNodeId, NodeProcess nodeProcess, RpcClient rpcClient)
         {
             this.globalNodeId = globalNodeId;
+            this.nodeProcess = nodeProcess;
             this.rpcClient = rpcClient;
+        }
+
+        public NodeProcess getNodeProcess()
+        {
+            return nodeProcess;
         }
 
         @Override

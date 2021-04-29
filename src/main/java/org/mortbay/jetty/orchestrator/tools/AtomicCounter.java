@@ -21,7 +21,7 @@ import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong;
 import org.apache.curator.framework.recipes.atomic.PromotedToLock;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.zookeeper.KeeperException;
-import org.mortbay.jetty.orchestrator.GlobalNodeId;
+import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 
 public class AtomicCounter
 {

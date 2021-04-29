@@ -16,6 +16,7 @@ package org.mortbay.jetty.orchestrator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.tools.AtomicCounter;
 import org.mortbay.jetty.orchestrator.tools.Barrier;
 import org.apache.curator.framework.CuratorFramework;

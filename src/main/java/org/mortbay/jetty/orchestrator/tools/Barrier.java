@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
-import org.mortbay.jetty.orchestrator.GlobalNodeId;
+import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 
 public class Barrier
 {

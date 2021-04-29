@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
-import org.mortbay.jetty.orchestrator.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
