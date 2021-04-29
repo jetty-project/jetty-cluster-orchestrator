@@ -243,7 +243,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             }
             catch (Exception e)
             {
-                // timeout, ignore.
+                // timeout? error? too late, try to kill the process
+                command.signal(Signal.KILL);
             }
             IOUtil.close(command);
             IOUtil.close(session);
