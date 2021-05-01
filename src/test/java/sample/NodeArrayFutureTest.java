@@ -23,6 +23,7 @@ import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
@@ -33,6 +34,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NodeArrayFutureTest
 {
+    @Test
+    public void testDetectRefusalToStartHost() throws Exception
+    {
+        ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm(() -> "/no/such/java/process"))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())));
+
+        assertThrows(Exception.class, () -> new Cluster(cfg));
+    }
+
     @Test
     public void testDetectProcessDeath() throws Exception
     {
