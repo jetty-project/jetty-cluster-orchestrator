@@ -21,7 +21,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
@@ -29,20 +28,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.Channel;
+import net.schmizz.sshj.connection.channel.direct.DirectConnection;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Signal;
 import net.schmizz.sshj.connection.channel.forwarded.ConnectListener;
 import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
+import net.schmizz.sshj.sftp.RemoteResourceInfo;
+import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
+import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
+import org.mortbay.jetty.orchestrator.util.ByteBuilder;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,10 +89,13 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(String hostname, String hostId, String connectString) throws Exception
+    public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
     {
-        if (nodes.containsKey(hostname))
-            throw new IllegalArgumentException("ssh launcher already launched node on host " + hostname);
+        GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
+        if (!nodeId.equals(globalNodeId))
+            throw new IllegalArgumentException("node id is not the one of a host node");
+        if (nodes.containsKey(nodeId.getHostname()))
+            throw new IllegalArgumentException("ssh launcher already launched node on host " + nodeId.getHostname());
 
         FileSystem fileSystem = null;
         SSHClient sshClient = null;
@@ -101,14 +107,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         {
             sshClient = new SSHClient();
             sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
-            sshClient.connect(hostname);
+            sshClient.connect(nodeId.getHostname());
 
             // public key auth
             sshClient.authPublickey(username);
 
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
-            forwardingConnectListener = new SocketForwardingConnectListener(hostname, new InetSocketAddress("localhost", zkPort));
+            forwardingConnectListener = new SocketForwardingConnectListener(nodeId.getHostname(), new InetSocketAddress("localhost", zkPort));
             RemotePortForwarder.Forward forward = sshClient.getRemotePortForwarder().bind(
                 new RemotePortForwarder.Forward(0), // remote port, dynamically choose one
                 forwardingConnectListener
@@ -124,42 +130,39 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 for (String classpathEntry : classpathEntries)
                 {
                     File cpFile = new File(classpathEntry);
-                    remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + cpFile.getName());
+                    remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + cpFile.getName());
                     if (cpFile.isDirectory())
-                        copyDir(sftpClient, hostId, cpFile, 1);
+                        copyDir(sftpClient, nodeId.getHostId(), cpFile, 1);
                     else
-                        copyFile(sftpClient, hostId, cpFile.getName(), new FileSystemFile(cpFile));
+                        copyFile(sftpClient, nodeId.getHostId(), cpFile.getName(), new FileSystemFile(cpFile));
                 }
             }
             String remoteClasspath = String.join(":", remoteClasspathEntries);
-            String readyEchoString = "Node is ready";
-            String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, hostId, remoteConnectString, readyEchoString));
+            String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, nodeId.getHostId(), remoteConnectString));
 
             session = sshClient.startSession();
             session.allocateDefaultPTY();
             cmd = session.exec(cmdLine);
 
-            SshLogOutputStream sshLogOutputStream = new SshLogOutputStream(hostname, readyEchoString.getBytes(session.getRemoteCharset()), cmd, System.out);
-            new StreamCopier(cmd.getInputStream(), sshLogOutputStream).spawnDaemon(hostname + "stdout");
-            new StreamCopier(cmd.getErrorStream(), System.err).spawnDaemon(hostname + "stderr");
-            sshLogOutputStream.waitForExpectedString();
+            new StreamCopier(cmd.getInputStream(), new LineBufferingOutputStream(System.out)).spawnDaemon(nodeId.getHostname() + "-stdout");
+            new StreamCopier(cmd.getErrorStream(), new LineBufferingOutputStream(System.err)).spawnDaemon(nodeId.getHostname() + "-stderr");
 
             HashMap<String, Object> env = new HashMap<>();
             env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + hostId), env);
+            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
-            RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(hostId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
-            nodes.put(hostname, remoteNodeHolder);
+            RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
+            nodes.put(nodeId.getHostname(), remoteNodeHolder);
             return remoteConnectString;
         }
         catch (Exception e)
         {
             IOUtil.close(fileSystem, cmd, session, forwardingConnectListener, forwarding, sshClient);
-            throw new Exception("Error launching host '" + hostname + "'", e);
+            throw new Exception("Error launching host '" + nodeId.getHostname() + "'", e);
         }
     }
 
-    private static List<String> buildCommandLine(Jvm jvm, String remoteClasspath, String nodeId, String connectString, String readyEchoString)
+    private static List<String> buildCommandLine(Jvm jvm, String remoteClasspath, String nodeId, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable());
@@ -169,7 +172,6 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add("\"" + nodeId + "\"");
         cmdLine.add("\"" + connectString + "\"");
-        cmdLine.add("\"" + readyEchoString + "\"");
         return cmdLine;
     }
 
@@ -209,7 +211,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     private static class RemoteNodeHolder implements AutoCloseable {
-        private final String hostId;
+        private final GlobalNodeId nodeId;
         private final FileSystem fileSystem;
         private final SSHClient sshClient;
         private final SocketForwardingConnectListener forwardingConnectListener;
@@ -217,8 +219,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         private final Session session;
         private final Session.Command command;
 
-        private RemoteNodeHolder(String hostId, FileSystem fileSystem, SSHClient sshClient, SocketForwardingConnectListener forwardingConnectListener, AutoCloseable forwarding, Session session, Session.Command command) {
-            this.hostId = hostId;
+        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SSHClient sshClient, SocketForwardingConnectListener forwardingConnectListener, AutoCloseable forwarding, Session session, Session.Command command) {
+            this.nodeId = nodeId;
             this.fileSystem = fileSystem;
             this.sshClient = sshClient;
             this.forwardingConnectListener = forwardingConnectListener;
@@ -242,121 +244,66 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             }
             catch (Exception e)
             {
-                // timeout, ignore.
+                // timeout? error? too late, try to kill the process
+                command.signal(Signal.KILL);
             }
             IOUtil.close(command);
             IOUtil.close(session);
-            try (Session session = sshClient.startSession())
+            try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
             {
-                String folderName = "." + NodeFileSystemProvider.PREFIX + "/" + hostId;
-                try (Session.Command cmd = session.exec("rm -fr \"" + folderName + "\""))
-                {
-                    cmd.join();
-                }
+                deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
             }
             IOUtil.close(forwardingConnectListener);
             IOUtil.close(forwarding);
             IOUtil.close(sshClient);
         }
+
+        private static void deltree(SFTPClient sftpClient, String path) throws IOException
+        {
+            List<RemoteResourceInfo> ls = sftpClient.ls(path);
+            for (RemoteResourceInfo l : ls)
+            {
+                if (l.isDirectory())
+                    deltree(sftpClient, l.getPath());
+                else
+                    sftpClient.rm(l.getPath());
+            }
+            sftpClient.rmdir(path);
+        }
     }
 
-    private static class SshLogOutputStream extends OutputStream
+    private static class LineBufferingOutputStream extends OutputStream
     {
-        private final String hostname;
-        private final byte[] expectedSequence;
-        private final byte[] accumulator;
-        private int counter;
-        private final Session.Command cmd;
         private final OutputStream delegate;
-        private final AtomicBoolean matched = new AtomicBoolean(false);
-        private final AtomicBoolean failed = new AtomicBoolean(false);
+        private final ByteBuilder byteBuilder = new ByteBuilder(256);
 
-        private SshLogOutputStream(String hostname, byte[] expectedSequence, Session.Command cmd, OutputStream delegate)
+        public LineBufferingOutputStream(OutputStream delegate)
         {
-            this.hostname = hostname;
-            this.expectedSequence = expectedSequence;
-            this.accumulator = new byte[expectedSequence.length];
-            this.cmd = cmd;
             this.delegate = delegate;
         }
 
         @Override
-        public void write(int cc) throws IOException
+        public void write(int b) throws IOException
         {
-            if (!matched.get() && !failed.get())
+            if (byteBuilder.isFull())
             {
-                if (cc != expectedSequence[counter])
-                {
-                    delegate.write(accumulator, 0, counter);
-                    delegate.write(cc);
-                    failed.set(true);
-                }
-                else
-                {
-                    accumulator[counter] = (byte)cc;
-                    counter++;
-                }
-                if (counter == expectedSequence.length)
-                    matched.set(true);
+                delegate.write(byteBuilder.getBuffer());
+                delegate.flush();
+                byteBuilder.clear();
             }
-            else
+            byteBuilder.append(b);
+            if (b == '\n' || b == '\r')
             {
-                delegate.write(cc);
+                delegate.write(byteBuilder.getBuffer(), 0, byteBuilder.length());
+                delegate.flush();
+                byteBuilder.clear();
             }
         }
 
         @Override
-        public void write(byte[] b, int off, int len) throws IOException
+        public void close() throws IOException
         {
-            if (!matched.get() && !failed.get())
-            {
-                for (int i = off; i < len; i++)
-                {
-                    int cc = b[i];
-                    if (cc != expectedSequence[counter])
-                    {
-                        delegate.write(accumulator, 0, counter);
-                        delegate.write(b, off + i, len);
-                        failed.set(true);
-                        break;
-                    }
-                    else
-                    {
-                        accumulator[counter] = (byte)cc;
-                        counter++;
-                    }
-                    if (counter == expectedSequence.length)
-                    {
-                        matched.set(true);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                delegate.write(b, off, len);
-            }
-        }
-
-        public void waitForExpectedString() throws Exception
-        {
-            long elapsedMs = 0L;
-            while (!matched.get())
-            {
-                if (failed.get() || !cmd.isOpen())
-                    throw new Exception("Node failed to start on host '" + hostname + "'");
-                try
-                {
-                    Thread.sleep(10);
-                    elapsedMs += 10;
-                    if (elapsedMs >= 10000)
-                        throw new Exception("Node failed to output expected string on host '" + hostname + "' (accumulated <" + new String(accumulator, StandardCharsets.UTF_8) + ">)");
-                }
-                catch (InterruptedException e)
-                {
-                    throw new Exception("Interrupted while starting node on host '" + hostname + "'", e);
-                }
-            }
+            delegate.close();
         }
     }
 

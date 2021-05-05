@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -78,13 +79,6 @@ public class NodeProcess implements Serializable, AutoCloseable
     {
         String nodeId = args[0];
         String connectString = args[1];
-        String readyEchoString = args.length > 2 ? args[2] : null;
-        if (readyEchoString != null)
-        {
-            // This must be the very first printed thing, before any log.
-            System.out.print(readyEchoString);
-            System.out.flush();
-        }
 
         MDC.put("NodeId", nodeId);
         if (LOG.isDebugEnabled())
@@ -95,7 +89,7 @@ public class NodeProcess implements Serializable, AutoCloseable
 
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] connected to {}", nodeId, connectString);
-        RpcServer rpcServer = new RpcServer(curator, nodeId);
+        RpcServer rpcServer = new RpcServer(curator, new GlobalNodeId(nodeId));
 
         Runnable shutdown = () ->
         {
@@ -161,13 +155,18 @@ public class NodeProcess implements Serializable, AutoCloseable
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable());
-        cmdLine.addAll(jvm.getOpts());
+        cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add(nodeId);
         cmdLine.add(connectString);
         return cmdLine;
+    }
+
+    private static List<String> filterOutEmptyStrings(List<String> opts)
+    {
+        return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
     }
 
     private static String buildClassPath(File libPath)
