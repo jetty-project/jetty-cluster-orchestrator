@@ -223,9 +223,15 @@ public class NodeFileSystem extends FileSystem
     @Override
     public void close() throws IOException
     {
-        sftpClient.close();
-        provider.remove(hostId);
-        closed = true;
+        try
+        {
+            sftpClient.close();
+        }
+        finally
+        {
+            provider.remove(hostId);
+            closed = true;
+        }
     }
 
     @Override

@@ -91,7 +91,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
             SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
             String hostId = uri.getSchemeSpecificPart();
             if (fileSystems.containsKey(hostId))
-                throw new FileSystemAlreadyExistsException(hostId);
+                throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
             NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractNodeId(uri), "/");
             fileSystems.put(hostId, fileSystem);
