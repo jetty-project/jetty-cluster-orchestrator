@@ -18,16 +18,13 @@ Creating a `ClusterConfiguration` instance is the first step to creating a clust
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")  // (1)
-        .topology(new NodeArrayTopology(                     // (2)
-            new Node("1", "localhost"),                      // (3)
-            new Node("2", "localhost"))));
-
+        .node(new Node("1", "localhost"))                    // (2)
+        .node(new Node("2", "localhost")));
 ----
 
 . Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
  Any number of `NodeArray` s can be added to a cluster, as long as they have unique names.
-. Set the `Topology` the `NodeArray`. The topology contains the exact list of JVMs.
-. Have two `Node` s be part of the topology. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
+. Add two `Node` s to the cluster. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
  while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Node that all node identifiers
  must be unique.
 
@@ -74,15 +71,14 @@ deleted and all other resources were reclaimed.
 
 === Over the network
 
-If you want to use machines over the network, you can simply specify their names instead of `localhost` in the topology: 
+If you want to use machines over the network, you can simply specify their names instead of `localhost` in the configuration:
 
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .topology(new NodeArrayTopology(
-            new Node("1", "server-1"),
-            new Node("2", "server-2"))));
+        .node(new Node("1", "server-1"))
+        .node(new Node("2", "server-2")));
 ----
 
 Running the above example with this configuration would create a JVM on a machine called `server-1`, another on a machine called
@@ -104,9 +100,8 @@ If you want to use a specific JVM over the one in your path, you can pass a `Jvm
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .topology(new NodeArrayTopology(
-            new Node("1", "localhost"),
-            new Node("2", "localhost"))));
+        .node(new Node("1", "localhost"))
+        .node(new Node("2", "localhost")));
 ----
 
 The configuration above is identical to the previous one, except that the `/some/path/to/jdk11/bin/java` command is going to be
@@ -119,9 +114,8 @@ Or you could be more specific by only configuring the JVM on the `NodeArray`:
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
         .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
-        .topology(new NodeArrayTopology(
-            new Node("1", "localhost"),
-            new Node("2", "localhost"))));
+        .node(new Node("1", "localhost"))
+        .node(new Node("2", "localhost")));
 ----
 
 In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
@@ -149,11 +143,10 @@ then collect all those reports and eventually merge and transform them.
 
 [source,java]
 ----
-ClusterConfiguration cfg = new SimpleClusterConfiguration()            // (1)
+ClusterConfiguration cfg = new SimpleClusterConfiguration()             // (1)
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .topology(new NodeArrayTopology(
-            new Node("1", "server-1"),
-            new Node("2", "server-2"))));
+        .node(new Node("1", "server-1"))
+        .node(new Node("2", "server-2")));
 
 try (Cluster cluster = new Cluster(cfg))
 {
