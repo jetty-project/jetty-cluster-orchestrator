@@ -60,14 +60,14 @@ hello, world!
 hello, world!
 ----
 
-which is expected as the lambda was executed on a `NodeArray` that contains two `Node`s, hence it got executed twice.
+which is expected as the lambda was executed on a `NodeArray` that contains two `Node` s, hence it got executed twice.
 
 === Under the hood
 
 The above example triggered the creation of two JVMs: one for each node. Then the lambda passed to `executeOnAll()` was
 serialized and sent to those two JVMs which deserialized and executed it.
 To make the deserialization possible, the classpath of the JVM executing the code above was copied to a sub-folder
-of `$HOME/.jco` and given as the classpath argument of the created JVMs. The `java` command on your `$PATH` was used to
+of `${HOME}/.jco` and given as the classpath argument of the created JVMs. The `java` command on your `${PATH}` was used to
 create those two JVMs. Finally, when the `Cluster` instance was closed, all processes were shut down, all created files were
 deleted and all other resources were reclaimed.
 
@@ -90,7 +90,7 @@ run locally or remotely.
 
 The way the JVMs are created on the remote machines is the same as in the local case: the classpath is copied, then the `java`
 command is used to create a JVM. The only difference is that this time copying and creating a process is done over SSH
-so it is assumed that the remote machines are reachable over SSH with public key auth pre-configured. The keys in `$HOME/.ssh`
+so it is assumed that the remote machines are reachable over SSH with public key auth pre-configured. The keys in `${HOME}/.ssh`
 are going to be used for that purpose.
 
 === Specifying the JVM
@@ -122,7 +122,7 @@ ClusterConfiguration cfg = new SimpleClusterConfiguration()
 
 In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
 this makes no difference overall. But when you want to run multiple `NodeArray` s it becomes useful to be able to different
-JVMs for each `NodeArray` and eventually have a default one for the cluster that is going to be used for `NodeArray`s
+JVMs for each `NodeArray` and eventually have a default one for the cluster that is going to be used for `NodeArray` s
 whose JVM was not set.
 
 Please note that the `java` command argument is a lambda instead of a string so that it's going to be executed on the remote
