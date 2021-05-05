@@ -11,7 +11,7 @@
 // ========================================================================
 //
 
-package sample;
+package org.mortbay.jetty.orchestrator;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -41,7 +41,7 @@ public class NodeFileSystemTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -77,7 +77,7 @@ public class NodeFileSystemTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

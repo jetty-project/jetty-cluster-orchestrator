@@ -11,7 +11,7 @@
 // ========================================================================
 //
 
-package sample;
+package org.mortbay.jetty.orchestrator;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;

@@ -11,7 +11,7 @@
 // ========================================================================
 //
 
-package sample;
+package org.mortbay.jetty.orchestrator;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,7 +57,7 @@ public class ClusterTest extends AbstractSshTest
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         return Stream.of(cfg1, cfg2, cfg3);
@@ -137,7 +137,7 @@ public class ClusterTest extends AbstractSshTest
     public void testInvalidJvmExecutableInLauncher() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .hostLauncher(new SshRemoteHostLauncher().jvm(new Jvm(() -> "/does/not/exist")))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm(() -> "/does/not/exist")))
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             ;
 

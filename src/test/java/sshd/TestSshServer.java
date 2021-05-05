@@ -75,6 +75,7 @@ public class TestSshServer implements AutoCloseable
         });
         // fully open auth
         sshd.setPublickeyAuthenticator((s, publicKey, serverSession) -> true);
+        sshd.setPasswordAuthenticator((username, password, session) -> true);
 
         // enable TCP port forwarding
         sshd.setForwardingFilter(new AcceptAllForwardingFilter());

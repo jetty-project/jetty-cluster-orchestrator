@@ -11,7 +11,7 @@
 // ========================================================================
 //
 
-package sample;
+package org.mortbay.jetty.orchestrator;
 
 import java.net.InetAddress;
 import java.util.concurrent.ExecutionException;
@@ -40,7 +40,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -59,7 +59,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -82,7 +82,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -110,7 +110,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

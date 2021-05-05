@@ -54,27 +54,29 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private final Map<String, RemoteNodeHolder> nodes = new HashMap<>();
     private final String username;
+    private final char[] password;
     private final int port;
     private Jvm jvm;
 
     public SshRemoteHostLauncher()
     {
-        this(System.getProperty("user.name"), 22);
+        this(System.getProperty("user.name"), null, 22);
     }
 
     public SshRemoteHostLauncher(String username)
     {
-        this(username, 22);
+        this(username, null, 22);
     }
 
     public SshRemoteHostLauncher(int port)
     {
-        this(System.getProperty("user.home"), port);
+        this(System.getProperty("user.home"), null, port);
     }
 
-    public SshRemoteHostLauncher(String username, int port)
+    public SshRemoteHostLauncher(String username, char[] password, int port)
     {
         this.username = username;
+        this.password = password;
         this.port = port;
     }
 
@@ -119,8 +121,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
             sshClient.connect(nodeId.getHostname(), port);
 
-            // public key auth
-            sshClient.authPublickey(username);
+            if (password == null)
+                sshClient.authPublickey(username); // public key auth
+            else
+                sshClient.authPassword(username, password); // pw auth
 
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
