@@ -1,3 +1,5 @@
+image::https://github.com/jetty-project/jetty-cluster-orchestrator/workflows/GitHub%20CI/badge.svg[GitHub CI Badge]
+
 = Jetty Cluster Orchestrator Project
 
 Jetty's `Cluster Orchestrator` is an API to ease writing tests that execute code over different JVMs, locally or across networks.
