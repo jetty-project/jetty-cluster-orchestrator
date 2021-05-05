@@ -46,13 +46,15 @@ public class NodeFileSystem extends FileSystem
 
     private final NodeFileSystemProvider provider;
     private final SFTPClient sftpClient;
+    private final String hostId;
     private final Path rootPath;
     private volatile boolean closed;
 
-    public NodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String nodeId, String root)
+    public NodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String hostId, String nodeId, String root)
     {
         this.provider = provider;
         this.sftpClient = sftpClient;
+        this.hostId = hostId;
         this.rootPath = new NodePath(this, nodeId, root);
     }
 
@@ -222,6 +224,7 @@ public class NodeFileSystem extends FileSystem
     public void close() throws IOException
     {
         sftpClient.close();
+        provider.remove(hostId);
         closed = true;
     }
 

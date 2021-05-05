@@ -37,6 +37,24 @@ import static org.hamcrest.core.Is.is;
 public class NodeFileSystemTest extends AbstractSshTest
 {
     @Test
+    public void testTwoClustersOnSameHost() throws Exception
+    {
+        ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            ;
+
+        new Cluster(cfg1).close();
+
+        ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            ;
+
+        new Cluster(cfg2).close();
+    }
+
+    @Test
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()

@@ -93,7 +93,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException(hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, extractNodeId(uri), "/");
+            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractNodeId(uri), "/");
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }
@@ -109,6 +109,14 @@ public class NodeFileSystemProvider extends FileSystemProvider
             if (fileSystem == null)
                 throw new FileSystemNotFoundException(uri.toString());
             return fileSystem;
+        }
+    }
+
+    void remove(String hostId)
+    {
+        synchronized (fileSystems)
+        {
+            fileSystems.remove(hostId);
         }
     }
 
