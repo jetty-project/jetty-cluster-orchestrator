@@ -26,20 +26,22 @@ import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Node;
-import org.mortbay.jetty.orchestrator.configuration.NodeArrayTopology;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
+import sshd.AbstractSshTest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class NodeFileSystemTest
+public class NodeFileSystemTest extends AbstractSshTest
 {
     @Test
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -74,7 +76,8 @@ public class NodeFileSystemTest
     public void testLargeFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").topology(new NodeArrayTopology(new Node("1", InetAddress.getLocalHost().getHostName()))))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

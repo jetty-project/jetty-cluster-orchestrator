@@ -31,13 +31,11 @@ import java.util.concurrent.TimeUnit;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.Channel;
-import net.schmizz.sshj.connection.channel.direct.DirectConnection;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Signal;
 import net.schmizz.sshj.connection.channel.forwarded.ConnectListener;
 import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
@@ -56,16 +54,28 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private final Map<String, RemoteNodeHolder> nodes = new HashMap<>();
     private final String username;
+    private final int port;
     private Jvm jvm;
 
     public SshRemoteHostLauncher()
     {
-        this(System.getProperty("user.name"));
+        this(System.getProperty("user.name"), 22);
     }
 
     public SshRemoteHostLauncher(String username)
     {
+        this(username, 22);
+    }
+
+    public SshRemoteHostLauncher(int port)
+    {
+        this(System.getProperty("user.home"), port);
+    }
+
+    public SshRemoteHostLauncher(String username, int port)
+    {
         this.username = username;
+        this.port = port;
     }
 
     @Override
@@ -107,7 +117,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         {
             sshClient = new SSHClient();
             sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
-            sshClient.connect(nodeId.getHostname());
+            sshClient.connect(nodeId.getHostname(), port);
 
             // public key auth
             sshClient.authPublickey(username);
