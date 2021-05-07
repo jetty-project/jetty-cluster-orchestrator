@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.Channel;
@@ -178,13 +179,19 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
-        cmdLine.addAll(jvm.getOpts());
+        for (String opt : filterOutEmptyStrings(jvm.getOpts()))
+            cmdLine.add("\"" + opt + "\"");
         cmdLine.add("-classpath");
         cmdLine.add("\"" + remoteClasspath + "\"");
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add("\"" + nodeId + "\"");
         cmdLine.add("\"" + connectString + "\"");
         return cmdLine;
+    }
+
+    private static List<String> filterOutEmptyStrings(List<String> opts)
+    {
+        return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
     }
 
     private void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
