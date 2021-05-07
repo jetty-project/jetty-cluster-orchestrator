@@ -110,7 +110,7 @@ public class RpcClient implements AutoCloseable
     public void close()
     {
         executorService.shutdownNow();
-        calls.values().forEach(f -> f.completeExceptionally(new IllegalStateException("Pending call terminated on close (remote process died?)")));
+        calls.values().forEach(f -> f.completeExceptionally(new IllegalStateException("Pending call terminated on close (remote process died?) for node " + globalNodeId.getNodeId())));
         calls.clear();
     }
 }
