@@ -100,7 +100,7 @@ If you want to use a specific JVM over the one in your path, you can pass a `Jvm
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
+    .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
         .node(new Node("1", "localhost"))
         .node(new Node("2", "localhost")));
@@ -115,7 +115,7 @@ Or you could be more specific by only configuring the JVM on the `NodeArray`:
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .jvm(new Jvm(() -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
+        .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
         .node(new Node("1", "localhost"))
         .node(new Node("2", "localhost")));
 ----
@@ -125,9 +125,11 @@ this makes no difference overall. But when you want to run multiple `NodeArray` 
 JVMs for each `NodeArray` and eventually have a default one for the cluster that is going to be used for `NodeArray` s
 whose JVM was not set.
 
-Please note that the `java` command argument is a lambda instead of a string so that it's going to be executed on the remote
-machine. This is useful if you use machines with heterogenous operating systems, or simply have installed your JVMs in
-different locations on your machines.
+Please note that the `/some/path/to/jdk11/bin/java` executable argument is a lambda that accepts a `java.nio.file.FileSystem`
+and a `String` so that the remote filesystem of the machine whose name is specified by the string can be browsed to find the
+JVM executable.
+This is useful if you use machines with heterogenous operating systems, or simply have installed your JVMs in different
+locations on your machines.
 
 === Synchronizing the lambdas
 
