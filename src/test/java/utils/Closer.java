@@ -11,12 +11,26 @@
 // ========================================================================
 //
 
-package org.mortbay.jetty.orchestrator.util;
+package utils;
 
-import java.io.Serializable;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
 
-@FunctionalInterface
-public interface SerializableSupplier<T> extends Supplier<T>, Serializable
+import org.mortbay.jetty.orchestrator.util.IOUtil;
+
+public class Closer implements AutoCloseable
 {
+    private final List<AutoCloseable> closeables = new ArrayList<>();
+
+    public <T extends AutoCloseable> T register(T t)
+    {
+        closeables.add(t);
+        return t;
+    }
+
+    @Override
+    public void close() throws Exception
+    {
+        IOUtil.close(closeables.toArray(new AutoCloseable[0]));
+    }
 }

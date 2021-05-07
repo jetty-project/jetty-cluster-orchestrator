@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent
 {
-    private static final Jvm DEFAULT_JVM = new Jvm(() -> "java");
+    private static final Jvm DEFAULT_JVM = new Jvm((f, h) -> "java");
 
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();

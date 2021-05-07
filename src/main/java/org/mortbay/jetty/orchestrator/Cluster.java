@@ -120,7 +120,7 @@ public class Cluster implements AutoCloseable
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
                 try
                 {
-                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString)).get(10, TimeUnit.SECONDS);
+                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString)).get(10, TimeUnit.SECONDS);
                     NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(curator, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);

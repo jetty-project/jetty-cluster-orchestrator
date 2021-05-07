@@ -32,12 +32,18 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import net.schmizz.sshj.sftp.SFTPClient;
 
+/**
+ * URI format is:
+ * <code>jco:[hostid]{!/[path]}</code>
+ */
 public class NodeFileSystemProvider extends FileSystemProvider
 {
     public static final String PREFIX = "jco";
@@ -89,11 +95,11 @@ public class NodeFileSystemProvider extends FileSystemProvider
         synchronized (fileSystems)
         {
             SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
-            String hostId = uri.getSchemeSpecificPart();
+            String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractNodeId(uri), "/");
+            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractPath(uri));
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }
@@ -120,38 +126,22 @@ public class NodeFileSystemProvider extends FileSystemProvider
         }
     }
 
-    private String extractHostId(URI uri)
+    private static String extractHostId(URI uri)
     {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
         if (i >= 0)
-            nodeId = nodeId.substring(0, i);
-
-        int firstSlashIdx = nodeId.indexOf('/');
-        if (firstSlashIdx == -1)
-            throw new IllegalArgumentException("Invalid URI: " + uri);
-        int secondSlashIdx = nodeId.indexOf('/', firstSlashIdx + 1);
-        if (secondSlashIdx == -1)
-            throw new IllegalArgumentException("Invalid URI: " + uri);
-        return nodeId.substring(0, secondSlashIdx);
-    }
-
-    private String extractNodeId(URI uri)
-    {
-        String nodeId = uri.getSchemeSpecificPart();
-        int i = nodeId.indexOf("!/");
-        if (i >= 0)
-            nodeId = nodeId.substring(0, i);
+            return nodeId.substring(0, i);
         return nodeId;
     }
 
-    private String extractPath(URI uri)
+    private static List<String> extractPath(URI uri)
     {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
         if (i == -1)
-            throw new IllegalArgumentException("Invalid URI: " + uri);
-        return nodeId.substring(i + 1);
+            return Collections.emptyList();
+        return NodePath.toSegments(nodeId.substring(i + 1));
     }
 
     @Override
@@ -163,9 +153,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
             NodeFileSystem fileSystem = fileSystems.get(hostId);
             if (fileSystem == null)
                 throw new FileSystemNotFoundException(uri.toString());
-            String nodeId = extractNodeId(uri);
-            String path = extractPath(uri);
-            return new NodePath(fileSystem, nodeId, path);
+            return fileSystem.getPath(false, extractPath(uri));
         }
     }
 
@@ -220,7 +208,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
     {
-        throw new UnsupportedOperationException();
+        return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, type, options);
     }
 
     @Override

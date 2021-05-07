@@ -25,10 +25,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mortbay.jetty.orchestrator.Cluster;
-import org.mortbay.jetty.orchestrator.ClusterTools;
-import org.mortbay.jetty.orchestrator.NodeArray;
-import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.Node;
@@ -127,7 +123,7 @@ public class ClusterTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-                .jvm(new Jvm(() -> "/does/not/exist")
+                .jvm(new Jvm((f, h) -> "/does/not/exist")
             );
 
         assertThrows(Exception.class, () -> new Cluster(cfg));
@@ -137,7 +133,7 @@ public class ClusterTest extends AbstractSshTest
     public void testInvalidJvmExecutableInLauncher() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm(() -> "/does/not/exist")))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm((f, h) -> "/does/not/exist")))
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             ;
 

@@ -14,25 +14,26 @@
 package org.mortbay.jetty.orchestrator.configuration;
 
 import java.io.Serializable;
+import java.nio.file.FileSystem;
 import java.util.Arrays;
 import java.util.List;
 
-import org.mortbay.jetty.orchestrator.util.SerializableSupplier;
+import org.mortbay.jetty.orchestrator.util.FilenameSupplier;
 
 public class Jvm implements Serializable
 {
-    private final SerializableSupplier<String> executableSupplier;
+    private final FilenameSupplier executableSupplier;
     private final List<String> opts;
 
-    public Jvm(SerializableSupplier<String> executableSupplier, String... opts)
+    public Jvm(FilenameSupplier executableSupplier, String... opts)
     {
         this.executableSupplier = executableSupplier;
         this.opts = Arrays.asList(opts);
     }
 
-    public String executable()
+    public String executable(FileSystem fileSystem, String hostname)
     {
-        return executableSupplier.get();
+        return executableSupplier.get(fileSystem, hostname);
     }
 
     public List<String> getOpts()

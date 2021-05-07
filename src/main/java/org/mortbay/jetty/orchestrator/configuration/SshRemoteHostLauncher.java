@@ -109,15 +109,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         if (nodes.containsKey(nodeId.getHostname()))
             throw new IllegalArgumentException("ssh launcher already launched node on host " + nodeId.getHostname());
 
+        SSHClient sshClient = new SSHClient();
         FileSystem fileSystem = null;
-        SSHClient sshClient = null;
         SocketForwardingConnectListener forwardingConnectListener = null;
         AutoCloseable forwarding = null;
         Session.Command cmd = null;
         Session session = null;
         try
         {
-            sshClient = new SSHClient();
             sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
             sshClient.connect(nodeId.getHostname(), port);
 
@@ -133,9 +132,12 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 new RemotePortForwarder.Forward(0), // remote port, dynamically choose one
                 forwardingConnectListener
             );
-            SSHClient finalSshClient = sshClient;
-            forwarding = () -> finalSshClient.getRemotePortForwarder().cancel(forward);
+            forwarding = () -> sshClient.getRemotePortForwarder().cancel(forward);
             String remoteConnectString = "localhost:" + forward.getPort();
+
+            HashMap<String, Object> env = new HashMap<>();
+            env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
             List<String> remoteClasspathEntries = new ArrayList<>();
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
@@ -152,7 +154,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 }
             }
             String remoteClasspath = String.join(":", remoteClasspathEntries);
-            String cmdLine = String.join(" ", buildCommandLine(jvm, remoteClasspath, nodeId.getHostId(), remoteConnectString));
+            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspath, nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
 
             session = sshClient.startSession();
             session.allocateDefaultPTY();
@@ -160,10 +162,6 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             new StreamCopier(cmd.getInputStream(), new LineBufferingOutputStream(System.out)).spawnDaemon(nodeId.getHostname() + "-stdout");
             new StreamCopier(cmd.getErrorStream(), new LineBufferingOutputStream(System.err)).spawnDaemon(nodeId.getHostname() + "-stderr");
-
-            HashMap<String, Object> env = new HashMap<>();
-            env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
             RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
             nodes.put(nodeId.getHostname(), remoteNodeHolder);
@@ -176,10 +174,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static List<String> buildCommandLine(Jvm jvm, String remoteClasspath, String nodeId, String connectString)
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, String remoteClasspath, String nodeId, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvm.executable());
+        cmdLine.add(jvm.executable(fileSystem, hostname));
         cmdLine.addAll(jvm.getOpts());
         cmdLine.add("-classpath");
         cmdLine.add("\"" + remoteClasspath + "\"");

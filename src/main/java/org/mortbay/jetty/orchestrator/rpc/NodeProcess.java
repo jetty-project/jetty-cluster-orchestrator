@@ -16,7 +16,9 @@ package org.mortbay.jetty.orchestrator.rpc;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.FileSystem;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -108,12 +110,12 @@ public class NodeProcess implements Serializable, AutoCloseable
         shutdown.run();
     }
 
-    public static NodeProcess spawn(Jvm jvm, String hostId, String nodeId, String connectString) throws IOException
+    public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString) throws IOException
     {
         File nodeRootPath = defaultRootPath(nodeId);
         nodeRootPath.mkdirs();
 
-        List<String> cmdLine = buildCommandLine(jvm, defaultLibPath(hostId), nodeId, connectString);
+        List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString);
         return new NodeProcess(new ProcessBuilder(cmdLine)
             .directory(nodeRootPath)
             .inheritIO()
@@ -151,10 +153,10 @@ public class NodeProcess implements Serializable, AutoCloseable
         return new File(rootPath, CLASSPATH_FOLDER_NAME);
     }
 
-    private static List<String> buildCommandLine(Jvm jvm, File libPath, String nodeId, String connectString)
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, File libPath, String nodeId, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvm.executable());
+        cmdLine.add(jvm.executable(fileSystem, hostname));
         cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));

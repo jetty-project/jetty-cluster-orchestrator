@@ -43,6 +43,11 @@ public class TestSshServer implements AutoCloseable
 
     public TestSshServer() throws Exception
     {
+        this(System.getProperty("user.home"));
+    }
+
+    public TestSshServer(String homeDir) throws Exception
+    {
         KeyPair keyPair;
         try (InputStream is = getClass().getResourceAsStream("/keystore.p12"))
         {
@@ -53,7 +58,7 @@ public class TestSshServer implements AutoCloseable
             keyPair = new KeyPair(publicKey, privateKey);
         }
 
-        init(keyPair, System.getProperty("user.home"));
+        init(keyPair, homeDir);
     }
 
     public int getPort()
