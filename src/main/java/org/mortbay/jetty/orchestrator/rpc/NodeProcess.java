@@ -157,8 +157,7 @@ public class NodeProcess implements Serializable, AutoCloseable
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
-        for (String opt : filterOutEmptyStrings(jvm.getOpts()))
-            cmdLine.add("\"" + opt + "\"");
+        cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
         cmdLine.add(NodeProcess.class.getName());

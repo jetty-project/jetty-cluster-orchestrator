@@ -19,10 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
-import org.mortbay.jetty.orchestrator.Cluster;
-import org.mortbay.jetty.orchestrator.NodeArray;
-import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
+import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
@@ -35,6 +33,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NodeArrayFutureTest extends AbstractSshTest
 {
+    @Test
+    public void testJvmOptionWithStar() throws Exception
+    {
+        ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> "java", "-Xlog:gc*:file=gc.log:time,level,tags"))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            ;
+
+        try (Cluster cluster = new Cluster(cfg))
+        {
+            NodeArray nodeArray = cluster.nodeArray("my-array");
+            nodeArray.executeOnAll(tools -> tools.barrier("barrier", 2).await());
+            cluster.tools().barrier("barrier", 2).await(15, TimeUnit.SECONDS); // check that the remote node is working
+        }
+    }
+
     @Test
     public void testDetectProcessDeath() throws Exception
     {
@@ -116,10 +131,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         try (Cluster cluster = new Cluster(cfg))
         {
             NodeArray nodeArray = cluster.nodeArray("my-array");
-            NodeArrayFuture future = nodeArray.executeOnAll(tools ->
-            {
-                Thread.sleep(600);
-            });
+            NodeArrayFuture future = nodeArray.executeOnAll(tools -> Thread.sleep(600));
             assertThrows(TimeoutException.class, () -> future.get(1, TimeUnit.SECONDS));
         }
     }
