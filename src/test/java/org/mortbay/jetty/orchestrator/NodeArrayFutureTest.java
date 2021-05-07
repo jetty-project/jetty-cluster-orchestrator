@@ -37,7 +37,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testJvmOptionWithStar() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .jvm(new Jvm((fs, h) -> "java", "-Xlog:gc*:file=gc.log:time,level,tags"))
+            .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
