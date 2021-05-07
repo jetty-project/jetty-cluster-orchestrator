@@ -33,12 +33,14 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.xfer.FilePermission;
 
 /**
  * URI format is:
@@ -47,15 +49,17 @@ import net.schmizz.sshj.sftp.SFTPClient;
 public class NodeFileSystemProvider extends FileSystemProvider
 {
     public static final String PREFIX = "jco";
+    private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
+    static
+    {
+        ACCESS_MODES_MASKS.put(AccessMode.EXECUTE, 0111); // Yes, octal.
+        ACCESS_MODES_MASKS.put(AccessMode.WRITE, 0222); // Yes, octal.
+        ACCESS_MODES_MASKS.put(AccessMode.READ, 0444); // Yes, octal.
+    }
 
     private final Map<String, NodeFileSystem> fileSystems = new HashMap<>();
 
     public NodeFileSystemProvider()
-    {
-    }
-
-    @Override
-    public void checkAccess(Path path, AccessMode... modes)
     {
     }
 
@@ -206,7 +210,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     }
 
     @Override
-    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
+    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException
     {
         return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, type, options);
     }
@@ -221,5 +225,28 @@ public class NodeFileSystemProvider extends FileSystemProvider
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options)
     {
         throw new ReadOnlyFileSystemException();
+    }
+
+    @Override
+    public void checkAccess(Path path, AccessMode... modes) throws IOException
+    {
+        int[] masks = new int[modes.length];
+        for (int i = 0; i < modes.length; i++)
+        {
+            AccessMode mode = modes[i];
+            int mask = ACCESS_MODES_MASKS.get(mode);
+            masks[i] = mask;
+        }
+
+        NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
+        for (FilePermission permission : attributes.getLstat().getPermissions())
+        {
+            for (int mask : masks)
+            {
+                if (permission.isIn(mask))
+                    return;
+            }
+        }
+        throw new IOException("Access check failed");
     }
 }

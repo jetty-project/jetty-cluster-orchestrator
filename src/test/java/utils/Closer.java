@@ -29,8 +29,11 @@ public class Closer implements AutoCloseable
     }
 
     @Override
-    public void close() throws Exception
+    public void close()
     {
-        IOUtil.close(closeables.toArray(new AutoCloseable[0]));
+        for (int i = closeables.size() - 1; i >= 0 ; i--)
+        {
+            IOUtil.close(closeables.get(i));
+        }
     }
 }

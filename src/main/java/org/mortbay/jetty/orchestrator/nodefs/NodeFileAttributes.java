@@ -29,6 +29,11 @@ class NodeFileAttributes implements BasicFileAttributes
         this.lstat = lstat;
     }
 
+    public FileAttributes getLstat()
+    {
+        return lstat;
+    }
+
     @Override
     public FileTime lastModifiedTime()
     {

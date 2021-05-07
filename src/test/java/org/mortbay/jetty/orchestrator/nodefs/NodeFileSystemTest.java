@@ -38,6 +38,7 @@ import utils.Closer;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NodeFileSystemTest
 {
@@ -59,8 +60,8 @@ public class NodeFileSystemTest
     public void testNodeIdFolder() throws Exception
     {
         new File("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a").mkdirs();
-        TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
 
+        TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
         sshClient.connect("localhost", testSshServer.getPort());
@@ -81,8 +82,8 @@ public class NodeFileSystemTest
     public void testHomeFolderIsDefault() throws Exception
     {
         new File("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost").mkdirs();
-        TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
 
+        TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
         sshClient.connect("localhost", testSshServer.getPort());
@@ -100,15 +101,16 @@ public class NodeFileSystemTest
     }
 
     @Test
-    public void testJvmFilenameSupplier() throws Exception
+    public void testJvmFilenameSupplierFound() throws Exception
     {
-        File folder = new File("target/testJvmFilenameSupplier/storage/jdk11/the-jdk11-folder/bin");
+        File home = new File("target/testJvmFilenameSupplierFound");
+        File folder = new File(home, "storage/jdk11/the-jdk11-folder/bin");
         folder.mkdirs();
         File javaFile = new File(folder, "java");
         new FileOutputStream(javaFile).close();
         javaFile.setExecutable(true);
-        TestSshServer testSshServer = closer.register(new TestSshServer("target/testJvmFilenameSupplier"));
 
+        TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
         sshClient.connect("localhost", testSshServer.getPort());
@@ -122,7 +124,7 @@ public class NodeFileSystemTest
         {
             try
             {
-                return Files.walk(fileSystem.getPath("storage"), 2)
+                return Files.walk(fs.getPath("storage"), 2)
                     .filter(path -> Files.isExecutable(path.resolve("bin/java")))
                     .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
                     .findAny()
@@ -135,5 +137,137 @@ public class NodeFileSystemTest
         });
         String executable = jvm.executable(fileSystem, "myhost");
         assertThat(executable, endsWith("bin/java"));
+    }
+
+    @Test
+    public void testJvmFilenameSupplierNotFound() throws Exception
+    {
+        File home = new File("target/testJvmFilenameSupplierNotFound");
+        File folder = new File(home, "storage");
+        folder.mkdirs();
+
+        TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
+        SSHClient sshClient = closer.register(new SSHClient());
+        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+        sshClient.connect("localhost", testSshServer.getPort());
+        sshClient.authPassword("username", new char[0]);
+
+        HashMap<String, Object> env = new HashMap<>();
+        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+
+        assertThrows(NoFileException.class, () -> new Jvm((fs, h) ->
+        {
+            try
+            {
+                String storage = Files.walk(fs.getPath("storage"), 2)
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+                return storage;
+            }
+            catch (IOException e)
+            {
+                throw new NoDirException(e);
+            }
+        }).executable(fileSystem, "myhost"));
+
+        assertThrows(NoDirException.class, () -> new Jvm((fs, h) ->
+        {
+            try
+            {
+                return Files.walk(fs.getPath("does-not-exist"), 2)
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            }
+            catch (IOException e)
+            {
+                throw new NoDirException(e);
+            }
+        }).executable(fileSystem, "myhost"));
+    }
+
+    @Test
+    public void testJvmFilenameSupplierLocalhostFound() throws Exception
+    {
+        File home = new File("target/testJvmFilenameSupplierLocalhostFound");
+        File folder = new File(home, "storage/jdk11/the-jdk11-folder/bin");
+        folder.mkdirs();
+        File javaFile = new File(folder, "java");
+        new FileOutputStream(javaFile).close();
+        javaFile.setExecutable(true);
+
+        Jvm jvm = new Jvm((fs, h) ->
+        {
+            try
+            {
+                return Files.walk(fs.getPath(home.getPath()).resolve("storage"), 2)
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(() -> new RuntimeException("jdk not found"));
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException("jdk not found", e);
+            }
+        });
+        String executable = jvm.executable(FileSystems.getDefault(), "myhost");
+        assertThat(executable, endsWith("bin/java"));
+    }
+
+    @Test
+    public void testJvmFilenameSupplierLocalhostNotFound()
+    {
+        File home = new File("target/testJvmFilenameSupplierLocalhostNotFound");
+        File folder = new File(home, "storage");
+        folder.mkdirs();
+
+        assertThrows(NoFileException.class, () -> new Jvm((fs, h) ->
+        {
+            try
+            {
+                return Files.walk(fs.getPath(home.getPath()).resolve("storage"), 2)
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            }
+            catch (IOException e)
+            {
+                throw new NoDirException(e);
+            }
+        }).executable(FileSystems.getDefault(), "myhost"));
+
+        assertThrows(NoDirException.class, () -> new Jvm((fs, h) ->
+        {
+            try
+            {
+                return Files.walk(fs.getPath(home.getPath()).resolve("does-not-exist"), 2)
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            }
+            catch (IOException e)
+            {
+                throw new NoDirException(e);
+            }
+        }).executable(FileSystems.getDefault(), "myhost"));
+    }
+
+    private static class NoFileException extends RuntimeException
+    {
+    }
+
+    private static class NoDirException extends RuntimeException
+    {
+        public NoDirException(Throwable t)
+        {
+            super(t);
+        }
     }
 }

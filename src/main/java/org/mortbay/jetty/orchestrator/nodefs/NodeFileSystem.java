@@ -245,9 +245,9 @@ class NodeFileSystem extends FileSystem
         }
     }
 
-    <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
+    <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
     {
-        if (!type.equals(BasicFileAttributes.class))
+        if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
             throw new UnsupportedOperationException();
 
         String sftpPath = homePath.relativize(path).toString();
@@ -259,7 +259,7 @@ class NodeFileSystem extends FileSystem
         }
         catch (IOException e)
         {
-            throw new RuntimeException("Error reading attributes of path: " + path, e);
+            throw new IOException("Error reading attributes of path: " + path, e);
         }
     }
 
