@@ -76,13 +76,25 @@ class NodeFileSystem extends FileSystem
         return hostId;
     }
 
+    private Path relativeFromHomeOrAbsolute(NodePath dir)
+    {
+        try
+        {
+            return homePath.relativize(dir);
+        }
+        catch (IllegalArgumentException e)
+        {
+            return dir.toAbsolutePath();
+        }
+    }
+
     SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
     {
         byte[] data;
         try
         {
             InMemoryFile inMemoryFile = new InMemoryFile();
-            sftpClient.get(homePath.relativize(path).toString(), inMemoryFile);
+            sftpClient.get(relativeFromHomeOrAbsolute(path).toString(), inMemoryFile);
             data = inMemoryFile.getOutputStream().toByteArray();
         }
         catch (IOException e)
@@ -152,7 +164,7 @@ class NodeFileSystem extends FileSystem
         List<Path> filteredPaths = new ArrayList<>();
         try
         {
-            List<RemoteResourceInfo> content = sftpClient.ls(homePath.relativize(dir).toString());
+            List<RemoteResourceInfo> content = sftpClient.ls(relativeFromHomeOrAbsolute(dir).toString());
             for (RemoteResourceInfo remoteResourceInfo : content)
             {
                 Path resolved = dir.resolve(remoteResourceInfo.getName());
@@ -202,7 +214,7 @@ class NodeFileSystem extends FileSystem
 
     InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
     {
-        String sftpPath = homePath.relativize(path).toString();
+        String sftpPath = relativeFromHomeOrAbsolute(path).toString();
         long fileSize;
         try
         {
@@ -250,7 +262,7 @@ class NodeFileSystem extends FileSystem
         if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
             throw new UnsupportedOperationException();
 
-        String sftpPath = homePath.relativize(path).toString();
+        String sftpPath = relativeFromHomeOrAbsolute(path).toString();
         try
         {
             FileAttributes lstat = sftpClient.lstat(sftpPath);

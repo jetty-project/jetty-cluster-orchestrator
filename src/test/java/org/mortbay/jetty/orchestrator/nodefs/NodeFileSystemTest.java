@@ -24,6 +24,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.SFTPClient;
@@ -37,6 +40,7 @@ import utils.Closer;
 
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -98,6 +102,27 @@ public class NodeFileSystemTest
         assertThat(iterator.hasNext(), is(true));
         assertThat(iterator.next().toString(), is(".jco"));
         assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testAbsolutePath() throws Exception
+    {
+        new File("target/testAbsolutePath").mkdirs();
+
+        TestSshServer testSshServer = closer.register(new TestSshServer("target/testAbsolutePath"));
+        SSHClient sshClient = closer.register(new SSHClient());
+        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+        sshClient.connect("localhost", testSshServer.getPort());
+        sshClient.authPassword("username", new char[0]);
+
+        HashMap<String, Object> env = new HashMap<>();
+        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+
+        DirectoryStream<Path> directoryStream = Files.newDirectoryStream(fileSystem.getPath("/"));
+        long pathCount = StreamSupport.stream(Spliterators.spliteratorUnknownSize(directoryStream.iterator(), Spliterator.ORDERED), false).count();
+
+        assertThat(pathCount, greaterThan(0L));
     }
 
     @Test

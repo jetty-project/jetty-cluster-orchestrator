@@ -102,16 +102,8 @@ class NodePath implements Path
 
     NodePath resolve(boolean absolute, List<String> segments)
     {
-        if (absolute)
-        {
-            List<String> newSegments = new ArrayList<>(toAbsolutePath().getPathSegments());
-            newSegments.addAll(segments);
-            return new NodePath(fileSystem, null, newSegments);
-        }
-        else
-        {
-            return new NodePath(fileSystem, this, segments);
-        }
+        NodePath basePath = absolute ? null : this;
+        return new NodePath(fileSystem, basePath, segments);
     }
 
     @Override
