@@ -277,9 +277,12 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             }
             IOUtil.close(command);
             IOUtil.close(session);
-            try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
+            if (!LocalHostLauncher.skipDiskCleanup())
             {
-                deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
+                try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
+                {
+                    deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
+                }
             }
             IOUtil.close(forwardingConnectListener);
             IOUtil.close(forwarding);

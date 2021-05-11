@@ -83,7 +83,7 @@ public class LocalHostLauncher implements HostLauncher
 
             File rootPath = rootPathOf(nodeId.getHostId());
             File parentPath = rootPath.getParentFile();
-            if (IOUtil.deltree(rootPath) && parentPath != null)
+            if (!skipDiskCleanup() && IOUtil.deltree(rootPath) && parentPath != null)
             {
                 String[] files = parentPath.list();
                 if (files != null && files.length == 0)
@@ -139,5 +139,10 @@ public class LocalHostLauncher implements HostLauncher
                 }
             }
         }
+    }
+
+    static boolean skipDiskCleanup()
+    {
+        return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipDiskCleanup");
     }
 }
