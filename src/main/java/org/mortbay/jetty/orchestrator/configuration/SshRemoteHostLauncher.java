@@ -41,7 +41,6 @@ import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
-import org.apache.commons.lang3.StringUtils;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -124,8 +123,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
             sshClient.connect(nodeId.getHostname(), port);
 
-            LOG.debug("ssh to {} with username {} and empty password {}",
-                      nodeId.getHostname(), username, password == null);
+            if (LOG.isDebugEnabled())
+                LOG.debug("ssh to {} with username {} and empty password {}", nodeId.getHostname(), username, password == null);
 
             if (password == null)
                 sshClient.authPublickey(username); // public key auth
