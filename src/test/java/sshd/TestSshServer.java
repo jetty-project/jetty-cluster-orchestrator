@@ -13,9 +13,11 @@
 
 package sshd;
 
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -23,11 +25,13 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 public class TestSshServer implements AutoCloseable
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestSshServer.class);
+
     private GenericContainer sshContainer;
 
     public TestSshServer() throws Exception
     {
-        this(System.getProperty("user.home"));
+        this(Files.createTempDirectory(TestSshServer.class.getName()).toString());
     }
 
     public TestSshServer(String homeDir) throws Exception
@@ -57,6 +61,7 @@ public class TestSshServer implements AutoCloseable
 
     private void init(String homePath) throws Exception
     {
+        LOGGER.debug("init with homePath: {}", homePath);
         Map<String, String> env = new HashMap<>();
 
 //        docker run -d \
@@ -92,7 +97,9 @@ public class TestSshServer implements AutoCloseable
         {
             sshContainer.withFileSystemBind(homePath, "/config", BindMode.READ_WRITE);
         }
+        LOGGER.info("Starting sshd container");
         sshContainer.start();
+        LOGGER.info("End Starting sshd container");
     }
 
     @Override

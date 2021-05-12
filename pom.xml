@@ -222,6 +222,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
+          <configuration>
+            <systemPropertyVariables>
+              <java.io.tmpdir>${project.build.testOutputDirectory}</java.io.tmpdir>
+            </systemPropertyVariables>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>

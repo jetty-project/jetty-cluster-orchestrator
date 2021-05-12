@@ -13,7 +13,8 @@
   <logger name="org.apache.zookeeper" level="error" />
   <logger name="org.apache.curator" level="error" />
   <logger name="org.apache.sshd" level="error" />
-  <logger name="sshd.sshcontainer" level="debug" />
+  <logger name="sshd" level="debug" />
+  <logger name="org.mortbay.jetty.orchestrator.NodeArrayRootPathOfTest" level="debug"/>
 
   <root level="info">
     <appender-ref ref="STDOUT" />

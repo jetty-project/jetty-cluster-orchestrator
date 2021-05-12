@@ -40,16 +40,18 @@ public class ClusterTest extends AbstractSshTest
     public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", sshd.getHost())))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
-        String localHostname = InetAddress.getLocalHost().getHostName();
+        String localHostname = sshd.getHost();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
