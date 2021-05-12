@@ -38,8 +38,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -54,8 +54,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectProcessDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getHost(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -73,8 +73,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -96,8 +96,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testZeroTimeoutThenDetectDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -124,8 +124,9 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testTimeoutIsSpread() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

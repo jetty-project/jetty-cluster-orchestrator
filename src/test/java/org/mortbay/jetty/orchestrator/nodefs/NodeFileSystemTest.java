@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -68,8 +69,8 @@ public class NodeFileSystemTest
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        sshClient.connect(testSshServer.getHost(), testSshServer.getPort());
+        sshClient.authPassword(testSshServer.getUser(), testSshServer.getPassword());
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
@@ -90,8 +91,8 @@ public class NodeFileSystemTest
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        sshClient.connect(testSshServer.getHost(), testSshServer.getPort());
+        sshClient.authPassword(testSshServer.getUser(), testSshServer.getPassword());
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
@@ -112,8 +113,8 @@ public class NodeFileSystemTest
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testAbsolutePath"));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        sshClient.connect(testSshServer.getHost(), testSshServer.getPort());
+        sshClient.authPassword(testSshServer.getUser(), testSshServer.getPassword());
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
@@ -138,8 +139,8 @@ public class NodeFileSystemTest
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        sshClient.connect(testSshServer.getHost(), testSshServer.getPort());
+        sshClient.authPassword(testSshServer.getUser(), testSshServer.getPassword());
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
@@ -174,8 +175,8 @@ public class NodeFileSystemTest
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
         SSHClient sshClient = closer.register(new SSHClient());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        sshClient.connect(testSshServer.getHost(), testSshServer.getPort());
+        sshClient.authPassword(testSshServer.getUser(), testSshServer.getPassword());
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());

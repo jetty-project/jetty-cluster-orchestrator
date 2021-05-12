@@ -14,6 +14,7 @@
 package utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.mortbay.jetty.orchestrator.util.IOUtil;
@@ -31,9 +32,7 @@ public class Closer implements AutoCloseable
     @Override
     public void close()
     {
-        for (int i = closeables.size() - 1; i >= 0 ; i--)
-        {
-            IOUtil.close(closeables.get(i));
-        }
+        Collections.reverse(closeables);
+        closeables.stream().forEach(autoCloseable -> IOUtil.close(autoCloseable));
     }
 }

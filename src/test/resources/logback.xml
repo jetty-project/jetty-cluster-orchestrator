@@ -13,6 +13,7 @@
   <logger name="org.apache.zookeeper" level="error" />
   <logger name="org.apache.curator" level="error" />
   <logger name="org.apache.sshd" level="error" />
+  <logger name="sshd.sshcontainer" level="debug" />
 
   <root level="info">
     <appender-ref ref="STDOUT" />

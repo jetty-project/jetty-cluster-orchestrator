@@ -38,15 +38,15 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testTwoClustersOnSameHost() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         new Cluster(cfg1).close();
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         new Cluster(cfg2).close();
@@ -56,8 +56,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -127,8 +127,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testLargeFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

@@ -13,33 +13,17 @@
 
 package sshd;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.sshd.common.file.nativefs.NativeFileSystemFactory;
-import org.apache.sshd.common.keyprovider.AbstractResourceKeyPairProvider;
-import org.apache.sshd.common.session.SessionContext;
-import org.apache.sshd.common.util.GenericUtils;
-import org.apache.sshd.server.SshServer;
-import org.apache.sshd.server.channel.ChannelSession;
-import org.apache.sshd.server.command.Command;
-import org.apache.sshd.server.command.CommandFactory;
-import org.apache.sshd.server.forward.AcceptAllForwardingFilter;
-import org.apache.sshd.server.shell.InvertedShell;
-import org.apache.sshd.server.shell.ProcessShellCommandFactory;
-import org.apache.sshd.server.shell.ProcessShellFactory;
-import org.apache.sshd.server.shell.ShellFactory;
-import org.apache.sshd.sftp.server.SftpSubsystem;
-import org.apache.sshd.sftp.server.SftpSubsystemFactory;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 public class TestSshServer implements AutoCloseable
 {
-    private SshServer sshd;
+    private GenericContainer sshContainer;
 
     public TestSshServer() throws Exception
     {
@@ -48,88 +32,72 @@ public class TestSshServer implements AutoCloseable
 
     public TestSshServer(String homeDir) throws Exception
     {
-        KeyPair keyPair;
-        try (InputStream is = getClass().getResourceAsStream("/keystore.p12"))
-        {
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(is, "storepwd".toCharArray());
-            PublicKey publicKey = keyStore.getCertificate("mykey").getPublicKey();
-            PrivateKey privateKey = (PrivateKey)keyStore.getKey("mykey", "storepwd".toCharArray());
-            keyPair = new KeyPair(publicKey, privateKey);
-        }
-
-        init(keyPair, homeDir);
+        init(homeDir);
     }
 
     public int getPort()
     {
-        return sshd.getPort();
+        return sshContainer.getMappedPort(2222);
     }
 
-    private void init(KeyPair keyPair, String homePath) throws Exception
+    public String getHost()
     {
-        sshd = SshServer.setUpDefaultServer();
+        return sshContainer.getContainerIpAddress();
+    }
 
-        // configure server keys
-        sshd.setKeyPairProvider(new AbstractResourceKeyPairProvider<Object>() {
-            @Override
-            public Iterable<KeyPair> loadKeys(SessionContext session)
-            {
-                return Collections.singleton(keyPair);
-            }
-        });
-        // fully open auth
-        sshd.setPublickeyAuthenticator((s, publicKey, serverSession) -> true);
-        sshd.setPasswordAuthenticator((username, password, session) -> true);
+    public String getUser()
+    {
+        return "jetty";
+    }
 
-        // enable TCP port forwarding
-        sshd.setForwardingFilter(new AcceptAllForwardingFilter());
+    public String getPassword()
+    {
+        return "tropical_ale";
+    }
 
-        // enable SFTP
-        SftpSubsystemFactory factory = new SftpSubsystemFactory()
+    private void init(String homePath) throws Exception
+    {
+        Map<String, String> env = new HashMap<>();
+
+//        docker run -d \
+//        --name=openssh-server \
+//        --hostname=openssh-server `#optional` \
+//        -e PUID=1000 \
+//        -e PGID=1000 \
+//        -e TZ=Europe/London \
+//        -e PUBLIC_KEY=yourpublickey `#optional` \
+//        -e PUBLIC_KEY_FILE=/path/to/file `#optional` \
+//        -e PUBLIC_KEY_DIR=/path/to/directory/containing/_only_/pubkeys `#optional` \
+//        -e SUDO_ACCESS=false `#optional` \
+//        -e PASSWORD_ACCESS=false `#optional` \
+//        -e USER_PASSWORD=password `#optional` \
+//        -e USER_PASSWORD_FILE=/path/to/file `#optional` \
+//        -e USER_NAME=linuxserver.io `#optional` \
+//        -p 2222:2222 \
+//        -v /path/to/appdata/config:/config \
+//        --restart unless-stopped \
+//        ghcr.io/linuxserver/openssh-server
+
+        env.put("PUID", "1000");
+        env.put("PGID", "1000");
+        env.put("TZ", "Australia/Brisbane"); // better to use a sunny place
+        env.put("PASSWORD_ACCESS", "true");
+        env.put("USER_PASSWORD", getPassword());
+        env.put("USER_NAME", getUser());
+        sshContainer = new GenericContainer("ghcr.io/linuxserver/openssh-server:version-8.4_p1-r3")
+            .withEnv(env)
+            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("sshd.sshcontainer")))
+            .withExposedPorts(2222);
+        if (homePath != null)
         {
-            @Override
-            public Command createSubsystem(ChannelSession channel)
-            {
-                SftpSubsystem subsystem = new SftpSubsystem(
-                    resolveExecutorService(),
-                    getUnsupportedAttributePolicy(), getFileSystemAccessor(),
-                    getErrorStatusDataHandler())
-                {
-                    {
-                        this.defaultDir = fileSystem.getPath(homePath).toAbsolutePath().normalize();
-                    }
-                };
-                GenericUtils.forEach(getRegisteredListeners(), subsystem::addSftpEventListener);
-                return subsystem;
-            }
-        };
-        sshd.setSubsystemFactories(Collections.singletonList(factory));
-        sshd.setFileSystemFactory(new NativeFileSystemFactory());
-
-        // execute commands from home folder
-        sshd.setCommandFactory(new ProcessShellCommandFactory()
-        {
-            @Override
-            public Command createCommand(ChannelSession channel, String command) throws IOException
-            {
-                ShellFactory factory = new ProcessShellFactory(command, CommandFactory.split(command))
-                {
-                    @Override
-                    protected InvertedShell createInvertedShell(ChannelSession channel)
-                    {
-                        return new HomeProcessShell(homePath, resolveEffectiveCommand(channel, getCommand(), getElements()));
-                    }
-                };
-                return factory.createShell(channel);
-            }
-        });
-        sshd.start();
+            sshContainer.withFileSystemBind(homePath, "/config", BindMode.READ_WRITE);
+        }
+        sshContainer.start();
     }
 
     @Override
     public void close() throws Exception
     {
-        sshd.stop();
+        sshContainer.stop();
     }
 }
