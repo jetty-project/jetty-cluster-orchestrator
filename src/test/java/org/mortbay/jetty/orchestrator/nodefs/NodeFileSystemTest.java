@@ -102,6 +102,10 @@ public class NodeFileSystemTest
         Iterator<Path> iterator = paths.iterator();
         assertThat(iterator.hasNext(), is(true));
         assertThat(iterator.next().toString(), is(".jco"));
+        assertThat(iterator.next().toString(), is(".ssh"));
+        assertThat(iterator.next().toString(), is("logs"));
+        assertThat(iterator.next().toString(), is("ssh_host_keys"));
+        assertThat(iterator.next().toString(), is("sshd.pid"));
         assertThat(iterator.hasNext(), is(false));
     }
 
