@@ -101,7 +101,7 @@ public class TestSshServer implements AutoCloseable
         env.put("PASSWORD_ACCESS", "true");
         env.put("USER_PASSWORD", getPassword());
         env.put("USER_NAME", getUser());
-        sshContainer = new GenericContainer("ghcr.io/linuxserver/openssh-server:version-8.4_p1-r3")
+        sshContainer = new GenericContainer("jetty-project:jetty-orchestrator-ssh-test") //"ghcr.io/linuxserver/openssh-server:version-8.4_p1-r3")
             .withEnv(env)
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("sshd.sshcontainer")))
             .withExposedPorts(2222);
@@ -112,9 +112,10 @@ public class TestSshServer implements AutoCloseable
         sshContainer.withFileSystemBind("src/test/resources/sshd_config/custom-cont-init.d",
                                         "/config/custom-cont-init.d",
                                         BindMode.READ_WRITE);
+        long start = System.currentTimeMillis();
         LOGGER.info("Starting sshd container");
         sshContainer.start();
-        LOGGER.info("End Starting sshd container");
+        LOGGER.info("End Starting sshd container in {} ms", System.currentTimeMillis() - start);
     }
 
     @Override

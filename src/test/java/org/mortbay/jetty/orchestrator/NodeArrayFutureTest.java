@@ -55,7 +55,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost("host.docker.internal")))
+                new Node("1", sshd.getHost())))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -90,7 +90,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost()))
+                           .node(new Node("2", sshd.getHost())))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -142,7 +143,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+                           .node(new Node("1", sshd.getHost()))
+                           .node(new Node("2", sshd.getHost())))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
