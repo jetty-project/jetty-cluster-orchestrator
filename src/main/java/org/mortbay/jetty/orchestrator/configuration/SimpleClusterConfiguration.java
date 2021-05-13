@@ -24,6 +24,7 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private HostLauncher hostLauncher = new SshRemoteHostLauncher();
+    private int forwardPort = -1;
 
     public SimpleClusterConfiguration jvm(Jvm jvm)
     {
@@ -66,6 +67,19 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
         this.hostLauncher = hostLauncher;
         ensureJvmSet(hostLauncher);
         return this;
+    }
+
+    @Override
+    public ClusterConfiguration forwardPort(int forwardPort)
+    {
+        this.forwardPort = forwardPort;
+        return this;
+    }
+
+    @Override
+    public int getForwardPort()
+    {
+        return this.forwardPort;
     }
 
     private void ensureJvmSet(Object obj)

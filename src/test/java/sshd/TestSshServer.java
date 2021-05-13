@@ -14,14 +14,21 @@
 package sshd;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 public class TestSshServer implements AutoCloseable
 {
@@ -42,6 +49,11 @@ public class TestSshServer implements AutoCloseable
     public int getPort()
     {
         return sshContainer.getMappedPort(2222);
+    }
+
+    public int getRemoteForwardPort()
+    {
+        return sshContainer.getMappedPort(2223);
     }
 
     public String getHost()
@@ -97,6 +109,9 @@ public class TestSshServer implements AutoCloseable
         {
             sshContainer.withFileSystemBind(homePath, "/config", BindMode.READ_WRITE);
         }
+        sshContainer.withFileSystemBind("src/test/resources/sshd_config/custom-cont-init.d",
+                                        "/config/custom-cont-init.d",
+                                        BindMode.READ_WRITE);
         LOGGER.info("Starting sshd container");
         sshContainer.start();
         LOGGER.info("End Starting sshd container");

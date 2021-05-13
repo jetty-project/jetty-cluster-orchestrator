@@ -20,4 +20,10 @@ public interface ClusterConfiguration
     Jvm jvm();
     Collection<NodeArrayConfiguration> nodeArrays();
     HostLauncher hostLauncher();
+    ClusterConfiguration forwardPort(int forwardPort);
+
+    default int getForwardPort()
+    {
+        return -1;
+    }
 }

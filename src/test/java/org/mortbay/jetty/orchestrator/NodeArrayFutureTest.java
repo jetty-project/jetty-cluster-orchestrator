@@ -13,11 +13,12 @@
 
 package org.mortbay.jetty.orchestrator;
 
-import java.net.InetAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
@@ -33,12 +34,28 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NodeArrayFutureTest extends AbstractSshTest
 {
+    private static boolean initialValue;
+
+    @BeforeAll
+    public static void forceHostLauncher()
+    {
+        initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
+        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
+    }
+
+    @AfterAll
+    public static void restoreForceHostLauncher()
+    {
+        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.toString(initialValue));
+    }
+
     @Test
     public void testJvmOptionWithStar() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", sshd.getHost())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
+                new Node("1", sshd.getHost()).remoteForwardHost("host.docker.internal")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 

@@ -103,6 +103,7 @@ public class NodeFileSystemTest
         assertThat(iterator.hasNext(), is(true));
         assertThat(iterator.next().toString(), is(".jco"));
         assertThat(iterator.next().toString(), is(".ssh"));
+        assertThat(iterator.next().toString(), is("custom-cont-init.d"));
         assertThat(iterator.next().toString(), is("logs"));
         assertThat(iterator.next().toString(), is("ssh_host_keys"));
         assertThat(iterator.next().toString(), is("sshd.pid"));

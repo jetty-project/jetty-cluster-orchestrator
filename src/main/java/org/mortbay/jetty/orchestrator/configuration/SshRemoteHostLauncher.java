@@ -105,11 +105,11 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
+    public String launch(GlobalNodeId globalNodeId, Node node, String connectString) throws Exception
     {
         long start = System.currentTimeMillis();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
-        LOG.debug("start launch of node: {}", nodeId.getHostname());
+        LOG.debug("start launch of node: {}/{}", nodeId.getHostname());
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
         if (nodes.containsKey(nodeId.getHostname()))
@@ -139,9 +139,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
-            forwardingConnectListener = new SocketForwardingConnectListener(nodeId.getHostname(), new InetSocketAddress("localhost", zkPort));
+            forwardingConnectListener = new SocketForwardingConnectListener(nodeId.getHostname(),
+                                                                            new InetSocketAddress(node.getRemoteForwardHost(), zkPort));
             RemotePortForwarder.Forward forward = sshClient.getRemotePortForwarder().bind(
-                new RemotePortForwarder.Forward(0), // remote port, dynamically choose one
+                new RemotePortForwarder.Forward(node.getRemoteForwardPort()), // remote port, dynamically choose one
                 forwardingConnectListener
             );
             forwarding = () -> sshClient.getRemotePortForwarder().cancel(forward);
@@ -279,7 +280,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static class RemoteNodeHolder implements AutoCloseable {
+    private static class RemoteNodeHolder implements AutoCloseable
+    {
         private final GlobalNodeId nodeId;
         private final FileSystem fileSystem;
         private final SSHClient sshClient;
@@ -288,7 +290,9 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         private final Session session;
         private final Session.Command command;
 
-        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SSHClient sshClient, SocketForwardingConnectListener forwardingConnectListener, AutoCloseable forwarding, Session session, Session.Command command) {
+        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SSHClient sshClient, SocketForwardingConnectListener forwardingConnectListener,
+                                 AutoCloseable forwarding, Session session, Session.Command command)
+        {
             this.nodeId = nodeId;
             this.fileSystem = fileSystem;
             this.sshClient = sshClient;

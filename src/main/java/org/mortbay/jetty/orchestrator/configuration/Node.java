@@ -17,6 +17,8 @@ public class Node
 {
     private final String id;
     private final String hostname;
+    private String remoteForwardHost = "localhost";
+    private int remoteForwardPort = 0;
 
     public Node(String id, String hostname)
     {
@@ -32,5 +34,27 @@ public class Node
     public String getHostname()
     {
         return hostname;
+    }
+
+    public String getRemoteForwardHost()
+    {
+        return remoteForwardHost;
+    }
+
+    public Node remoteForwardHost(String forwardHost)
+    {
+        this.remoteForwardHost = forwardHost;
+        return this;
+    }
+
+    public int getRemoteForwardPort()
+    {
+        return remoteForwardPort;
+    }
+
+    public Node remoteForwardPort(int remoteForwardPort)
+    {
+        this.remoteForwardPort = remoteForwardPort;
+        return this;
     }
 }

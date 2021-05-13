@@ -45,6 +45,8 @@ public class Cluster implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(Cluster.class);
 
+    public static final String FORCE_HOST_LAUNCHER_KEY = "jetty.cluster.orchestrator.forceHostLauncher";
+
     private final String id;
     private final ClusterConfiguration configuration;
     private final LocalHostLauncher localHostLauncher = new LocalHostLauncher();
@@ -87,7 +89,7 @@ public class Cluster implements AutoCloseable
 
     private void init() throws Exception
     {
-        zkServer = new TestingServer(true);
+        zkServer = new TestingServer(configuration.getForwardPort(), true);
         String connectString = "localhost:" + zkServer.getPort();
         curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
@@ -95,18 +97,21 @@ public class Cluster implements AutoCloseable
         clusterTools = new ClusterTools(curator, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
         // start all host nodes
-        List<String> hostnames = configuration.nodeArrays().stream()
+        List<Node> nodes = configuration.nodeArrays().stream()
             .flatMap(cfg -> cfg.nodes().stream())
-            .map(Node::getHostname)
             .distinct()
             .collect(Collectors.toList());
-        for (String hostname : hostnames)
+        for (Node node : nodes)
         {
-            GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
-            HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+            GlobalNodeId globalNodeId = new GlobalNodeId(id, node.getHostname());
+            HostLauncher launcher = node.getHostname().equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+            if (Boolean.getBoolean(FORCE_HOST_LAUNCHER_KEY) && hostLauncher != null)
+            {
+                launcher = hostLauncher;
+            }
             if (launcher == null)
-                throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            String remoteConnectString = launcher.launch(globalNodeId, connectString);
+                throw new IllegalStateException("No configured host launcher to start node on " + node.getHostname());
+            String remoteConnectString = launcher.launch(globalNodeId, node, connectString);
             hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
         }
 

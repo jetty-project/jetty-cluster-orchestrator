@@ -32,7 +32,7 @@ public class LocalHostLauncher implements HostLauncher
     private GlobalNodeId nodeId;
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
+    public String launch(GlobalNodeId globalNodeId, Node node, String connectString) throws Exception
     {
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
         if (!nodeId.equals(globalNodeId))
