@@ -22,11 +22,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
@@ -37,25 +40,46 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ClusterTest extends AbstractSshTest
 {
+
+    private static boolean initialValue;
+
+    @BeforeAll
+    public static void forceHostLauncher()
+    {
+        initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
+        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
+    }
+
+    @AfterAll
+    public static void restoreForceHostLauncher()
+    {
+        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.toString(initialValue));
+    }
+
     public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+            //.hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
+            .hostLauncher(new LocalHostLauncher())
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", sshd.getHost())))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", sshd.getHost())))
-            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
+            //.hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
+            .hostLauncher(new LocalHostLauncher())
             ;
 
         String localHostname = sshd.getHost();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            //.hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .hostLauncher(new LocalHostLauncher())
             ;
 
         return Stream.of(cfg1, cfg2, cfg3);

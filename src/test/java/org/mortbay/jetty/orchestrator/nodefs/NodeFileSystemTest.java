@@ -25,8 +25,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import net.schmizz.sshj.SSHClient;
@@ -36,6 +38,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sshd.TestSshServer;
 import utils.Closer;
 
@@ -48,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class NodeFileSystemTest
 {
     private Closer closer;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodeFileSystemTest.class);
 
     @BeforeEach
     public void setUp()
@@ -99,6 +105,8 @@ public class NodeFileSystemTest
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
+        List<Path> pathList = StreamSupport.stream(paths.spliterator(), false).collect(Collectors.toList());
+        LOGGER.info("pathList: {}", pathList);
         Iterator<Path> iterator = paths.iterator();
         assertThat(iterator.hasNext(), is(true));
         assertThat(iterator.next().toString(), is(".jco"));
