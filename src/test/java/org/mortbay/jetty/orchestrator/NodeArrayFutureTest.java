@@ -55,7 +55,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":null)))
+                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -72,7 +72,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":null)))
+                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -92,7 +92,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":null)))
+                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -116,7 +116,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":null)))
+                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -145,7 +145,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":null)))
+                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
