@@ -29,6 +29,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
 public class TestSshServer implements AutoCloseable
 {
@@ -101,10 +102,13 @@ public class TestSshServer implements AutoCloseable
         env.put("PASSWORD_ACCESS", "true");
         env.put("USER_PASSWORD", getPassword());
         env.put("USER_NAME", getUser());
-        sshContainer = new GenericContainer("jetty-project:jetty-orchestrator-ssh-test") //"ghcr.io/linuxserver/openssh-server:version-8.4_p1-r3")
-            .withEnv(env)
+
+        sshContainer = new GenericContainer(
+            new ImageFromDockerfile( "jetty-orchestrator-ssh-test", false)
+                .withDockerfile(Paths.get("src/test/resources/docker/Dockerfile")))
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("sshd.sshcontainer")))
-            .withExposedPorts(2222);
+            .withExposedPorts(2222)
+            .withEnv(env);
         if (homePath != null)
         {
             sshContainer.withFileSystemBind(homePath, "/config", BindMode.READ_WRITE);

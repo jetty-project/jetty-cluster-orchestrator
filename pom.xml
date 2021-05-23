@@ -123,31 +123,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>io.fabric8</groupId>
-        <artifactId>docker-maven-plugin</artifactId>
-        <version>0.35.0</version>
-        <configuration>
-          <images>
-            <image>
-              <name>jetty-project:jetty-orchestrator-ssh-test</name>
-              <alias>dockerfile</alias>
-              <build>
-                <!-- filter>@</filter-->
-                <contextDir>${project.basedir}/src/test/resources/docker</contextDir>
-              </build>
-            </image>
-          </images>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>build</goal>
-            </goals>
-            <phase>process-test-resources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
