@@ -32,6 +32,7 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -162,6 +163,7 @@ class NodeFileSystem extends FileSystem
     DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException
     {
         List<Path> filteredPaths = new ArrayList<>();
+        filteredPaths.sort(Comparator.naturalOrder());
         try
         {
             List<RemoteResourceInfo> content = sftpClient.ls(relativeFromHomeOrAbsolute(dir).toString());
