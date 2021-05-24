@@ -24,6 +24,7 @@ import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,7 @@ import org.slf4j.LoggerFactory;
 public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 {
     private static final Logger LOG = LoggerFactory.getLogger(SshRemoteHostLauncher.class);
+    private static final List<String> COMMON_WIN_UNAMES = Arrays.asList("Windows", "CYGWIN", "MINGW", "MSYS", "UWIN");
 
     private final Map<String, RemoteNodeHolder> nodes = new HashMap<>();
     private final String username;
@@ -159,11 +161,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                         copyFile(sftpClient, nodeId.getHostId(), cpFile.getName(), new FileSystemFile(cpFile));
                 }
             }
-            String remoteClasspath = String.join(":", remoteClasspathEntries);
-            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspath, nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
 
+            String delimiter = isWindows(sshClient) ? ";" : ":";
+            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, delimiter, nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
             session = sshClient.startSession();
-            session.allocateDefaultPTY();
             cmd = session.exec(cmdLine);
 
             new StreamCopier(cmd.getInputStream(), new LineBufferingOutputStream(System.out)).spawnDaemon(nodeId.getHostname() + "-stdout");
@@ -184,14 +185,47 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, String remoteClasspath, String nodeId, String hostname, String connectString)
+    private boolean isWindows(SSHClient sshClient) throws IOException
+    {
+        try (Session session = sshClient.startSession())
+        {
+            Session.Command uname = session.exec("uname -s");
+            uname.join();
+            InputStream is = uname.getInputStream();
+            StringBuilder sb = new StringBuilder();
+            while (true)
+            {
+                int read = is.read();
+                if (read == -1)
+                    break;
+                sb.append((char)read);
+            }
+            String output = sb.toString().toLowerCase();
+            uname.close();
+            Integer exitStatus = uname.getExitStatus();
+            if (exitStatus == null)
+                throw new RuntimeException("Executing 'uname' command did not provide an exist status");
+
+            // Cannot run "uname -s"? Assume windows.
+            if (exitStatus != 0)
+                return true;
+            // Outputs a well-known windows uname? Assume windows.
+            for (String winUname : COMMON_WIN_UNAMES)
+                if (output.contains(winUname.toLowerCase()))
+                    return true;
+            // Assume *nix.
+            return false;
+        }
+    }
+
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries, String delimiter, String nodeId, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
         for (String opt : filterOutEmptyStrings(jvm.getOpts()))
             cmdLine.add("\"" + opt + "\"");
         cmdLine.add("-classpath");
-        cmdLine.add("\"" + remoteClasspath + "\"");
+        cmdLine.add("\"" + String.join(delimiter, remoteClasspathEntries) + "\"");
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add("\"" + nodeId + "\"");
         cmdLine.add("\"" + connectString + "\"");
