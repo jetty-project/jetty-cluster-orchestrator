@@ -177,10 +177,11 @@ public class NodeProcess implements Serializable, AutoCloseable
         StringBuilder sb = new StringBuilder();
         for (File entry : entries)
         {
-            sb.append(entry.getPath()).append(File.pathSeparatorChar);
+            String path = entry.getPath();
+            if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
+                sb.append(path).append(File.pathSeparatorChar);
         }
-        if (sb.length() > 0)
-            sb.deleteCharAt(sb.length() - 1);
+        sb.append(libPath.getPath()).append(File.separatorChar).append("*");
         return sb.toString();
     }
 }

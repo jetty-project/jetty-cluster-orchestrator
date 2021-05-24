@@ -133,6 +133,9 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             else
                 sshClient.authPassword(username, password); // pw auth
 
+            // detect windows
+            boolean windows = isWindows(sshClient);
+
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
             forwardingConnectListener = new SocketForwardingConnectListener(nodeId.getHostname(), new InetSocketAddress("localhost", zkPort));
@@ -149,21 +152,24 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             List<String> remoteClasspathEntries = new ArrayList<>();
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
+            String delimiter = windows ? "\\" : "/";
             try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
             {
                 for (String classpathEntry : classpathEntries)
                 {
                     File cpFile = new File(classpathEntry);
-                    remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + cpFile.getName());
+                    String cpFileName = cpFile.getName();
+                    if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR"))
+                        remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
                     if (cpFile.isDirectory())
                         copyDir(sftpClient, nodeId.getHostId(), cpFile, 1);
                     else
-                        copyFile(sftpClient, nodeId.getHostId(), cpFile.getName(), new FileSystemFile(cpFile));
+                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, new FileSystemFile(cpFile));
                 }
             }
+            remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
 
-            String delimiter = isWindows(sshClient) ? ";" : ":";
-            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, delimiter, nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
+            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
             session = sshClient.startSession();
             cmd = session.exec(cmdLine);
 
