@@ -156,9 +156,7 @@ public class NodeProcess implements Serializable, AutoCloseable
     private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, File libPath, String nodeId, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
-        String executable = jvm.executable(fileSystem, hostname);
-        executable = executable.replace(" ", "\\ ");
-        cmdLine.add(executable);
+        cmdLine.add(jvm.executable(fileSystem, hostname));
         cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
         cmdLine.add("-classpath");
         cmdLine.add(buildClassPath(libPath));
@@ -180,7 +178,6 @@ public class NodeProcess implements Serializable, AutoCloseable
         for (File entry : entries)
         {
             String path = entry.getPath();
-            path = path.replace(" ", "\\ ");
             if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
                 sb.append(path).append(File.pathSeparatorChar);
         }

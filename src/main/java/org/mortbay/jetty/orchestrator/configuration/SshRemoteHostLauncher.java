@@ -227,7 +227,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries, String delimiter, String nodeId, String hostname, String connectString)
     {
         List<String> cmdLine = new ArrayList<>();
-        cmdLine.add(jvm.executable(fileSystem, hostname));
+        cmdLine.add("\"" + jvm.executable(fileSystem, hostname) + "\"");
         for (String opt : filterOutEmptyStrings(jvm.getOpts()))
             cmdLine.add("\"" + opt + "\"");
         cmdLine.add("-classpath");
