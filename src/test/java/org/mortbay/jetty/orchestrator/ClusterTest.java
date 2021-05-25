@@ -41,45 +41,31 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class ClusterTest extends AbstractSshTest
 {
 
-    private static boolean initialValue;
-
-    @BeforeAll
-    public static void forceHostLauncher()
-    {
-        initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
-        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
-    }
-
-    @AfterAll
-    public static void restoreForceHostLauncher()
-    {
-        System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.toString(initialValue));
-    }
-
     public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
+                           .node(new Node("1", "localhost"))
+                           .node(new Node("2", "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                           .node(new Node("1", sshd.getHost())).node(new Node("2", sshd.getHost())))
-            //.hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
-            .hostLauncher(new LocalHostLauncher())
+                           .node(new Node("1", "localhost"))
+                           .node(new Node("2", "localhost")))
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", sshd.getHost())))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", sshd.getHost())))
-            //.hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
-            .hostLauncher(new LocalHostLauncher())
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")))
             ;
 
-        String localHostname = sshd.getHost();
+
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
-            //.hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
-            .hostLauncher(new LocalHostLauncher())
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                           .node(new Node("1", sshd.getHost())
+                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                           .node(new Node("1", sshd.getHost())
+                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+            .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
         return Stream.of(cfg1, cfg2, cfg3);
