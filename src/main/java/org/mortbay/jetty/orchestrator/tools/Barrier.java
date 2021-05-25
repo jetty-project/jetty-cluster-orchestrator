@@ -58,7 +58,7 @@ public class Barrier
         int index = (int)atomicCounter.decrementAndGet();
         if (index == 0)
             atomicCounter.set(parties);
-        distributedDoubleBarrier.leave();
+        distributedDoubleBarrier.leave(timeout, unit);
         return index;
     }
 }
