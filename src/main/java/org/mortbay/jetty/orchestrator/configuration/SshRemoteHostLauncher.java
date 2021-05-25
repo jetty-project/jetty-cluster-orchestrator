@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -206,18 +207,18 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                     break;
                 sb.append((char)read);
             }
-            String output = sb.toString().toLowerCase();
+            String output = sb.toString().toLowerCase(Locale.ROOT);
             uname.close();
             Integer exitStatus = uname.getExitStatus();
             if (exitStatus == null)
-                throw new RuntimeException("Executing 'uname' command did not provide an exist status");
+                throw new IOException("Executing 'uname' command did not provide an exit status");
 
             // Cannot run "uname -s"? Assume windows.
             if (exitStatus != 0)
                 return true;
             // Outputs a well-known windows uname? Assume windows.
             for (String winUname : COMMON_WIN_UNAMES)
-                if (output.contains(winUname.toLowerCase()))
+                if (output.contains(winUname.toLowerCase(Locale.ROOT)))
                     return true;
             // Assume *nix.
             return false;
