@@ -13,6 +13,7 @@
 
 package org.mortbay.jetty.orchestrator;
 
+import java.net.InetAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -40,12 +41,13 @@ public class NodeArrayFutureTest extends AbstractSshTest
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeArrayFutureTest.class);
 
-    public static final String KUBERNETES_HOST = ""; // "172.17.0.1"; // "host.docker.internal"
+    public static String KUBERNETES_HOST = "host.docker.internal"; // "172.17.0.1"; // "host.docker.internal"
 
     @BeforeAll
-    public static void forceHostLauncher()
+    public static void forceHostLauncher() throws Exception
     {
         LOGGER.info("use CI: {}", USE_CI);
+        //KUBERNETES_HOST = InetAddress.getLocalHost().getHostAddress();
         initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
         System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
     }
@@ -62,7 +64,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()))) //.remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
