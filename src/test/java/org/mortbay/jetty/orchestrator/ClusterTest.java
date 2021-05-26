@@ -22,14 +22,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
-import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
@@ -61,10 +58,10 @@ public class ClusterTest extends AbstractSshTest
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -122,7 +119,7 @@ public class ClusterTest extends AbstractSshTest
                         int b = is.read();
                         if (b == -1)
                             break;
-                        System.out.print((char) b);
+                        System.out.print((char)b);
                     }
                 }
                 System.out.println("=== === === === === === === === ===");

@@ -20,6 +20,8 @@ public abstract class AbstractSshTest
 {
     protected static TestSshServer sshd;
 
+    protected static final boolean USE_CI = Boolean.getBoolean("ci");
+
     @BeforeAll
     public static void setUp() throws Exception
     {

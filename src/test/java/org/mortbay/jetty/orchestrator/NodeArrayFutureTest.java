@@ -26,6 +26,8 @@ import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sshd.AbstractSshTest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,9 +38,12 @@ public class NodeArrayFutureTest extends AbstractSshTest
 {
     private static boolean initialValue;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodeArrayFutureTest.class);
+
     @BeforeAll
     public static void forceHostLauncher()
     {
+        LOGGER.info("use CI: {}", USE_CI);
         initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
         System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
     }
@@ -55,7 +60,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -72,7 +77,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -92,7 +97,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                           .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -116,7 +121,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -146,7 +151,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
