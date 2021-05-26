@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -97,18 +96,31 @@ public class Cluster implements AutoCloseable
         clusterTools = new ClusterTools(curator, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
         // start all host nodes
-        List<Node> nodes = configuration.nodeArrays().stream()
+        // FIXME we reduce here to only on node per host
+        Map<String, List<Node>> nodesPerHostnames = new HashMap<>();
+        configuration.nodeArrays().stream()
             .flatMap(cfg -> cfg.nodes().stream())
             .distinct()
-            .collect(Collectors.toList());
-        for (Node node : nodes)
+            .forEach(node -> nodesPerHostnames.computeIfAbsent(node.getHostname(), s -> new ArrayList<>()).add(node));
+
+        for (Map.Entry<String, List<Node>> entry : nodesPerHostnames.entrySet())
         {
-            GlobalNodeId globalNodeId = new GlobalNodeId(id, node.getHostname());
-            HostLauncher launcher = node.getHostname().equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+            String hostname = entry.getKey();
+            GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
+            if (entry.getValue().size() > 1)
+            {
+                LOG.warn("We cannot accept more than one node for a hostname, only use the first one");
+            }
+            HostLauncher launcher;
             if (Boolean.getBoolean(FORCE_HOST_LAUNCHER_KEY) && hostLauncher != null)
             {
                 launcher = hostLauncher;
             }
+            else
+            {
+                launcher = LocalHostLauncher.HOSTNAME.equals(hostname) ? localHostLauncher : hostLauncher;
+            }
+            Node node = entry.getValue().get(0);
             if (launcher == null)
                 throw new IllegalStateException("No configured host launcher to start node on " + node.getHostname());
             String remoteConnectString = launcher.launch(globalNodeId, node, connectString);
@@ -139,7 +151,8 @@ public class Cluster implements AutoCloseable
         }
 
         // start heath checker timer
-        hostsCheckerTimer.schedule(new TimerTask() {
+        hostsCheckerTimer.schedule(new TimerTask()
+        {
             @Override
             public void run()
             {
