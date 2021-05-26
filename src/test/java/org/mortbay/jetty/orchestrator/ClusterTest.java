@@ -58,11 +58,11 @@ public class ClusterTest extends AbstractSshTest
 
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                           .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
+                           .node(new Node("1", sshd.getHost())))
+                                     //.remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                           .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
+                           .node(new Node("1", sshd.getHost())))
+                                     //.remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 

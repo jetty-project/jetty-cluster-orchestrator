@@ -13,23 +13,19 @@
 
 package sshd;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestSshServer implements AutoCloseable
 {
@@ -59,7 +55,14 @@ public class TestSshServer implements AutoCloseable
 
     public String getHost()
     {
-        return sshContainer.getContainerIpAddress();
+        try
+        {
+            return AbstractSshTest.USE_CI ? InetAddress.getLocalHost().getHostName() : sshContainer.getContainerIpAddress();
+        }
+        catch (UnknownHostException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getUser()
