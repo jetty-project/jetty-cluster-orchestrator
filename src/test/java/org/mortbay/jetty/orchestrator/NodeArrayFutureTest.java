@@ -145,7 +145,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
+                           .node(new Node("1", sshd.getHost())
+                                     .remoteForwardHost(Boolean.getBoolean("ci")?"host.docker.internal":"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
