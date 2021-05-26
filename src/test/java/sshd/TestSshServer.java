@@ -55,14 +55,7 @@ public class TestSshServer implements AutoCloseable
 
     public String getHost()
     {
-        try
-        {
-            return AbstractSshTest.USE_CI ? InetAddress.getLocalHost().getHostName() : sshContainer.getContainerIpAddress();
-        }
-        catch (UnknownHostException e)
-        {
-            throw new RuntimeException(e);
-        }
+        return sshContainer.getContainerIpAddress();
     }
 
     public String getUser()

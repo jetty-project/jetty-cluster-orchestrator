@@ -180,16 +180,13 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
             nodes.put(nodeId.getHostname(), remoteNodeHolder);
+            LOG.info("time to start host {}: {}ms", nodeId.getHostname(), (System.currentTimeMillis()-start));
             return remoteConnectString;
         }
         catch (Exception e)
         {
             IOUtil.close(fileSystem, cmd, session, forwardingConnectListener, forwarding, sshClient);
             throw new Exception("Error launching host '" + nodeId.getHostname() + "'", e);
-        }
-        finally
-        {
-            LOG.info("time to start host {}: {}ms", nodeId.getHostname(), (System.currentTimeMillis()-start));
         }
     }
 
