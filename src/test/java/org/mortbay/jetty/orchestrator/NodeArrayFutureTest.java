@@ -40,6 +40,8 @@ public class NodeArrayFutureTest extends AbstractSshTest
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeArrayFutureTest.class);
 
+    public static final String KUBERNETES_HOST = "172.17.0.1"; // "host.docker.internal"
+
     @BeforeAll
     public static void forceHostLauncher()
     {
@@ -60,7 +62,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -77,7 +79,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -97,7 +99,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                           .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -121,7 +123,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(
-                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                new Node("1", sshd.getHost()).remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
@@ -151,7 +153,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                                     .remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 

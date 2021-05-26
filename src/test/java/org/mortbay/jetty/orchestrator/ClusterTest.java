@@ -34,6 +34,7 @@ import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
 import sshd.AbstractSshTest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mortbay.jetty.orchestrator.NodeArrayFutureTest.KUBERNETES_HOST;
 
 public class ClusterTest extends AbstractSshTest
 {
@@ -58,10 +59,10 @@ public class ClusterTest extends AbstractSshTest
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("server-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                                     .remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array")
                            .node(new Node("1", sshd.getHost())
-                                     .remoteForwardHost(USE_CI ? "host.docker.internal" : "localhost")))
+                                     .remoteForwardHost(USE_CI ? KUBERNETES_HOST : "localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 
