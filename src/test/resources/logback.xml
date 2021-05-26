@@ -15,7 +15,7 @@
   <logger name="org.apache.sshd" level="error" />
   <logger name="sshd" level="debug" />
   <logger name="org.mortbay.jetty.orchestrator.NodeArrayRootPathOfTest" level="debug"/>
-
+  <logger name="org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher" level="debug"/>
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>

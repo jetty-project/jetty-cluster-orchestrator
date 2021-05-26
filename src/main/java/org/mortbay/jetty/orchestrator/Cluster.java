@@ -127,7 +127,7 @@ public class Cluster implements AutoCloseable
             hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
         }
 
-        // start all worker nodes
+        // start all worker nodesNodeArrayFutureTest
         for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
         {
             Map<String, NodeArray.Node> nodeArrayNodes = new HashMap<>();

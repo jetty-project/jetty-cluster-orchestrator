@@ -57,4 +57,11 @@ public class Node
         this.remoteForwardPort = remoteForwardPort;
         return this;
     }
+
+    @Override
+    public String toString()
+    {
+        return "Node{" + "id='" + id + '\'' + ", hostname='" + hostname + '\'' + ", remoteForwardHost='" +
+            remoteForwardHost + '\'' + ", remoteForwardPort=" + remoteForwardPort + '}';
+    }
 }
