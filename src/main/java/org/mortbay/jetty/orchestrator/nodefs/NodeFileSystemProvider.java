@@ -49,6 +49,7 @@ import net.schmizz.sshj.xfer.FilePermission;
 public class NodeFileSystemProvider extends FileSystemProvider
 {
     public static final String PREFIX = "jco";
+    public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
     static
     {
@@ -98,7 +99,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
-            boolean windows = (Boolean)env.get("windows");
+            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
             SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))

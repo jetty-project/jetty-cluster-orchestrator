@@ -149,7 +149,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             HashMap<String, Object> env = new HashMap<>();
             env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-            env.put("windows", windows);
+            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, windows);
             fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
             List<String> remoteClasspathEntries = new ArrayList<>();

@@ -72,6 +72,7 @@ public class NodeFileSystemTest
         sshClient.authPassword("username", new char[0]);
 
         HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
         NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
 
@@ -94,6 +95,7 @@ public class NodeFileSystemTest
         sshClient.authPassword("username", new char[0]);
 
         HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
@@ -116,6 +118,7 @@ public class NodeFileSystemTest
         sshClient.authPassword("username", new char[0]);
 
         HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
@@ -142,6 +145,7 @@ public class NodeFileSystemTest
         sshClient.authPassword("username", new char[0]);
 
         HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
@@ -178,6 +182,7 @@ public class NodeFileSystemTest
         sshClient.authPassword("username", new char[0]);
 
         HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
