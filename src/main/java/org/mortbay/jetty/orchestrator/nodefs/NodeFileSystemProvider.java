@@ -98,7 +98,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
-            boolean windows = (boolean)env.get("windows");
+            boolean windows = (Boolean)env.get("windows");
             SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
