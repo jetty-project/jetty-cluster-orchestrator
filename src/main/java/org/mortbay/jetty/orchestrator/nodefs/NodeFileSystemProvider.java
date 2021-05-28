@@ -98,12 +98,13 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
+            boolean windows = (boolean)env.get("windows");
             SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractPath(uri));
+            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractPath(uri), windows);
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }

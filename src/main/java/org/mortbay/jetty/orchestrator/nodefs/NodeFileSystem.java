@@ -51,15 +51,17 @@ class NodeFileSystem extends FileSystem
     private final NodeFileSystemProvider provider;
     private final SFTPClient sftpClient;
     private final String hostId;
+    private final boolean windows;
     private final NodePath homePath;
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    NodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String hostId, List<String> cwd)
+    NodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String hostId, List<String> cwd, boolean windows)
     {
         this.provider = provider;
         this.sftpClient = sftpClient;
         this.hostId = hostId;
+        this.windows = windows;
         try
         {
             this.homePath = new NodePath(this, null, NodePath.toSegments(sftpClient.canonicalize(".")));
@@ -69,6 +71,11 @@ class NodeFileSystem extends FileSystem
         {
             throw new RuntimeException(e);
         }
+    }
+
+    boolean isWindows()
+    {
+        return windows;
     }
 
     String getHostId()

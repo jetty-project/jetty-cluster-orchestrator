@@ -303,14 +303,15 @@ class NodePath implements Path
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        if (isAbsolute())
-            sb.append(NodeFileSystem.PATH_SEPARATOR);
+        char separator = fileSystem.isWindows() ? '\\' : '/';
+        if (isAbsolute() && !fileSystem.isWindows())
+            sb.append(separator);
         for (int i = 0; i < pathSegments.size(); i++)
         {
             String segment = pathSegments.get(i);
             sb.append(segment);
             if (i < pathSegments.size() - 1)
-                sb.append(NodeFileSystem.PATH_SEPARATOR);
+                sb.append(separator);
         }
         return sb.toString();
     }
