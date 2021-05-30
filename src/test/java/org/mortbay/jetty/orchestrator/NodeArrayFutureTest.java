@@ -44,8 +44,6 @@ public class NodeArrayFutureTest extends AbstractSshTest
     @BeforeAll
     public static void forceHostLauncher() throws Exception
     {
-        LOGGER.info("use CI: {}", USE_CI);
-        //KUBERNETES_HOST = InetAddress.getLocalHost().getHostAddress();
         initialValue = Boolean.getBoolean(Cluster.FORCE_HOST_LAUNCHER_KEY);
         System.setProperty(Cluster.FORCE_HOST_LAUNCHER_KEY, Boolean.TRUE.toString());
     }

@@ -15,16 +15,21 @@ package sshd;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractSshTest
 {
     protected static TestSshServer sshd;
+
+    public static final Logger LOGGER = LoggerFactory.getLogger(AbstractSshTest.class);
 
     protected static final boolean USE_CI = Boolean.getBoolean("ci");
 
     @BeforeAll
     public static void setUp() throws Exception
     {
+        LOGGER.info("use CI: {}", USE_CI);
         sshd = new TestSshServer();
     }
 
