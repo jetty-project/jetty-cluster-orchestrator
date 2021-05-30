@@ -59,7 +59,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI?KUBERNETES_HOST:"localhost")))
+                           .node(new Node("1", sshd.getHost()).remoteForwardPort(sshd.getRemoteForwardPort()).remoteForwardHost(USE_CI?KUBERNETES_HOST:"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
 

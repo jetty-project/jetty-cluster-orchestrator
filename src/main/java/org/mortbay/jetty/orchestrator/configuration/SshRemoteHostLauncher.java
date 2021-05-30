@@ -109,7 +109,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     {
         long start = System.currentTimeMillis();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
-        LOG.debug("start launch of hostname/node: {}/{}", nodeId.getHostname(), node);
+        LOG.debug("start launch of hostname/node/connectString: {}/{}/{}",
+                  nodeId.getHostname(), node, connectString);
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
         if (nodes.containsKey(nodeId.getHostname()))

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.net.InetAddress;
@@ -103,8 +104,9 @@ public class TestSshServer implements AutoCloseable
             new ImageFromDockerfile( "jetty-orchestrator-ssh-test", false)
                 .withDockerfile(Paths.get("src/test/resources/docker/Dockerfile")))
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("sshd.sshcontainer")))
-            .withExposedPorts(2222)
+            .withExposedPorts(2222, 2223)
             .withEnv(env);
+        sshContainer.setWaitStrategy(new LogMessageWaitStrategy().withRegEx(".*services.d.* done.*") );
         if (homePath != null)
         {
             sshContainer.withFileSystemBind(homePath, "/config", BindMode.READ_WRITE);
