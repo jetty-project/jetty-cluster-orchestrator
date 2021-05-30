@@ -41,8 +41,6 @@ public class NodeArrayFutureTest extends AbstractSshTest
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NodeArrayFutureTest.class);
 
-    public static String KUBERNETES_HOST = "host.docker.internal"; // "172.17.0.1"; // "host.docker.internal"
-
     @BeforeAll
     public static void forceHostLauncher() throws Exception
     {

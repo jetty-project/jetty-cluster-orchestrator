@@ -34,7 +34,7 @@ import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
 import sshd.AbstractSshTest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mortbay.jetty.orchestrator.NodeArrayFutureTest.KUBERNETES_HOST;
+import static org.mortbay.jetty.orchestrator.NodeArrayRootPathOfTest.KUBERNETES_HOST;
 
 public class ClusterTest extends AbstractSshTest
 {
