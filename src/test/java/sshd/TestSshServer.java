@@ -99,6 +99,7 @@ public class TestSshServer implements AutoCloseable
         env.put("PASSWORD_ACCESS", "true");
         env.put("USER_PASSWORD", getPassword());
         env.put("USER_NAME", getUser());
+        env.put("SUDO_ACCESS", "true");
 
         sshContainer = new GenericContainer(
             new ImageFromDockerfile( "jetty-orchestrator-ssh-test", false)

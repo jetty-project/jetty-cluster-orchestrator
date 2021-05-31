@@ -62,7 +62,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
                            .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI?KUBERNETES_HOST:"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
-        
+
         try (Cluster cluster = new Cluster(cfg))
         {
             NodeArray nodeArray = cluster.nodeArray("my-array");
