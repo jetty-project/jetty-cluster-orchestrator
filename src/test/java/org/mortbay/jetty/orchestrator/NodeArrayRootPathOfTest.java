@@ -52,17 +52,17 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
         new Cluster(cfg2).close();
     }
 
-    public static String KUBERNETES_HOST = "host.docker.internal"; // "172.17.0.1"; // "host.docker.internal"
+    public static String KUBERNETES_HOST = "localhost"; // "172.17.0.1"; // "host.docker.internal"
 
     @Test
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                           .node(new Node("1", sshd.getHost()).remoteForwardPort(sshd.getRemoteForwardPort()).remoteForwardHost(USE_CI?KUBERNETES_HOST:"localhost")))
+                           .node(new Node("1", sshd.getHost()).remoteForwardHost(USE_CI?KUBERNETES_HOST:"localhost")))
             .hostLauncher(new SshRemoteHostLauncher(sshd.getUser(), sshd.getPassword().toCharArray(), sshd.getPort()))
             ;
-
+        
         try (Cluster cluster = new Cluster(cfg))
         {
             NodeArray nodeArray = cluster.nodeArray("my-array");
