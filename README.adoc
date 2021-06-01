@@ -134,7 +134,7 @@ locations on your machines.
 === Synchronizing the lambdas
 
 The lambda passed to `executeOnAll` is given a `tools` parameter which is an instance of `ClusterTools`. With it, you have access
-to clustered atomic counters and clustered cyclic barriers that you can use to exchange data across lambdas or to synchronize them.
+to clustered atomic counters and clustered barriers that you can use to exchange data across lambdas or to synchronize them.
 
 The `Cluster` class also has a `tools()` method that returns a `ClusterTools` instance you can use to synchronize the lambdas
 with the test code.
