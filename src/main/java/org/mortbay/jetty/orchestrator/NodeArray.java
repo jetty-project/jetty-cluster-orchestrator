@@ -68,6 +68,27 @@ public class NodeArray
         return nodes.keySet();
     }
 
+    public NodeArrayFuture executeOn(String id, NodeJob nodeJob)
+    {
+        Node node = nodes.get(id);
+        if (node == null)
+            throw new IllegalArgumentException("No such node with ID " + id);
+
+        List<CompletableFuture<Object>> futures = new ArrayList<>();
+        try
+        {
+            CompletableFuture<Object> future = node.rpcClient.callAsync(new ExecuteNodeJobCommand(nodeJob));
+            futures.add(future);
+        }
+        catch (Exception e)
+        {
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            futures.add(future);
+        }
+        return new NodeArrayFuture(futures);
+    }
+
     public NodeArrayFuture executeOnAll(NodeJob nodeJob)
     {
         List<CompletableFuture<Object>> futures = new ArrayList<>();
