@@ -13,15 +13,16 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
 {
     private final String id;
+    private final Map<String, Node> nodes = new HashMap<>();
     private Jvm jvm;
-    private final Collection<Node> nodes = new ArrayList<>();
 
     public SimpleNodeArrayConfiguration(String id)
     {
@@ -37,12 +38,13 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
     @Override
     public Collection<Node> nodes()
     {
-        return Collections.unmodifiableCollection(nodes);
+        return Collections.unmodifiableCollection(nodes.values());
     }
 
     public SimpleNodeArrayConfiguration node(Node node)
     {
-        nodes.add(node);
+        if (nodes.putIfAbsent(node.getId(), node) != null)
+            throw new IllegalArgumentException("Duplicate node ID: " + node.getId());
         return this;
     }
 
