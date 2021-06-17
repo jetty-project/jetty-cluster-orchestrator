@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.FileSystem;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -93,7 +92,7 @@ public class NodeProcess implements Serializable, AutoCloseable
             LOG.debug("Node [{}] connected to {}", nodeId, connectString);
         RpcServer rpcServer = new RpcServer(curator, new GlobalNodeId(nodeId));
 
-        Runnable shutdown = () ->
+        Thread shutdown = new Thread(() ->
         {
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopping", nodeId);
@@ -101,18 +100,20 @@ public class NodeProcess implements Serializable, AutoCloseable
             IOUtil.close(curator);
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopped", nodeId);
-        };
-        Runtime.getRuntime().addShutdownHook(new Thread(shutdown));
+        });
+        Runtime.getRuntime().addShutdownHook(shutdown);
 
         rpcServer.run();
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
-        shutdown.run();
+        shutdown.run(); // do not start that thread, run its runnable on the current thread
+        Runtime.getRuntime().removeShutdownHook(shutdown);
     }
 
     public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString) throws IOException
     {
         File nodeRootPath = defaultRootPath(nodeId);
+        IOUtil.deltree(nodeRootPath);
         nodeRootPath.mkdirs();
 
         List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString);
