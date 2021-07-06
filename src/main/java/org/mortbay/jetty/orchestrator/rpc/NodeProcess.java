@@ -107,7 +107,14 @@ public class NodeProcess implements Serializable, AutoCloseable
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
         shutdown.run(); // do not start that thread, run its runnable on the current thread
-        Runtime.getRuntime().removeShutdownHook(shutdown);
+        try
+        {
+            Runtime.getRuntime().removeShutdownHook(shutdown);
+        }
+        catch (IllegalStateException e)
+        {
+            // Shutting down; can be safely ignored.
+        }
     }
 
     public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString) throws IOException
