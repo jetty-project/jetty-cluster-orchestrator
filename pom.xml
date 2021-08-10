@@ -6,6 +6,10 @@
   <artifactId>jetty-cluster-orchestrator</artifactId>
   <version>1.0.1-SNAPSHOT</version>
   <name>Jetty :: JVM Cluster Orchestrator</name>
+  <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
+  <description>
+    The Jetty Cluster Orchestrator library
+  </description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
