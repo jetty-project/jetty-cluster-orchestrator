@@ -28,6 +28,7 @@ import org.apache.curator.retry.RetryNTimes;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.mortbay.jetty.orchestrator.util.StreamCopier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -124,10 +125,17 @@ public class NodeProcess implements Serializable, AutoCloseable
         nodeRootPath.mkdirs();
 
         List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString);
-        return new NodeProcess(new ProcessBuilder(cmdLine)
+        // Inherited IO bypasses the System.setOut/setErr mechanism, so use piping for stdout/stderr such as
+        // System.setOut/setErr can redirect the output of the process.
+        Process process = new ProcessBuilder(cmdLine)
             .directory(nodeRootPath)
-            .inheritIO()
-            .start());
+            .redirectInput(ProcessBuilder.Redirect.INHERIT)
+            .redirectError(ProcessBuilder.Redirect.PIPE)
+            .redirectOutput(ProcessBuilder.Redirect.PIPE)
+            .start();
+        new StreamCopier(process.getInputStream(), System.out, true).spawnDaemon(hostname + "-proc-stdout");
+        new StreamCopier(process.getErrorStream(), System.err, true).spawnDaemon(hostname + "-proc-stderr");
+        return new NodeProcess(process);
     }
 
     public static Thread spawnThread(String nodeId, String connectString)

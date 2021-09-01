@@ -16,7 +16,6 @@ package org.mortbay.jetty.orchestrator.configuration;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -46,8 +45,8 @@ import net.schmizz.sshj.xfer.LocalSourceFile;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
-import org.mortbay.jetty.orchestrator.util.ByteBuilder;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.mortbay.jetty.orchestrator.util.StreamCopier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,8 +174,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             session = sshClient.startSession();
             cmd = session.exec(cmdLine);
 
-            new StreamCopier(cmd.getInputStream(), new LineBufferingOutputStream(System.out)).spawnDaemon(nodeId.getHostname() + "-stdout");
-            new StreamCopier(cmd.getErrorStream(), new LineBufferingOutputStream(System.err)).spawnDaemon(nodeId.getHostname() + "-stderr");
+            new StreamCopier(cmd.getInputStream(), System.out, true).spawnDaemon(nodeId.getHostname() + "-stdout");
+            new StreamCopier(cmd.getErrorStream(), System.err, true).spawnDaemon(nodeId.getHostname() + "-stderr");
 
             RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
             nodes.put(nodeId.getHostname(), remoteNodeHolder);
@@ -345,78 +344,6 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static class LineBufferingOutputStream extends OutputStream
-    {
-        private final OutputStream delegate;
-        private final ByteBuilder byteBuilder = new ByteBuilder(256);
-
-        public LineBufferingOutputStream(OutputStream delegate)
-        {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void write(int b) throws IOException
-        {
-            if (byteBuilder.isFull())
-            {
-                delegate.write(byteBuilder.getBuffer());
-                delegate.flush();
-                byteBuilder.clear();
-            }
-            byteBuilder.append(b);
-            if (b == '\n' || b == '\r')
-            {
-                delegate.write(byteBuilder.getBuffer(), 0, byteBuilder.length());
-                delegate.flush();
-                byteBuilder.clear();
-            }
-        }
-
-        @Override
-        public void close() throws IOException
-        {
-            delegate.close();
-        }
-    }
-
-    private static class StreamCopier
-    {
-        private final InputStream is;
-        private final OutputStream os;
-        private final int bufferSize;
-
-        private StreamCopier(InputStream is, OutputStream os)
-        {
-            this(is, os, 1);
-        }
-
-        private StreamCopier(InputStream is, OutputStream os, int bufferSize)
-        {
-            this.is = is;
-            this.os = os;
-            this.bufferSize = bufferSize;
-        }
-
-        public void spawnDaemon(String name)
-        {
-            Thread thread = new Thread(() ->
-            {
-                try
-                {
-                    IOUtil.copy(is, os, bufferSize, true);
-                }
-                catch (Exception e)
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Error copying stream", e);
-                }
-            }, name);
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-
     private static class SocketForwardingConnectListener implements ConnectListener, AutoCloseable
     {
         private final String threadNamePrefix;
@@ -447,10 +374,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             channel.confirm();
 
-            new SshRemoteHostLauncher.StreamCopier(socket.getInputStream(), channel.getOutputStream(), channel.getRemoteMaxPacketSize())
+            new StreamCopier(socket.getInputStream(), channel.getOutputStream(), channel.getRemoteMaxPacketSize(), false)
                 .spawnDaemon(threadNamePrefix + "-soc2chan");
 
-            new SshRemoteHostLauncher.StreamCopier(channel.getInputStream(), socket.getOutputStream(), channel.getLocalMaxPacketSize())
+            new StreamCopier(channel.getInputStream(), socket.getOutputStream(), channel.getLocalMaxPacketSize(), false)
                 .spawnDaemon(threadNamePrefix + "-chan2soc");
         }
     }
