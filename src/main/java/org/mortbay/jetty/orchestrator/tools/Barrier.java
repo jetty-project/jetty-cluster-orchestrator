@@ -41,11 +41,17 @@ public class Barrier
         if (!guard.compareAndSet(false, true))
             throw new BrokenBarrierException("Barrier is not cyclic");
         distributedDoubleBarrier.enter();
-        int index = (int)atomicCounter.decrementAndGet();
-        if (index == 0)
-            atomicCounter.set(parties);
-        distributedDoubleBarrier.leave();
-        return index;
+        try
+        {
+            int index = (int)atomicCounter.decrementAndGet();
+            if (index == 0)
+                atomicCounter.set(parties);
+            return index;
+        }
+        finally
+        {
+            distributedDoubleBarrier.leave();
+        }
     }
 
     public int await(long timeout, TimeUnit unit) throws Exception
@@ -55,10 +61,16 @@ public class Barrier
         boolean success = distributedDoubleBarrier.enter(timeout, unit);
         if (!success)
             throw new TimeoutException("Timeout awaiting on barrier");
-        int index = (int)atomicCounter.decrementAndGet();
-        if (index == 0)
-            atomicCounter.set(parties);
-        distributedDoubleBarrier.leave(timeout, unit);
-        return index;
+        try
+        {
+            int index = (int)atomicCounter.decrementAndGet();
+            if (index == 0)
+                atomicCounter.set(parties);
+            return index;
+        }
+        finally
+        {
+            distributedDoubleBarrier.leave(timeout, unit);
+        }
     }
 }

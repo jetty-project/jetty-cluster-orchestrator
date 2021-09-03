@@ -61,27 +61,16 @@ public class AtomicCounter
             PromotedToLock.builder().lockPath(lockName).build());
     }
 
-    public boolean compareAndSet(long expectedValue, long newValue)
-    {
-        try
-        {
-            AtomicValue<Long> result = distributedAtomicLong.compareAndSet(expectedValue, newValue);
-            return result.succeeded();
-        }
-        catch (Exception e)
-        {
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to compare and set counter " + name, e);
-        }
-    }
-
     public long incrementAndGet()
     {
         try
         {
-            AtomicValue<Long> result = distributedAtomicLong.add(1L);
-            if (result.succeeded())
-                return result.postValue();
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to increment and get counter " + name);
+            while (true)
+            {
+                AtomicValue<Long> result = distributedAtomicLong.add(1L);
+                if (result.succeeded())
+                    return result.postValue();
+            }
         }
         catch (Exception e)
         {
@@ -93,10 +82,12 @@ public class AtomicCounter
     {
         try
         {
-            AtomicValue<Long> result = distributedAtomicLong.add(-1L);
-            if (result.succeeded())
-                return result.postValue();
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to decrement and get counter " + name);
+            while (true)
+            {
+                AtomicValue<Long> result = distributedAtomicLong.add(-1L);
+                if (result.succeeded())
+                    return result.postValue();
+            }
         }
         catch (Exception e)
         {
@@ -108,10 +99,12 @@ public class AtomicCounter
     {
         try
         {
-            AtomicValue<Long> result = distributedAtomicLong.add(1L);
-            if (result.succeeded())
-                return result.preValue();
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get and increment counter " + name);
+            while (true)
+            {
+                AtomicValue<Long> result = distributedAtomicLong.add(1L);
+                if (result.succeeded())
+                    return result.preValue();
+            }
         }
         catch (Exception e)
         {
@@ -123,10 +116,12 @@ public class AtomicCounter
     {
         try
         {
-            AtomicValue<Long> result = distributedAtomicLong.add(-1L);
-            if (result.succeeded())
-                return result.preValue();
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get and decrement counter " + name);
+            while (true)
+            {
+                AtomicValue<Long> result = distributedAtomicLong.add(-1L);
+                if (result.succeeded())
+                    return result.preValue();
+            }
         }
         catch (Exception e)
         {
@@ -138,10 +133,12 @@ public class AtomicCounter
     {
         try
         {
-            AtomicValue<Long> result = distributedAtomicLong.get();
-            if (result.succeeded())
-                return result.postValue();
-            throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get counter " + name);
+            while (true)
+            {
+                AtomicValue<Long> result = distributedAtomicLong.get();
+                if (result.succeeded())
+                    return result.postValue();
+            }
         }
         catch (Exception e)
         {
