@@ -18,6 +18,11 @@ public class Node
     private final String id;
     private final String hostname;
 
+    public Node(String hostname)
+    {
+        this(hostname, hostname);
+    }
+
     public Node(String id, String hostname)
     {
         this.id = id;
