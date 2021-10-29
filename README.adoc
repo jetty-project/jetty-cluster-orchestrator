@@ -27,7 +27,7 @@ ClusterConfiguration cfg = new SimpleClusterConfiguration()
 . Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
  Any number of `NodeArray` s can be added to a cluster, as long as they have unique names.
 . Add two `Node` s to the cluster. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
- while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Node that all node identifiers
+ while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Note that all node identifiers
  must be unique.
 
 === Using a configured JVM cluster
