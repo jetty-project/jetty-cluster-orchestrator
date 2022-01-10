@@ -25,6 +25,7 @@ import java.util.Objects;
 
 import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.common.util.GenericUtils;
+import org.apache.sshd.common.util.MapEntryUtils;
 import org.apache.sshd.common.util.ValidateUtils;
 import org.apache.sshd.common.util.io.IoUtils;
 import org.apache.sshd.common.util.logging.AbstractLoggingBean;
@@ -42,7 +43,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
     private final List<String> command;
     private String cmdValue;
     private ServerSession session;
-    private ChannelSession channel;
+    private ChannelSession channelSession;
     private Process process;
     private TtyFilterOutputStream in;
     private TtyFilterInputStream out;
@@ -68,14 +69,14 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
     }
 
     @Override
-    public ChannelSession getChannelSession() {
-        return channel;
+    public ChannelSession getServerChannelSession() {
+        return channelSession;
     }
 
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException
     {
-        this.channel = channel;
+        this.channelSession = channel;
 
         Map<String, String> varsMap = resolveShellEnvironment(env.getEnv());
         for (int i = 0; i < command.size(); i++) {
@@ -88,7 +89,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
         }
 
         ProcessBuilder builder = new ProcessBuilder(command);
-        if (GenericUtils.size(varsMap) > 0) {
+        if (MapEntryUtils.size(varsMap) > 0) {
             try {
                 Map<String, String> procEnv = builder.environment();
                 procEnv.putAll(varsMap);
