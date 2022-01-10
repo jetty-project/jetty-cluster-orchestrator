@@ -91,10 +91,7 @@ public class TestSshServer implements AutoCloseable
             @Override
             public Command createSubsystem(ChannelSession channel)
             {
-                SftpSubsystem subsystem = new SftpSubsystem(
-                    resolveExecutorService(),
-                    getUnsupportedAttributePolicy(), getFileSystemAccessor(),
-                    getErrorStatusDataHandler())
+                SftpSubsystem subsystem = new SftpSubsystem(channel, this)
                 {
                     {
                         this.defaultDir = fileSystem.getPath(homePath).toAbsolutePath().normalize();
