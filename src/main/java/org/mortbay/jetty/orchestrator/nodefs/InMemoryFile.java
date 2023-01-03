@@ -14,6 +14,8 @@
 package org.mortbay.jetty.orchestrator.nodefs;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
 import net.schmizz.sshj.xfer.InMemoryDestFile;
 
@@ -21,9 +23,23 @@ class InMemoryFile extends InMemoryDestFile
 {
     private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
+    // Method used by SFTP
+    @Override
+    public OutputStream getOutputStream(boolean append) throws IOException
+    {
+        return outputStream;
+    }
+
     @Override
     public ByteArrayOutputStream getOutputStream()
     {
         return outputStream;
+    }
+
+    // Method used by SFTP
+    @Override
+    public long getLength()
+    {
+        return -1;
     }
 }
