@@ -29,6 +29,20 @@ class PipingFile extends InMemoryDestFile
         inputStream = new PipedInputStream(outputStream);
     }
 
+    // Method used by SFTP
+    @Override
+    public long getLength()
+    {
+        return -1;
+    }
+
+    // Method used by SFTP
+    @Override
+    public PipedOutputStream getOutputStream(boolean append) throws IOException
+    {
+        return outputStream;
+    }
+
     @Override
     public PipedOutputStream getOutputStream()
     {
