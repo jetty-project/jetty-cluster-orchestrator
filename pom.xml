@@ -4,7 +4,7 @@
 
   <groupId>org.mortbay.jetty.orchestrator</groupId>
   <artifactId>jetty-cluster-orchestrator</artifactId>
-  <version>1.0.4-SNAPSHOT</version>
+  <version>1.0.4</version>
   <name>Jetty :: JVM Cluster Orchestrator</name>
   <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
   <description>
@@ -32,7 +32,7 @@
     <connection>scm:git:git://github.com/jetty-project/jetty-cluster-orchestrator.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jetty-project/jetty-cluster-orchestrator.git</developerConnection>
     <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
-    <tag>HEAD</tag>
+    <tag>jetty-cluster-orchestrator-1.0.4</tag>
   </scm>
 
   <distributionManagement>
