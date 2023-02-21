@@ -19,7 +19,6 @@ import java.io.Serializable;
 import java.nio.file.FileSystem;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -29,29 +28,26 @@ import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.StreamCopier;
+import org.mortbay.jetty.orchestrator.util.ProcessHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.zeroturnaround.process.PidProcess;
-import org.zeroturnaround.process.ProcessUtil;
-import org.zeroturnaround.process.Processes;
 
 public class NodeProcess implements Serializable, AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(NodeProcess.class);
     public static final String CLASSPATH_FOLDER_NAME = ".classpath";
 
-    private final int pid;
+    private final ProcessHolder processHelper;
 
     private NodeProcess(Process process)
     {
-        this.pid = Processes.newPidProcess(process).getPid();
+        this.processHelper = ProcessHolder.from(process);
     }
 
-    public boolean isAlive() throws IOException, InterruptedException
+    public boolean isAlive() throws Exception
     {
-        PidProcess process = Processes.newPidProcess(pid);
-        return process.isAlive();
+        return processHelper.isAlive();
     }
 
     @Override
@@ -59,13 +55,12 @@ public class NodeProcess implements Serializable, AutoCloseable
     {
         try
         {
-            PidProcess process = Processes.newPidProcess(pid);
-            ProcessUtil.destroyGracefullyOrForcefullyAndWait(process, 10, TimeUnit.SECONDS, 10, TimeUnit.SECONDS);
+            processHelper.destroy();
         }
         catch (Exception e)
         {
             if (LOG.isDebugEnabled())
-                LOG.debug("Error terminating process with PID=" + pid, e);
+                LOG.debug("Error terminating process with PID=" + processHelper.getPid(), e);
         }
     }
 
@@ -73,7 +68,7 @@ public class NodeProcess implements Serializable, AutoCloseable
     public String toString()
     {
         return "NodeProcess{" +
-            "pid=" + pid +
+            "pid=" + processHelper.getPid() +
             '}';
     }
 
