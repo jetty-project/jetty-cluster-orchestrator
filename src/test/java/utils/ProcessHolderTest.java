@@ -41,21 +41,25 @@ public class ProcessHolderTest
 
     private static Process startBlockingProcess() throws IOException
     {
-        ProcessBuilder pb = new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), ProcessHolderTest.class.getName());
+        ProcessBuilder pb = new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), ProcessHolderTest.Inner.class.getName().replace('$', '.'));
         return pb.start();
     }
 
     private static String jvm()
     {
-        if (System.getProperty("os.name").startsWith("Win")) {
+        if (System.getProperty("os.name").startsWith("Win"))
             return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java.exe";
-        } else {
+        else
             return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-        }
     }
 
-    public static void main(String[] args) throws Exception
+    // JUnit does not always seem to like when a test class has a main method.
+    private static class Inner
     {
-        System.in.read();
+        public static void main(String[] args) throws Exception
+        {
+            Thread.sleep(10_000);
+            System.exit(-1);
+        }
     }
 }

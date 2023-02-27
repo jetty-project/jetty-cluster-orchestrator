@@ -22,17 +22,36 @@ import java.util.concurrent.TimeoutException;
 
 public class ProcessHolder implements Serializable
 {
+    private static final Impl IMPL;
+
+    static
+    {
+        Impl impl;
+        try
+        {
+            impl = new JDK9();
+        }
+        catch (Exception e)
+        {
+            try
+            {
+                impl = new ZtProcessKiller();
+            }
+            catch (Exception ex)
+            {
+                throw new IllegalStateException("Neither of the JDK 9+ ProcessHandle API nor the ZT Process Killer API is available", e);
+            }
+        }
+        IMPL = impl;
+    }
+
     private final int pid;
 
     public static ProcessHolder from(Process process)
     {
         try
         {
-            return new ProcessHolder(process);
-        }
-        catch (ClassNotFoundException | NoSuchMethodException e)
-        {
-            throw new IllegalStateException("Neither of the JDK 9+ ProcessHandle API nor the ZT Process Killer API is available", e);
+            return new ProcessHolder(IMPL.asPid(process));
         }
         catch (Exception e)
         {
@@ -40,14 +59,24 @@ public class ProcessHolder implements Serializable
         }
     }
 
-    private ProcessHolder(Process process) throws Exception
+    private ProcessHolder(int pid)
     {
-        this.pid = asPid(process);
+        this.pid = pid;
     }
 
     public int getPid()
     {
         return pid;
+    }
+
+    public boolean isAlive() throws Exception
+    {
+        return IMPL.isAlive(pid);
+    }
+
+    public void destroy() throws Exception
+    {
+        IMPL.destroy(pid);
     }
 
     @Override
@@ -58,137 +87,131 @@ public class ProcessHolder implements Serializable
             '}';
     }
 
-    private int asPid(Process process) throws Exception
+    private static abstract class Impl
     {
-        try
-        {
-            return asPidWithProcessHandle(process);
-        }
-        catch (ClassNotFoundException | NoSuchMethodException e)
-        {
-            return asPidWithZtProcessKiller(process);
-        }
+        abstract int asPid(Process process) throws Exception;
+        abstract boolean isAlive(int pid) throws Exception;
+        abstract void destroy(int pid) throws Exception;
     }
 
-    public boolean isAlive() throws Exception
+    private static class JDK9 extends Impl
     {
-        try
+        private final Class<?> processHandleClass;
+
+        public JDK9() throws Exception
         {
-            return isAliveWithProcessHandle();
+            processHandleClass = Class.forName("java.lang.ProcessHandle");
         }
-        catch (ClassNotFoundException | NoSuchMethodException e)
+
+        @Override
+        int asPid(Process process) throws Exception
         {
-            return isAliveWithZtProcessKiller();
+            Method toHandleMethod = Process.class.getDeclaredMethod("toHandle");
+            Object processHandle = toHandleMethod.invoke(process);
+
+            Method pidMethod = processHandleClass.getDeclaredMethod("pid");
+
+            long pid = (long)pidMethod.invoke(processHandle);
+            return (int)pid;
         }
-    }
 
-    public void destroy() throws Exception
-    {
-        try
+        @Override
+        boolean isAlive(int pid) throws Exception
         {
-            destroyWithProcessHandle();
-        }
-        catch (ClassNotFoundException | NoSuchMethodException e)
-        {
-            destroyWithZtProcessKiller();
-        }
-    }
+            Method ofMethod = processHandleClass.getDeclaredMethod("of", long.class);
+            Method isAliveMethod = processHandleClass.getDeclaredMethod("isAlive");
 
-    private void destroyWithZtProcessKiller() throws Exception
-    {
-        Class<?> processesClass = Class.forName("org.zeroturnaround.process.Processes");
-        Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", int.class);
-        Class<?> processUtilClass = Class.forName("org.zeroturnaround.process.ProcessUtil");
-        Class<?> systemProcessClass = Class.forName("org.zeroturnaround.process.SystemProcess");
-        Method destroyGracefullyOrForcefullyAndWaitMethod = processUtilClass.getDeclaredMethod("destroyGracefullyOrForcefullyAndWait", systemProcessClass, long.class, TimeUnit.class, long.class, TimeUnit.class);
-
-        Object pidProcess = newPidProcessMethod.invoke(processesClass, pid);
-
-        destroyGracefullyOrForcefullyAndWaitMethod.invoke(processUtilClass, pidProcess, 10L, TimeUnit.SECONDS, 10L, TimeUnit.SECONDS);
-    }
-
-    private void destroyWithProcessHandle() throws Exception
-    {
-        Class<?> processHandleClass = Class.forName("java.lang.ProcessHandle");
-        Method ofMethod = processHandleClass.getDeclaredMethod("of", long.class);
-        Method destroyMethod = processHandleClass.getDeclaredMethod("destroy");
-        Method destroyForciblyMethod = processHandleClass.getDeclaredMethod("destroyForcibly");
-        Method onExitMethod = processHandleClass.getDeclaredMethod("onExit");
-
-        Optional<?> optProcessHandle = (Optional<?>)ofMethod.invoke(processHandleClass, (long) pid);
-        if (optProcessHandle.isPresent())
-        {
-            Object processHandle = optProcessHandle.get();
-            destroyMethod.invoke(processHandle);
-
-            CompletableFuture<?> cf = (CompletableFuture)onExitMethod.invoke(processHandle);
-            try
+            Optional<?> optProcessHandle = (Optional<?>)ofMethod.invoke(processHandleClass, (long) pid);
+            if (optProcessHandle.isPresent())
             {
-                cf.get(10, TimeUnit.SECONDS);
+                Object processHandle = optProcessHandle.get();
+                return (boolean)isAliveMethod.invoke(processHandle);
             }
-            catch (TimeoutException e)
+            return false;
+        }
+
+        @Override
+        void destroy(int pid) throws Exception
+        {
+            Method ofMethod = processHandleClass.getDeclaredMethod("of", long.class);
+            Method destroyMethod = processHandleClass.getDeclaredMethod("destroy");
+            Method destroyForciblyMethod = processHandleClass.getDeclaredMethod("destroyForcibly");
+            Method onExitMethod = processHandleClass.getDeclaredMethod("onExit");
+
+            Optional<?> optProcessHandle = (Optional<?>)ofMethod.invoke(processHandleClass, (long) pid);
+            if (optProcessHandle.isPresent())
             {
-                destroyForciblyMethod.invoke(processHandle);
+                Object processHandle = optProcessHandle.get();
+                destroyMethod.invoke(processHandle);
+
+                CompletableFuture<?> cf = (CompletableFuture<?>)onExitMethod.invoke(processHandle);
                 try
                 {
                     cf.get(10, TimeUnit.SECONDS);
                 }
-                catch (TimeoutException ex)
+                catch (TimeoutException e)
                 {
-                    throw new RuntimeException(ex);
+                    destroyForciblyMethod.invoke(processHandle);
+                    try
+                    {
+                        cf.get(10, TimeUnit.SECONDS);
+                    }
+                    catch (TimeoutException ex)
+                    {
+                        throw new RuntimeException(ex);
+                    }
                 }
             }
         }
     }
 
-    private boolean isAliveWithZtProcessKiller() throws Exception
+    private static class ZtProcessKiller extends Impl
     {
-        Class<?> processesClass = Class.forName("org.zeroturnaround.process.Processes");
-        Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", int.class);
-        Class<?> systemProcessClass = Class.forName("org.zeroturnaround.process.SystemProcess");
-        Method isAliveMethod = systemProcessClass.getDeclaredMethod("isAlive");
+        private final Class<?> processesClass;
+        private final Class<?> pidProcessClass;
+        private final Class<?> systemProcessClass;
+        private final Class<?> processUtilClass;
 
-        Object pidProcess = newPidProcessMethod.invoke(processesClass, pid);
-
-        return (boolean)isAliveMethod.invoke(pidProcess);
-    }
-
-    private boolean isAliveWithProcessHandle() throws Exception
-    {
-        Class<?> processHandleClass = Class.forName("java.lang.ProcessHandle");
-        Method ofMethod = processHandleClass.getDeclaredMethod("of", long.class);
-        Method isAliveMethod = processHandleClass.getDeclaredMethod("isAlive");
-
-        Optional<?> optProcessHandle = (Optional<?>)ofMethod.invoke(processHandleClass, (long) pid);
-        if (optProcessHandle.isPresent())
+        public ZtProcessKiller() throws Exception
         {
-            Object processHandle = optProcessHandle.get();
-            return (boolean)isAliveMethod.invoke(processHandle);
+            processesClass = Class.forName("org.zeroturnaround.process.Processes");
+            pidProcessClass = Class.forName("org.zeroturnaround.process.PidProcess");
+            systemProcessClass = Class.forName("org.zeroturnaround.process.SystemProcess");
+            processUtilClass = Class.forName("org.zeroturnaround.process.ProcessUtil");
         }
-        return false;
-    }
 
-    private int asPidWithZtProcessKiller(Process process) throws Exception
-    {
-        Class<?> processesClass = Class.forName("org.zeroturnaround.process.Processes");
-        Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", Process.class);
-        Class<?> pidProcessClass = Class.forName("org.zeroturnaround.process.PidProcess");
-        Method getPidMethod = pidProcessClass.getDeclaredMethod("getPid");
+        @Override
+        int asPid(Process process) throws Exception
+        {
+            Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", Process.class);
+            Method getPidMethod = pidProcessClass.getDeclaredMethod("getPid");
 
-        Object pidProcess = newPidProcessMethod.invoke(processesClass, process);
+            Object pidProcess = newPidProcessMethod.invoke(processesClass, process);
 
-        return (int)getPidMethod.invoke(pidProcess);
-    }
+            return (int)getPidMethod.invoke(pidProcess);
+        }
 
-    private int asPidWithProcessHandle(Process process) throws Exception
-    {
-        Method toHandleMethod = Process.class.getDeclaredMethod("toHandle");
-        Object processHandle = toHandleMethod.invoke(process);
 
-        Class<?> processHandleClass = Class.forName("java.lang.ProcessHandle");
-        Method pidMethod = processHandleClass.getDeclaredMethod("pid");
+        @Override
+        boolean isAlive(int pid) throws Exception
+        {
+            Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", int.class);
+            Method isAliveMethod = systemProcessClass.getDeclaredMethod("isAlive");
 
-        long pid = (long)pidMethod.invoke(processHandle);
-        return (int)pid;
+            Object pidProcess = newPidProcessMethod.invoke(processesClass, pid);
+
+            return (boolean)isAliveMethod.invoke(pidProcess);
+        }
+
+        @Override
+        void destroy(int pid) throws Exception
+        {
+            Method newPidProcessMethod = processesClass.getDeclaredMethod("newPidProcess", int.class);
+            Method destroyGracefullyOrForcefullyAndWaitMethod = processUtilClass.getDeclaredMethod("destroyGracefullyOrForcefullyAndWait", systemProcessClass, long.class, TimeUnit.class, long.class, TimeUnit.class);
+
+            Object pidProcess = newPidProcessMethod.invoke(processesClass, pid);
+
+            destroyGracefullyOrForcefullyAndWaitMethod.invoke(processUtilClass, pidProcess, 10L, TimeUnit.SECONDS, 10L, TimeUnit.SECONDS);
+        }
     }
 }
