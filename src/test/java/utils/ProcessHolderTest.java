@@ -58,7 +58,7 @@ public class ProcessHolderTest
     {
         public static void main(String[] args) throws Exception
         {
-            Thread.sleep(10_000);
+            Thread.sleep(60_000);
             System.exit(-1);
         }
     }
