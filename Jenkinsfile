@@ -8,14 +8,14 @@ pipeline {
   stages {
     stage("Parallel Stage") {
       parallel {
-        stage("Build / Test - JDK8") {
+        stage("Build / Test - JDK11") {
           agent { node { label 'linux' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
-            mavenBuild("jdk8", "clean install")
+            mavenBuild("jdk11", "clean install")
             script {
               if (env.BRANCH_NAME == 'main') {
-                mavenBuild("jdk8", "deploy")
+                mavenBuild("jdk11", "deploy")
               }
             }
           }
