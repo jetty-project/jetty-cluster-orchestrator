@@ -41,7 +41,8 @@ public class ProcessHolderTest
 
     private static Process startBlockingProcess() throws IOException
     {
-        ProcessBuilder pb = new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), ProcessHolderTest.Inner.class.getName().replace('$', '.'));
+        ProcessBuilder pb = new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), MainForProcessHolder.class.getName());
+        pb.inheritIO();
         return pb.start();
     }
 
@@ -51,15 +52,5 @@ public class ProcessHolderTest
             return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java.exe";
         else
             return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-    }
-
-    // JUnit does not always seem to like when a test class has a main method.
-    private static class Inner
-    {
-        public static void main(String[] args) throws Exception
-        {
-            Thread.sleep(60_000);
-            System.exit(-1);
-        }
     }
 }
