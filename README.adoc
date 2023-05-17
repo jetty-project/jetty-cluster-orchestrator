@@ -12,6 +12,10 @@ This cluster orchestration library is not meant to be used for writing productio
 this library fail without even an attempt at managing nor recovering the problem. This is a reasonable limitation for the scope
 of this library which is to ease writing multi-machine tests.
 
+=== Required java version
+
+Starting with version 1.1.0, Java 11 is necessary. Version 1.0.3 is the last one compatible with Java 8.
+
 === Configuring a JVM cluster
 
 Creating a `ClusterConfiguration` instance is the first step to creating a cluster of JVMs. 

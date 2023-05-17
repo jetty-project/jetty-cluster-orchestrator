@@ -264,6 +264,7 @@ class NodeFileSystem extends FileSystem
         }
     }
 
+    @SuppressWarnings("unchecked")
     <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
     {
         if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
