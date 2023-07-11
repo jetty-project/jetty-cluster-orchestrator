@@ -15,24 +15,27 @@ package org.mortbay.jetty.orchestrator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class NodeArrayFuture
 {
-    private final List<CompletableFuture<Object>> futures;
+    private final Map<String, CompletableFuture<Object>> futures;
 
-    NodeArrayFuture(List<CompletableFuture<Object>> futures)
+    NodeArrayFuture(Map<String, CompletableFuture<Object>> futures)
     {
         this.futures = futures;
     }
 
     public void cancel(boolean mayInterruptIfRunning)
     {
-        futures.forEach(f -> f.cancel(mayInterruptIfRunning));
+        futures.forEach((id, f) -> f.cancel(mayInterruptIfRunning));
     }
 
     public void get(long timeout, TimeUnit unit) throws ExecutionException, TimeoutException
@@ -42,7 +45,7 @@ public class NodeArrayFuture
 
         TimeoutException timeoutException = null;
         List<Throwable> exceptions = new ArrayList<>();
-        for (CompletableFuture<Object> future : futures)
+        for (CompletableFuture<Object> future : futures.values())
         {
             long begin = System.nanoTime();
             try
@@ -102,9 +105,30 @@ public class NodeArrayFuture
         }
     }
 
+    public Set<String> getAllNodeIds()
+    {
+        return futures.keySet();
+    }
+
+    public Set<String> getDoneNodeIds()
+    {
+        return futures.entrySet().stream()
+            .filter(e -> e.getValue().isDone())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+    }
+
+    public Set<String> getNotDoneNodeIds()
+    {
+        return futures.entrySet().stream()
+            .filter(e -> !e.getValue().isDone())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+    }
+
     public boolean isAllDone()
     {
-        return futures.stream()
+        return futures.values().stream()
             .map(Future::isDone)
             .reduce((b1, b2) -> b1 && b2)
             .orElse(true);
@@ -112,7 +136,7 @@ public class NodeArrayFuture
 
     public boolean isAnyDone()
     {
-        return futures.stream()
+        return futures.values().stream()
             .map(Future::isDone)
             .reduce((b1, b2) -> b1 || b2)
             .orElse(true);
