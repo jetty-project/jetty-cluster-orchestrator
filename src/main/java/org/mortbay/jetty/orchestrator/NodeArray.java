@@ -16,8 +16,8 @@ package org.mortbay.jetty.orchestrator;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -74,36 +74,64 @@ public class NodeArray
         if (node == null)
             throw new IllegalArgumentException("No such node with ID " + id);
 
-        List<CompletableFuture<Object>> futures = new ArrayList<>();
+        Map<String, CompletableFuture<Object>> futures = new HashMap<>();
         try
         {
             CompletableFuture<Object> future = node.rpcClient.callAsync(new ExecuteNodeJobCommand(nodeJob));
-            futures.add(future);
+            futures.put(id, future);
         }
         catch (Exception e)
         {
             CompletableFuture<Object> future = new CompletableFuture<>();
             future.completeExceptionally(e);
-            futures.add(future);
+            futures.put(id, future);
+        }
+        return new NodeArrayFuture(futures);
+    }
+
+    public NodeArrayFuture executeOn(Set<String> ids, NodeJob nodeJob)
+    {
+        Set<String> missingIds = new HashSet<>(nodes.keySet());
+        ids.forEach(missingIds::remove);
+        if (!missingIds.isEmpty())
+            throw new IllegalArgumentException("No such node with ID " + missingIds);
+
+        Map<String, CompletableFuture<Object>> futures = new HashMap<>();
+        for (String id : ids)
+        {
+            Node node = nodes.get(id);
+            try
+            {
+                CompletableFuture<Object> future = node.rpcClient.callAsync(new ExecuteNodeJobCommand(nodeJob));
+                futures.put(id, future);
+            }
+            catch (Exception e)
+            {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                futures.put(id, future);
+            }
         }
         return new NodeArrayFuture(futures);
     }
 
     public NodeArrayFuture executeOnAll(NodeJob nodeJob)
     {
-        List<CompletableFuture<Object>> futures = new ArrayList<>();
-        for (Node node : nodes.values())
+        Map<String, CompletableFuture<Object>> futures = new HashMap<>();
+        for (Map.Entry<String, Node> entry : nodes.entrySet())
         {
+            String nodeId = entry.getKey();
+            Node node = entry.getValue();
             try
             {
                 CompletableFuture<Object> future = node.rpcClient.callAsync(new ExecuteNodeJobCommand(nodeJob));
-                futures.add(future);
+                futures.put(nodeId, future);
             }
             catch (Exception e)
             {
                 CompletableFuture<Object> future = new CompletableFuture<>();
                 future.completeExceptionally(e);
-                futures.add(future);
+                futures.put(nodeId, future);
             }
         }
         return new NodeArrayFuture(futures);
