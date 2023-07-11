@@ -33,6 +33,11 @@ public class ClusterTools
         this.globalNodeId = globalNodeId;
     }
 
+    public String getNodeId()
+    {
+        return globalNodeId.getNodeId();
+    }
+
     public Barrier barrier(String name, int count)
     {
         return new Barrier(curator, globalNodeId, name, count);
