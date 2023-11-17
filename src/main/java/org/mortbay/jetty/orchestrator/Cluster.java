@@ -187,7 +187,7 @@ public class Cluster implements AutoCloseable
 
         private void check()
         {
-            boolean allSane = true;
+            List<String> unsaneHostIds = new ArrayList<>();
             for (NodeArray.Node node : nodes)
             {
                 NodeProcess nodeProcess = node.getNodeProcess();
@@ -199,11 +199,14 @@ public class Cluster implements AutoCloseable
                 {
                     if (LOG.isDebugEnabled())
                         LOG.debug("Host {} failed check of {}", globalNodeId.getHostId(), nodeProcess, e);
-                    allSane = false;
+                    unsaneHostIds.add(String.format(" Host %s failed check of %s\n", globalNodeId.getHostId(), nodeProcess));
                 }
             }
-            if (!allSane)
+            if (!unsaneHostIds.isEmpty())
+            {
+                LOG.error("Forcibly closing the cluster as some hosts failed their sanity check:\n{}", unsaneHostIds);
                 close();
+            }
         }
 
         @Override
