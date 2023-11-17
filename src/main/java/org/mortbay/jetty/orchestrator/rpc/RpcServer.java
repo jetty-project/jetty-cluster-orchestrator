@@ -20,14 +20,14 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.mortbay.jetty.orchestrator.ClusterTools;
-import org.mortbay.jetty.orchestrator.rpc.command.Command;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
+import org.mortbay.jetty.orchestrator.ClusterTools;
+import org.mortbay.jetty.orchestrator.rpc.command.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 public class RpcServer implements AutoCloseable
 {
@@ -37,6 +37,7 @@ public class RpcServer implements AutoCloseable
     private final SimpleDistributedQueue commandQueue;
     private final SimpleDistributedQueue responseQueue;
     private final ExecutorService executorService;
+    private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private volatile boolean active;
     private final ClusterTools clusterTools;
 
@@ -46,11 +47,11 @@ public class RpcServer implements AutoCloseable
         commandQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/commandQ");
         responseQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/responseQ");
         executorService = Executors.newCachedThreadPool(r ->
-            new Thread(() ->
-            {
-                MDC.put("NodeId", globalNodeId.getNodeId());
-                r.run();
-            }));
+        {
+            Thread thread = new Thread(r);
+            thread.setName(threadIdGenerator.getAndIncrement() + "|" + this.globalNodeId.getNodeId());
+            return thread;
+        });
         clusterTools = new ClusterTools(curator, globalNodeId);
     }
 

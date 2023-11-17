@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -39,6 +40,7 @@ public class RpcClient implements AutoCloseable
     private final SimpleDistributedQueue commandQueue;
     private final SimpleDistributedQueue responseQueue;
     private final ExecutorService executorService;
+    private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private final ConcurrentMap<Long, CompletableFuture<Object>> calls = new ConcurrentHashMap<>();
     private final AtomicLong requestIdGenerator = new AtomicLong();
     private final GlobalNodeId globalNodeId;
@@ -48,7 +50,12 @@ public class RpcClient implements AutoCloseable
         this.globalNodeId = globalNodeId;
         commandQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/commandQ");
         responseQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/responseQ");
-        executorService = Executors.newSingleThreadExecutor();
+        executorService = Executors.newSingleThreadExecutor(r ->
+        {
+            Thread t = new Thread(r);
+            t.setName("jco-" + threadIdGenerator.getAndIncrement());
+            return t;
+        });
         executorService.submit(() ->
         {
             while (true)

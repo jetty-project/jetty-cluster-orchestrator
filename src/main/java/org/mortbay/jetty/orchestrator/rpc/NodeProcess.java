@@ -27,11 +27,10 @@ import org.apache.curator.retry.RetryNTimes;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
-import org.mortbay.jetty.orchestrator.util.StreamCopier;
 import org.mortbay.jetty.orchestrator.util.ProcessHolder;
+import org.mortbay.jetty.orchestrator.util.StreamCopier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 public class NodeProcess implements Serializable, AutoCloseable
 {
@@ -77,7 +76,6 @@ public class NodeProcess implements Serializable, AutoCloseable
         String nodeId = args[0];
         String connectString = args[1];
 
-        MDC.put("NodeId", nodeId);
         if (LOG.isDebugEnabled())
             LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"), connectString);
         CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
