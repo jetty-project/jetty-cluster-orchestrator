@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -176,7 +177,7 @@ public class Cluster implements AutoCloseable
         private final GlobalNodeId globalNodeId;
         private final RpcClient rpcClient;
         private final String remoteConnectString;
-        private final List<NodeArray.Node> nodes = new ArrayList<>();
+        private final List<NodeArray.Node> nodes = new CopyOnWriteArrayList<>();
 
         private Host(GlobalNodeId globalNodeId, RpcClient rpcClient, String remoteConnectString)
         {
