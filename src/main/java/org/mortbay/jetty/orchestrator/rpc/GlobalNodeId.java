@@ -52,16 +52,17 @@ public class GlobalNodeId
         if (parts.length != 2 && parts.length != 4)
             throw new IllegalArgumentException("Invalid global node id : '" + nodeId + "'");
         this.clusterId = parts[0];
-        this.hostname = null;
         if (parts.length == 2)
         {
             this.hostId = nodeId;
             this.nodeId = nodeId;
+            this.hostname = parts[1];
         }
         else
         {
             this.hostId = clusterId + ZKPaths.PATH_SEPARATOR + parts[1];
             this.nodeId = nodeId;
+            this.hostname = parts[1];
         }
         this.local = parts[1].equals(LocalHostLauncher.HOSTNAME);
     }

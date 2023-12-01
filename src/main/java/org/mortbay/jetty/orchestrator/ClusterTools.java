@@ -33,6 +33,15 @@ public class ClusterTools
         this.globalNodeId = globalNodeId;
     }
 
+    public GlobalNodeId getGlobalNodeId()
+    {
+        return globalNodeId;
+    }
+
+    /**
+     * @deprecated use {@link #getGlobalNodeId()} instead
+     */
+    @Deprecated
     public String getNodeId()
     {
         return globalNodeId.getNodeId();
