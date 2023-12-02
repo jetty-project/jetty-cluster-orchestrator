@@ -13,6 +13,7 @@
 
 package org.mortbay.jetty.orchestrator;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +21,9 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -101,13 +105,26 @@ public class Cluster implements AutoCloseable
             .map(Node::getHostname)
             .distinct()
             .collect(Collectors.toList());
+        List<Future<Map.Entry<GlobalNodeId, String>>> futures = new ArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(8);
         for (String hostname : hostnames)
         {
             GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
             HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
             if (launcher == null)
                 throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            String remoteConnectString = launcher.launch(globalNodeId, connectString);
+            futures.add(executor.submit(() ->
+            {
+                String remoteConnectString = launcher.launch(globalNodeId, connectString);
+                return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
+            }));
+        }
+        executor.shutdown();
+        for (Future<Map.Entry<GlobalNodeId, String>> future : futures)
+        {
+            Map.Entry<GlobalNodeId, String> entry = future.get();
+            GlobalNodeId globalNodeId = entry.getKey();
+            String remoteConnectString = entry.getValue();
             hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
         }
 

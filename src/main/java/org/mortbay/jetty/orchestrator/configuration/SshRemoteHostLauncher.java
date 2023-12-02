@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     private static final Logger LOG = LoggerFactory.getLogger(SshRemoteHostLauncher.class);
     private static final List<String> COMMON_WIN_UNAMES = Arrays.asList("Windows", "CYGWIN", "MINGW", "MSYS", "UWIN");
 
-    private final Map<String, RemoteNodeHolder> nodes = new HashMap<>();
+    private final Map<String, RemoteNodeHolder> nodes = new ConcurrentHashMap<>();
     private final String username;
     private final char[] password;
     private final int port;
@@ -106,12 +107,12 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     @Override
     public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
     {
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
         LOG.debug("start launch of node: {}", nodeId.getHostname());
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
-        if (nodes.containsKey(nodeId.getHostname()))
+        if (nodes.putIfAbsent(nodeId.getHostname(), RemoteNodeHolder.NULL) != null)
             throw new IllegalArgumentException("ssh launcher already launched node on host " + nodeId.getHostname());
 
         SSHClient sshClient = new SSHClient();
@@ -188,11 +189,12 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
         finally
         {
-            LOG.info("time to start host {}: {}ms", nodeId.getHostname(), (System.currentTimeMillis()-start));
+            if (LOG.isDebugEnabled())
+                LOG.debug("time to start host {}: {}ms", nodeId.getHostname(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
         }
     }
 
-    private boolean isWindows(SSHClient sshClient) throws IOException
+    private static boolean isWindows(SSHClient sshClient) throws IOException
     {
         try (Session session = sshClient.startSession())
         {
@@ -244,7 +246,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
     }
 
-    private void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
+    private static void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
     {
         String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
         String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
@@ -253,7 +255,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         sftpClient.put(localSourceFile, destFilename);
     }
 
-    private void copyDir(SFTPClient sftpClient, String hostId, File cpFile, int depth) throws Exception
+    private static void copyDir(SFTPClient sftpClient, String hostId, File cpFile, int depth) throws Exception
     {
         File[] files = cpFile.listFiles();
         if (files == null)
@@ -280,6 +282,8 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     private static class RemoteNodeHolder implements AutoCloseable {
+        private static final RemoteNodeHolder NULL = new RemoteNodeHolder(null, null, null, null, null, null, null);
+
         private final GlobalNodeId nodeId;
         private final FileSystem fileSystem;
         private final SSHClient sshClient;
