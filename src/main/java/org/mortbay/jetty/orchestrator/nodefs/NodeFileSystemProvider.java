@@ -21,6 +21,7 @@ import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.LinkOption;
@@ -95,7 +96,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     }
 
     @Override
-    public NodeFileSystem newFileSystem(URI uri, Map<String, ?> env)
+    public FileSystem newFileSystem(URI uri, Map<String, ?> env)
     {
         synchronized (fileSystems)
         {
@@ -112,7 +113,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     }
 
     @Override
-    public NodeFileSystem getFileSystem(URI uri)
+    public FileSystem getFileSystem(URI uri)
     {
         synchronized (fileSystems)
         {
