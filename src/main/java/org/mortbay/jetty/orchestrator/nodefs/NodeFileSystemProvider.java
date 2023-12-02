@@ -243,6 +243,8 @@ public class NodeFileSystemProvider extends FileSystemProvider
         NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
         for (FilePermission permission : attributes.getLstat().getPermissions())
         {
+            if (masks.length == 0) // existence check
+                return;
             for (int mask : masks)
             {
                 if (permission.isIn(mask))
