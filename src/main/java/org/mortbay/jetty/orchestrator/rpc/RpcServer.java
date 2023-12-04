@@ -49,7 +49,9 @@ public class RpcServer implements AutoCloseable
         executorService = Executors.newCachedThreadPool(r ->
         {
             Thread thread = new Thread(r);
-            thread.setName(threadIdGenerator.getAndIncrement() + "|" + this.globalNodeId.getNodeId());
+            String nodeId = globalNodeId.getNodeId();
+            String shortId = nodeId.substring(nodeId.indexOf('/') + 1);
+            thread.setName(threadIdGenerator.getAndIncrement() + "|" + shortId);
             return thread;
         });
         clusterTools = new ClusterTools(curator, globalNodeId);
