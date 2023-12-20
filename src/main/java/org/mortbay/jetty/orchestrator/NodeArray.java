@@ -27,6 +27,7 @@ import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
+import org.mortbay.jetty.orchestrator.rpc.command.CheckNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.ExecuteNodeJobCommand;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 
@@ -155,10 +156,21 @@ public class NodeArray
             return nodeProcess;
         }
 
+        void selfCheck() throws Exception
+        {
+            rpcClient.call(new CheckNodeCommand(nodeProcess));
+        }
+
         @Override
         public void close()
         {
             IOUtil.close(rpcClient);
+        }
+
+        @Override
+        public String toString()
+        {
+            return globalNodeId.getNodeId();
         }
     }
 }

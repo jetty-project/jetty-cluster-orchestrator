@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.nio.file.FileSystem;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -86,10 +87,39 @@ public class NodeProcess implements Serializable, AutoCloseable
             LOG.debug("Node [{}] connected to {}", nodeId, connectString);
         RpcServer rpcServer = new RpcServer(curator, new GlobalNodeId(nodeId));
 
+        // The Cluster sends a CheckNodeCommand every 5 seconds, if we miss too many
+        // we can assume the connection is dead.
+        Thread keepalive = new Thread(() ->
+        {
+            while (true)
+            {
+                try
+                {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e)
+                {
+                    return;
+                }
+
+                long delta = System.nanoTime() - rpcServer.getLastCommandTimestamp();
+                if (delta > TimeUnit.MILLISECONDS.toNanos(RpcClient.HEALTH_CHECK_DELAY_MS * 3))
+                {
+                    LOG.error("Node [{}] missed three consecutive health checks, assuming the cluster is dead", nodeId);
+                    System.exit(1);
+                }
+                if (LOG.isDebugEnabled())
+                    LOG.debug("node {} healthcheck passed as it happened {} ms ago", nodeId, TimeUnit.NANOSECONDS.toMillis(delta));
+            }
+        });
+        keepalive.setDaemon(true);
+        keepalive.start();
+
         Thread shutdown = new Thread(() ->
         {
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopping", nodeId);
+            keepalive.interrupt();
             IOUtil.close(rpcServer);
             IOUtil.close(curator);
             if (LOG.isDebugEnabled())

@@ -40,6 +40,7 @@ public class RpcServer implements AutoCloseable
     private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private volatile boolean active;
     private final ClusterTools clusterTools;
+    private volatile long lastCommandTimestamp;
 
     public RpcServer(CuratorFramework curator, GlobalNodeId globalNodeId)
     {
@@ -55,6 +56,11 @@ public class RpcServer implements AutoCloseable
             return thread;
         });
         clusterTools = new ClusterTools(curator, globalNodeId);
+    }
+
+    public long getLastCommandTimestamp()
+    {
+        return lastCommandTimestamp;
     }
 
     @Override
@@ -97,6 +103,7 @@ public class RpcServer implements AutoCloseable
                 cmdBytes = commandQueue.take();
                 Object obj = deserialize(cmdBytes);
                 Request request = (Request)obj;
+                lastCommandTimestamp = System.nanoTime();
                 if (request.getCommand().getClass() == AbortCommand.class)
                 {
                     active = false;

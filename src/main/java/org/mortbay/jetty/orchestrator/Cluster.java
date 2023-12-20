@@ -163,7 +163,7 @@ public class Cluster implements AutoCloseable
                     host.check();
                 }
             }
-        }, 5000, 5000);
+        }, RpcClient.HEALTH_CHECK_DELAY_MS, RpcClient.HEALTH_CHECK_DELAY_MS);
     }
 
     public ClusterTools tools()
@@ -211,7 +211,13 @@ public class Cluster implements AutoCloseable
                 NodeProcess nodeProcess = node.getNodeProcess();
                 try
                 {
+                    if (LOG.isDebugEnabled())
+                       LOG.debug("client checking node {}", node);
+                    // Ask the host node to check the spawned node.
                     rpcClient.call(new CheckNodeCommand(nodeProcess));
+                    // Ask the spawned node to check itself. Must happen to create
+                    // a heartbeat for the health checks.
+                    node.selfCheck();
                 }
                 catch (Exception e)
                 {
@@ -222,7 +228,7 @@ public class Cluster implements AutoCloseable
             }
             if (!unsaneHostIds.isEmpty())
             {
-                LOG.error("Forcibly closing the cluster as some hosts failed their sanity check:\n{}", unsaneHostIds);
+                LOG.error("Forcibly closing the cluster as some hosts failed their health check:\n{}", unsaneHostIds);
                 close();
             }
         }

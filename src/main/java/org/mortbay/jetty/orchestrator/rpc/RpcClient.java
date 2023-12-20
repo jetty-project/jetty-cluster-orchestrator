@@ -37,6 +37,8 @@ public class RpcClient implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcClient.class);
 
+    public static final long HEALTH_CHECK_DELAY_MS = 5000;
+
     private final SimpleDistributedQueue commandQueue;
     private final SimpleDistributedQueue responseQueue;
     private final ExecutorService executorService;
