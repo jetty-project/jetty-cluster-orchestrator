@@ -20,7 +20,7 @@ import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 
-public class HealtCheckTest
+public class HealthCheckTest
 {
     @Test
     @Disabled("too slow")
