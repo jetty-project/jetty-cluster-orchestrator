@@ -20,6 +20,13 @@ pipeline {
             }
           }
         }
+        stage("Build / Test - JDK17") {
+          agent { node { label 'linux' } }
+          options { timeout(time: 30, unit: 'MINUTES') }
+          steps {
+            mavenBuild("jdk17", "clean install")
+          }
+        }
       }
     }
   }
