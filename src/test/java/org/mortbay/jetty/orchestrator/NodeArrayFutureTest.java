@@ -131,8 +131,12 @@ public class NodeArrayFutureTest extends AbstractSshTest
         try (Cluster cluster = new Cluster(cfg))
         {
             NodeArray nodeArray = cluster.nodeArray("my-array");
-            NodeArrayFuture future = nodeArray.executeOnAll(tools -> Thread.sleep(600));
-            assertThrows(TimeoutException.class, () -> future.get(1, TimeUnit.SECONDS));
+            NodeArrayFuture future = nodeArray.executeOnAll(tools ->
+            {
+                int id = tools.barrier("testTimeoutIsSpread-barrier", 2).await();
+                Thread.sleep(1600L * (id + 1L));
+            });
+            assertThrows(TimeoutException.class, () -> future.get(3, TimeUnit.SECONDS));
         }
     }
 }
