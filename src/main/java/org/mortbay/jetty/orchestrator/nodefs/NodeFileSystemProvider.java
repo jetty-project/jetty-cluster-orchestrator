@@ -27,6 +27,7 @@ import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
 import java.nio.file.ReadOnlyFileSystemException;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
@@ -47,8 +48,13 @@ import org.apache.sshd.client.SshClient;
  */
 public class NodeFileSystemProvider extends FileSystemProvider
 {
-    public static final String PREFIX = "jco";
-    public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
+    public static final String SCHEME = "jco";
+    public static final String IS_WINDOWS_ENV = "windows";
+    public static final String SFTP_HOST_ENV = "host";
+    public static final String SFTP_PORT_ENV = "port";
+    public static final String SFTP_USERNAME_ENV = "username";
+    public static final String SFTP_PASSWORD_ENV = "password";
+
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
     static
     {
@@ -98,13 +104,17 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
-            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
+            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV);
+            String sftpHost = (String)env.get(SFTP_HOST_ENV);
+            Integer sftpPort = (Integer)env.get(SFTP_PORT_ENV);
+            String sftpUsername = (String)env.get(SFTP_USERNAME_ENV);
+            char[] sftpPassword = (char[])env.get(SFTP_PASSWORD_ENV);
             SshClient sshClient = (SshClient)env.get(SshClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sshClient, hostId, extractPath(uri), windows);
+            NodeFileSystem fileSystem = new NodeFileSystem(this, sshClient, hostId, extractPath(uri), windows, sftpHost, sftpPort, sftpUsername, sftpPassword);
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }
@@ -140,13 +150,13 @@ public class NodeFileSystemProvider extends FileSystemProvider
         return nodeId;
     }
 
-    private static List<String> extractPath(URI uri)
+    private static String extractPath(URI uri)
     {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
         if (i == -1)
-            return Collections.emptyList();
-        return NodePath.toSegments(nodeId.substring(i + 1));
+            return "";
+        return nodeId.substring(i + 1);
     }
 
     private static String extractPathAsString(URI uri)
@@ -174,7 +184,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public String getScheme()
     {
-        return PREFIX;
+        return SCHEME;
     }
 
     @Override
@@ -210,7 +220,11 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) throws IOException
     {
-        return dir.getFileSystem().provider().newDirectoryStream(dir, filter);
+        if (!(dir instanceof NodePath))
+            throw new ProviderMismatchException("Path is not NodePath: " + dir.getClass());
+        NodeFileSystem delegateFileSystem = (NodeFileSystem)dir.getFileSystem();
+        Path path = delegateFileSystem.delegatePath((NodePath) dir);
+        return delegateFileSystem.delegateProvider().newDirectoryStream(path, filter);
     }
 
     @Override

@@ -192,7 +192,7 @@ public class NodeProcess implements Serializable, AutoCloseable
 
     private static File defaultRootPath(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
+        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.SCHEME + "/" + hostId);
     }
 
     private static File defaultLibPath(String hostId)

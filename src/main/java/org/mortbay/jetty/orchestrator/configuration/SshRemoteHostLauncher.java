@@ -149,9 +149,13 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             // create remote filesystem
             HashMap<String, Object> env = new HashMap<>();
-            env.put(SftpClient.class.getName(), SftpClientFactory.instance().createSftpClient(session));
-            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, windows);
-            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
+            env.put(SshClient.class.getName(), sshClient);
+            env.put(NodeFileSystemProvider.SFTP_HOST_ENV, nodeId.getHostname());
+            env.put(NodeFileSystemProvider.SFTP_PORT_ENV, port);
+            env.put(NodeFileSystemProvider.SFTP_USERNAME_ENV, username);
+            env.put(NodeFileSystemProvider.SFTP_PASSWORD_ENV, password);
+            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, windows);
+            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":" + nodeId.getHostId()), env);
 
             // upload classpath
             List<String> remoteClasspathEntries = new ArrayList<>();
@@ -164,14 +168,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                     File cpFile = new File(classpathEntry);
                     String cpFileName = cpFile.getName();
                     if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar"))
-                        remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
+                        remoteClasspathEntries.add("." + NodeFileSystemProvider.SCHEME + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
                     if (cpFile.isDirectory())
                         copyDir(sftpClient, nodeId.getHostId(), cpFile, 1);
                     else
                         copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpFile);
                 }
             }
-            remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
+            remoteClasspathEntries.add("." + NodeFileSystemProvider.SCHEME + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
 
             // spawn remote node jvm
             String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
@@ -249,7 +253,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private static void copyFile(SftpClient sftpClient, String hostId, String filename, File localSourceFile) throws Exception
     {
-        String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
+        String destFilename = "." + NodeFileSystemProvider.SCHEME + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
 
         try (OutputStream os = sftpClient.write(destFilename);
              FileInputStream is = new FileInputStream(localSourceFile))
@@ -335,7 +339,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             {
                 try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session))
                 {
-                    deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
+                    deltree(sftpClient, "." + NodeFileSystemProvider.SCHEME + "/" + nodeId.getClusterId());
                 }
             }
             IOUtil.close(forwarding);

@@ -64,19 +64,25 @@ public class NodeFileSystemTest
     @Test
     public void testNodeIdFolder() throws Exception
     {
-        new File("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a").mkdirs();
+        new File("target/testNodeIdFolder/." + NodeFileSystemProvider.SCHEME + "/the-test/myhost/a").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
-        SshClient sshClient = closer.register(new SshClient());
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.start();
         closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
             .verify(30, TimeUnit.SECONDS)
             .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.SFTP_HOST_ENV, "localhost");
+        env.put(NodeFileSystemProvider.SFTP_PORT_ENV, testSshServer.getPort());
+        env.put(NodeFileSystemProvider.SFTP_USERNAME_ENV, System.getProperty("user.name"));
         env.put(SshClient.class.getName(), sshClient);
-        NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
+        NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost!/." + NodeFileSystemProvider.SCHEME + "/the-test/myhost"), env));
+
+        Files.newDirectoryStream(fileSystem.getPath(".")).forEach((s) -> System.out.println(s));
+        Files.newDirectoryStream(fileSystem.getPath(".jco")).forEach((s) -> System.out.println(s));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
         Iterator<Path> iterator = paths.iterator();
@@ -88,7 +94,7 @@ public class NodeFileSystemTest
     @Test
     public void testHomeFolderIsDefault() throws Exception
     {
-        new File("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost").mkdirs();
+        new File("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.SCHEME + "/the-test/myhost").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
         SshClient sshClient = closer.register(new SshClient());
@@ -98,9 +104,9 @@ public class NodeFileSystemTest
             .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
         env.put(SshClient.class.getName(), sshClient);
-        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
         Iterator<Path> iterator = paths.iterator();
@@ -122,9 +128,9 @@ public class NodeFileSystemTest
             .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
         env.put(SshClient.class.getName(), sshClient);
-        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost"), env));
 
         DirectoryStream<Path> directoryStream = Files.newDirectoryStream(fileSystem.getPath("/"));
         long pathCount = StreamSupport.stream(Spliterators.spliteratorUnknownSize(directoryStream.iterator(), Spliterator.ORDERED), false).count();
@@ -150,9 +156,9 @@ public class NodeFileSystemTest
             .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
         env.put(SshClient.class.getName(), sshClient);
-        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost"), env));
 
         Jvm jvm = new Jvm((fs, h) ->
         {
@@ -188,9 +194,9 @@ public class NodeFileSystemTest
             .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
         env.put(SshClient.class.getName(), sshClient);
-        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost"), env));
 
         assertThrows(NoFileException.class, () -> new Jvm((fs, h) ->
         {
