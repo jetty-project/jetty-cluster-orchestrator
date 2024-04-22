@@ -26,6 +26,7 @@ import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
 import sshd.AbstractSshTest;
+import utils.JvmUtil;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -37,7 +38,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testJvmOptionWithStar() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .jvm(new Jvm((fs, h) -> "java", "-Dmyprop=*"))
+            .jvm(new Jvm((fs, h) -> JvmUtil.findCurrentJavaExecutable().toAbsolutePath().toString(), "-Dmyprop=*"))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -54,6 +55,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectProcessDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> JvmUtil.findCurrentJavaExecutable().toAbsolutePath().toString()))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -73,6 +75,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> JvmUtil.findCurrentJavaExecutable().toAbsolutePath().toString()))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -96,6 +99,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testZeroTimeoutThenDetectDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> JvmUtil.findCurrentJavaExecutable().toAbsolutePath().toString()))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -124,6 +128,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testTimeoutIsSpread() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> JvmUtil.findCurrentJavaExecutable().toAbsolutePath().toString()))
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
