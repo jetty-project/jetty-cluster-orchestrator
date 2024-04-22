@@ -13,78 +13,71 @@
 
 package org.mortbay.jetty.orchestrator.nodefs;
 
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.util.concurrent.TimeUnit;
-
-import net.schmizz.sshj.sftp.FileAttributes;
-import net.schmizz.sshj.sftp.FileMode;
-
-class NodeFileAttributes implements BasicFileAttributes
+class NodeFileAttributes // implements BasicFileAttributes
 {
-    private final FileAttributes lstat;
-
-    NodeFileAttributes(FileAttributes lstat)
-    {
-        this.lstat = lstat;
-    }
-
-    public FileAttributes getLstat()
-    {
-        return lstat;
-    }
-
-    @Override
-    public FileTime lastModifiedTime()
-    {
-        return FileTime.from(lstat.getMtime(), TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public FileTime lastAccessTime()
-    {
-        return FileTime.from(lstat.getAtime(), TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public FileTime creationTime()
-    {
-        return lastModifiedTime();
-    }
-
-    @Override
-    public boolean isRegularFile()
-    {
-        return lstat.getType() == FileMode.Type.REGULAR;
-    }
-
-    @Override
-    public boolean isDirectory()
-    {
-        return lstat.getType() == FileMode.Type.DIRECTORY;
-    }
-
-    @Override
-    public boolean isSymbolicLink()
-    {
-        return lstat.getType() == FileMode.Type.SYMLINK;
-    }
-
-    @Override
-    public boolean isOther()
-    {
-        return !isDirectory() && !isRegularFile() && !isSymbolicLink();
-    }
-
-    @Override
-    public long size()
-    {
-        return lstat.getSize();
-    }
-
-    @Override
-    public Object fileKey()
-    {
-        return null;
-    }
+//    private final FileAttributes lstat;
+//
+//    NodeFileAttributes(FileAttributes lstat)
+//    {
+//        this.lstat = lstat;
+//    }
+//
+//    public FileAttributes getLstat()
+//    {
+//        return lstat;
+//    }
+//
+//    @Override
+//    public FileTime lastModifiedTime()
+//    {
+//        return FileTime.from(lstat.getMtime(), TimeUnit.MILLISECONDS);
+//    }
+//
+//    @Override
+//    public FileTime lastAccessTime()
+//    {
+//        return FileTime.from(lstat.getAtime(), TimeUnit.MILLISECONDS);
+//    }
+//
+//    @Override
+//    public FileTime creationTime()
+//    {
+//        return lastModifiedTime();
+//    }
+//
+//    @Override
+//    public boolean isRegularFile()
+//    {
+//        return lstat.getType() == FileMode.Type.REGULAR;
+//    }
+//
+//    @Override
+//    public boolean isDirectory()
+//    {
+//        return lstat.getType() == FileMode.Type.DIRECTORY;
+//    }
+//
+//    @Override
+//    public boolean isSymbolicLink()
+//    {
+//        return lstat.getType() == FileMode.Type.SYMLINK;
+//    }
+//
+//    @Override
+//    public boolean isOther()
+//    {
+//        return !isDirectory() && !isRegularFile() && !isSymbolicLink();
+//    }
+//
+//    @Override
+//    public long size()
+//    {
+//        return lstat.getSize();
+//    }
+//
+//    @Override
+//    public Object fileKey()
+//    {
+//        return null;
+//    }
 }

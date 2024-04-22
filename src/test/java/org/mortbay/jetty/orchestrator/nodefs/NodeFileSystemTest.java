@@ -26,11 +26,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import org.apache.sshd.client.SshClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NodeFileSystemTest
 {
+    private static final boolean IS_WINDOWS = System.getProperty("os.name").startsWith("Windows");
+
     private Closer closer;
 
     @BeforeEach
@@ -55,7 +56,7 @@ public class NodeFileSystemTest
     }
 
     @AfterEach
-    public void tearDown() throws Exception
+    public void tearDown()
     {
         closer.close();
     }
@@ -66,14 +67,15 @@ public class NodeFileSystemTest
         new File("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(new SshClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(SshClient.class.getName(), sshClient);
         NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
@@ -89,14 +91,15 @@ public class NodeFileSystemTest
         new File("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(new SshClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(SshClient.class.getName(), sshClient);
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
@@ -112,14 +115,15 @@ public class NodeFileSystemTest
         new File("target/testAbsolutePath").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testAbsolutePath"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(new SshClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(SshClient.class.getName(), sshClient);
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         DirectoryStream<Path> directoryStream = Files.newDirectoryStream(fileSystem.getPath("/"));
@@ -139,14 +143,15 @@ public class NodeFileSystemTest
         javaFile.setExecutable(true);
 
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(new SshClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(SshClient.class.getName(), sshClient);
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         Jvm jvm = new Jvm((fs, h) ->
@@ -176,14 +181,15 @@ public class NodeFileSystemTest
         folder.mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(new SshClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
 
         HashMap<String, Object> env = new HashMap<>();
-        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, IS_WINDOWS);
+        env.put(SshClient.class.getName(), sshClient);
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         assertThrows(NoFileException.class, () -> new Jvm((fs, h) ->

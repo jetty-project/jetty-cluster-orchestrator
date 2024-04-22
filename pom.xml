@@ -277,11 +277,6 @@
       <artifactId>curator-recipes</artifactId>
       <version>5.6.0</version>
     </dependency>
-    <dependency>
-      <groupId>com.hierynomus</groupId>
-      <artifactId>sshj</artifactId>
-      <version>0.38.0</version>
-    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -305,7 +300,6 @@
       <groupId>org.apache.sshd</groupId>
       <artifactId>sshd-sftp</artifactId>
       <version>2.12.1</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
