@@ -250,39 +250,11 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     private static void copyFile(SftpClient sftpClient, String hostId, String filename, File localSourceFile) throws Exception
     {
         String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
-        String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
 
-        mkdirs(sftpClient, parentFilename);
         try (OutputStream os = sftpClient.write(destFilename);
              FileInputStream is = new FileInputStream(localSourceFile))
         {
             IOUtil.copy(is, os);
-        }
-    }
-
-    private static void mkdirs(SftpClient sftpClient, String parentFilename) throws IOException
-    {
-        boolean exists = true;
-        StringBuilder cwd = new StringBuilder();
-        for (String dirName : parentFilename.split("/"))
-        {
-            cwd.append(dirName);
-            if (exists)
-            {
-                try
-                {
-                    sftpClient.lstat(cwd.toString());
-                }
-                catch (IOException ioe)
-                {
-                    exists = false;
-                }
-            }
-
-            if (!exists)
-                sftpClient.mkdir(cwd.toString());
-
-            cwd.append("/");
         }
     }
 
@@ -296,6 +268,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         {
             if (file.isDirectory())
             {
+                try
+                {
+                    sftpClient.lstat(file.getName());
+                }
+                catch (IOException e)
+                {
+                    sftpClient.mkdir(file.getName());
+                }
                 copyDir(sftpClient, hostId, file, depth + 1);
             }
             else
