@@ -16,17 +16,22 @@ package org.mortbay.jetty.orchestrator.nodefs;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.sshd.client.SshClient;
@@ -90,6 +95,99 @@ public class NodeFileSystemTest
         assertThat(iterator.next().toString(), is("a"));
         assertThat(iterator.hasNext(), is(false));
     }
+
+    @Test
+    public void testCopy() throws Exception
+    {
+        new File("target/testCopy/." + NodeFileSystemProvider.SCHEME + "/the-test/myhost/a").mkdirs();
+
+        for (String classpathEntry : System.getProperty("java.class.path").split(File.pathSeparator))
+        {
+            File cpFile = new File(classpathEntry);
+            if (cpFile.isDirectory())
+                continue;
+            copyFile(cpFile.toPath(), Paths.get("target/testCopy/.jco/the-test/myhost", cpFile.getName()));
+        }
+
+        TestSshServer testSshServer = closer.register(new TestSshServer("target/testCopy"));
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.start();
+        closer.register(sshClient.connect(null, "localhost", testSshServer.getPort())
+            .verify(30, TimeUnit.SECONDS)
+            .getSession());
+
+        HashMap<String, Object> env = new HashMap<>();
+        env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, IS_WINDOWS);
+        env.put(NodeFileSystemProvider.SFTP_HOST_ENV, "localhost");
+        env.put(NodeFileSystemProvider.SFTP_PORT_ENV, testSshServer.getPort());
+        env.put(NodeFileSystemProvider.SFTP_USERNAME_ENV, System.getProperty("user.name"));
+        env.put(SshClient.class.getName(), sshClient);
+        NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":the-test/myhost!/." + NodeFileSystemProvider.SCHEME + "/the-test/myhost"), env));
+
+        Path targetPath = Paths.get("target/testCopy-target/");
+        Files.createDirectories(targetPath);
+        Path sourcePath = fileSystem.getPath(".");
+
+        copyDir(sourcePath, targetPath);
+    }
+
+    public static void copyDir(Path srcDir, Path destDir) throws IOException
+    {
+        if (!Files.isDirectory(Objects.requireNonNull(srcDir)))
+            throw new IllegalArgumentException("Source is not a directory: " + srcDir);
+        Objects.requireNonNull(destDir);
+        if (Files.exists(destDir) && !Files.isDirectory(destDir))
+            throw new IllegalArgumentException("Destination is not a directory: " + destDir);
+        else if (!Files.exists(destDir))
+            Files.createDirectory(destDir); // only attempt top create 1 level of directory (parent must exist)
+
+        try (Stream<Path> sourceStream = Files.walk(srcDir))
+        {
+            Iterator<Path> iterFiles = sourceStream
+                .filter(Files::isRegularFile)
+                .iterator();
+            while (iterFiles.hasNext())
+            {
+                Path sourceFile = iterFiles.next();
+                Path relative = srcDir.relativize(sourceFile);
+                Path destFile = resolvePath(destDir, relative);
+                if (!Files.exists(destFile.getParent()))
+                    Files.createDirectories(destFile.getParent());
+                copyFile(sourceFile, destFile);
+            }
+        }
+    }
+
+    public static void copyFile(Path srcFile, Path destFile) throws IOException
+    {
+        if (!Files.isRegularFile(Objects.requireNonNull(srcFile)))
+            throw new IllegalArgumentException("Source is not a file: " + srcFile);
+        Objects.requireNonNull(destFile);
+
+        try (OutputStream out = Files.newOutputStream(destFile,
+            StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING))
+        {
+            Files.copy(srcFile, out);
+        }
+    }
+    
+    public static Path resolvePath(Path basePath, Path relative)
+    {
+        if (relative.isAbsolute())
+            throw new IllegalArgumentException("Relative path cannot be absolute");
+
+        if (basePath.getFileSystem().equals(relative.getFileSystem()))
+        {
+            return basePath.resolve(relative);
+        }
+        else
+        {
+            for (Path segment : relative)
+                basePath = basePath.resolve(segment.toString());
+            return basePath;
+        }
+    }
+
 
     @Test
     public void testHomeFolderIsDefault() throws Exception
