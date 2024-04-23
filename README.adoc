@@ -54,6 +54,7 @@ try (Cluster cluster = new Cluster(cfg))                // (1)
 . Create a `Cluster` instance from the configuration.
 . Fetch the configured `NodeArray` named `my-array`.
 . Execute a lambda on all the nodes of the `NodeArray`.
+. Print `hello, world!` on the remote node. Since the output is echoed back, that appears on the current terminal.
 . Block until all nodes finished executing the lambda, or until a 5 seconds timeout elapsed.
 
 Running the above code will print the following on `System.out`:
