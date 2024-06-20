@@ -73,6 +73,8 @@ public class RpcClient implements AutoCloseable
                     future.complete(resp.getResult());
             }
         });
+        if (LOG.isDebugEnabled())
+            LOG.debug("RPC client started on {}", globalNodeId.getNodeId());
     }
 
     public CompletableFuture<Object> callAsync(Command command) throws Exception

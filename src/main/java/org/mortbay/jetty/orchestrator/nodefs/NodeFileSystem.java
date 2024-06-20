@@ -13,33 +13,23 @@
 
 package org.mortbay.jetty.orchestrator.nodefs;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.DirectoryStream;
+import java.net.URI;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
-import java.nio.file.LinkOption;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import net.schmizz.sshj.sftp.FileAttributes;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.SFTPClient;
-import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.sftp.client.fs.SftpFileSystemProvider;
+import org.apache.sshd.sftp.common.SftpConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,28 +39,43 @@ class NodeFileSystem extends FileSystem
     static final String PATH_SEPARATOR = "/";
 
     private final NodeFileSystemProvider provider;
-    private final SFTPClient sftpClient;
     private final String hostId;
     private final boolean windows;
     private final NodePath homePath;
     private final NodePath cwdPath;
-    private volatile boolean closed;
+    private final FileSystem delegate;
 
-    NodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String hostId, List<String> cwd, boolean windows)
+    NodeFileSystem(NodeFileSystemProvider provider, SshClient sshClient, String hostId, String cwd, boolean windows, String sftpHost, int sftpPort, String sftpUsername, char[] sftpPassword)
     {
         this.provider = provider;
-        this.sftpClient = sftpClient;
         this.hostId = hostId;
         this.windows = windows;
+
+        SftpFileSystemProvider sftpFileSystemProvider = new SftpFileSystemProvider(sshClient);
+
+
+        URI uri = SftpFileSystemProvider.createFileSystemURI(sftpHost, sftpPort, sftpUsername, sftpPassword == null || sftpPassword.length == 0 ? null : new String(sftpPassword));
+
         try
         {
-            this.homePath = new NodePath(this, null, NodePath.toSegments(sftpClient.canonicalize(".")));
-            this.cwdPath = new NodePath(this, homePath, cwd);
+            //String userAuth = SftpFileSystemProvider.encodeCredentials(sftpUsername, sftpPassword == null || sftpPassword.length == 0 ? null : new String(sftpPassword));
+            //URI uri = new URI(SftpConstants.SFTP_SUBSYSTEM_NAME, userAuth, sftpHost, sftpPort, cwd, null, null);
+            delegate = sftpFileSystemProvider.newFileSystem(uri, Collections.emptyMap());
+            this.homePath = new NodePath(this, null, NodePath.toSegments(delegate.getPath(".").toAbsolutePath().normalize().toString()));
+            this.cwdPath = new NodePath(this, homePath, NodePath.toSegments(cwd));
         }
         catch (IOException e)
         {
             throw new RuntimeException(e);
         }
+    }
+
+    public Path delegatePath(NodePath path)
+    {
+        if (!path.isAbsolute())
+            return delegate.getPath(cwdPath.resolve(path).toAbsolutePath().toString());
+        else
+            return delegate.getPath(path.toAbsolutePath().toString());
     }
 
     boolean isWindows()
@@ -83,242 +88,39 @@ class NodeFileSystem extends FileSystem
         return hostId;
     }
 
-    private Path relativeFromHomeOrAbsolute(NodePath dir)
-    {
-        try
-        {
-            return homePath.relativize(dir);
-        }
-        catch (IllegalArgumentException e)
-        {
-            return dir.toAbsolutePath();
-        }
-    }
-
-    SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
-    {
-        byte[] data;
-        try
-        {
-            InMemoryFile inMemoryFile = new InMemoryFile();
-            sftpClient.get(relativeFromHomeOrAbsolute(path).toString(), inMemoryFile);
-            data = inMemoryFile.getOutputStream().toByteArray();
-        }
-        catch (IOException e)
-        {
-            throw new IOException("Unable to open byte channel for path: " + path, e);
-        }
-
-        return new SeekableByteChannel()
-        {
-            private long position;
-
-            @Override
-            public void close()
-            {
-            }
-
-            @Override
-            public boolean isOpen()
-            {
-                return true;
-            }
-
-            @Override
-            public long position()
-            {
-                return position;
-            }
-
-            @Override
-            public SeekableByteChannel position(long newPosition)
-            {
-                position = newPosition;
-                return this;
-            }
-
-            @Override
-            public int read(ByteBuffer dst)
-            {
-                int l = (int)Math.min(dst.remaining(), size() - position);
-                dst.put(data, (int)position, l);
-                position += l;
-                return l;
-            }
-
-            @Override
-            public long size()
-            {
-                return data.length;
-            }
-
-            @Override
-            public SeekableByteChannel truncate(long size)
-            {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public int write(ByteBuffer src)
-            {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException
-    {
-        List<Path> filteredPaths = new ArrayList<>();
-        try
-        {
-            List<RemoteResourceInfo> content = sftpClient.ls(relativeFromHomeOrAbsolute(dir).toString());
-            for (RemoteResourceInfo remoteResourceInfo : content)
-            {
-                Path resolved = dir.resolve(remoteResourceInfo.getName());
-                if (filter.accept(resolved))
-                    filteredPaths.add(resolved);
-            }
-        }
-        catch (IOException e)
-        {
-            throw new IOException("Unable to open directory stream for path: " + dir, e);
-        }
-
-        return new DirectoryStream<Path>()
-        {
-            @Override
-            public Iterator<Path> iterator()
-            {
-                return new Iterator<Path>()
-                {
-                    private final Iterator<Path> delegate = filteredPaths.iterator();
-
-                    @Override
-                    public boolean hasNext()
-                    {
-                        return delegate.hasNext();
-                    }
-
-                    @Override
-                    public Path next()
-                    {
-                        return delegate.next();
-                    }
-
-                    @Override
-                    public void remove()
-                    {
-                        throw new UnsupportedOperationException();
-                    }
-                };
-            }
-            @Override
-            public void close()
-            {
-            }
-        };
-    }
-
-    InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
-    {
-        String sftpPath = relativeFromHomeOrAbsolute(path).toString();
-        long fileSize;
-        try
-        {
-            fileSize = sftpClient.lstat(sftpPath).getSize();
-        }
-        catch (IOException e)
-        {
-            throw new IOException("Unable to open input stream for path: " + path, e);
-        }
-        if (fileSize > 1024 * 1024)
-        {
-            // use piping if file to download is > 1MB
-            PipingFile pipingFile = new PipingFile();
-            Thread t = new Thread(() ->
-            {
-                try
-                {
-                    sftpClient.get(sftpPath, pipingFile);
-                }
-                catch (IOException e)
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Error copying " + sftpPath + " over sftp", e);
-                }
-                finally
-                {
-                    IOUtil.close(pipingFile.getOutputStream());
-                }
-            });
-            t.setDaemon(true);
-            t.start();
-            return pipingFile.getInputStream();
-        }
-        else
-        {
-            InMemoryFile inMemoryFile = new InMemoryFile();
-            sftpClient.get(sftpPath, inMemoryFile);
-            byte[] data = inMemoryFile.getOutputStream().toByteArray();
-            return new ByteArrayInputStream(data);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
-    {
-        if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
-            throw new UnsupportedOperationException();
-
-        String sftpPath = relativeFromHomeOrAbsolute(path).toString();
-        try
-        {
-            FileAttributes lstat = sftpClient.lstat(sftpPath);
-            NodeFileAttributes nodeFileAttributes = new NodeFileAttributes(lstat);
-            return (A)nodeFileAttributes;
-        }
-        catch (IOException e)
-        {
-            throw new IOException("Error reading attributes of path: " + path, e);
-        }
-    }
-
     @Override
     public FileSystemProvider provider()
     {
         return provider;
     }
 
+    public FileSystemProvider delegateProvider()
+    {
+        return delegate.provider();
+    }
+
     @Override
     public void close() throws IOException
     {
-        try
-        {
-            sftpClient.close();
-        }
-        finally
-        {
-            provider.remove(hostId);
-            closed = true;
-        }
+        delegate.close();
     }
 
     @Override
     public boolean isOpen()
     {
-        return !closed;
+        return delegate.isOpen();
     }
 
     @Override
     public boolean isReadOnly()
     {
-        return true;
+        return delegate.isReadOnly();
     }
 
     @Override
     public String getSeparator()
     {
-        return PATH_SEPARATOR;
+        return delegate.getSeparator();
     }
 
     @Override
@@ -330,13 +132,13 @@ class NodeFileSystem extends FileSystem
     @Override
     public Iterable<FileStore> getFileStores()
     {
-        return Collections.emptySet();
+        return delegate.getFileStores();
     }
 
     @Override
     public Set<String> supportedFileAttributeViews()
     {
-        return Collections.emptySet();
+        return delegate.supportedFileAttributeViews();
     }
 
     @Override
@@ -357,19 +159,19 @@ class NodeFileSystem extends FileSystem
     @Override
     public PathMatcher getPathMatcher(String syntaxAndPattern)
     {
-        throw new UnsupportedOperationException();
+        return delegate.getPathMatcher(syntaxAndPattern);
     }
 
     @Override
     public UserPrincipalLookupService getUserPrincipalLookupService()
     {
-        throw new UnsupportedOperationException();
+        return delegate.getUserPrincipalLookupService();
     }
 
     @Override
-    public WatchService newWatchService()
+    public WatchService newWatchService() throws IOException
     {
-        throw new UnsupportedOperationException();
+        return delegate.newWatchService();
     }
 
     @Override

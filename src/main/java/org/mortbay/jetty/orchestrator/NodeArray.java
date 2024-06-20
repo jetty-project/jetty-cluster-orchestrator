@@ -59,7 +59,7 @@ public class NodeArray
         }
         else
         {
-            URI uri = URI.create(NodeFileSystemProvider.PREFIX + ":" + node.globalNodeId.getHostId() + "!/." + NodeFileSystemProvider.PREFIX + "/" + node.globalNodeId.getNodeId());
+            URI uri = URI.create(NodeFileSystemProvider.SCHEME + ":" + node.globalNodeId.getHostId() + "!/." + NodeFileSystemProvider.SCHEME + "/" + node.globalNodeId.getNodeId());
             return Paths.get(uri);
         }
     }

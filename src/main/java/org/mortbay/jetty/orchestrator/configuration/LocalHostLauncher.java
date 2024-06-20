@@ -114,7 +114,7 @@ public class LocalHostLauncher implements HostLauncher
 
     public static File rootPathOf(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
+        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.SCHEME + "/" + hostId);
     }
 
     private static void copyFile(String hostId, String filename, InputStream contents) throws Exception

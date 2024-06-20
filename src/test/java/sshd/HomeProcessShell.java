@@ -13,10 +13,12 @@
 
 package sshd;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -106,12 +108,21 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
 
         builder.directory(new File(homePath));
 
-        process = builder.start();
-
         Map<PtyMode, ?> modes = resolveShellTtyOptions(env.getPtyModes());
-        out = new TtyFilterInputStream(process.getInputStream(), modes);
-        err = new TtyFilterInputStream(process.getErrorStream(), modes);
-        in = new TtyFilterOutputStream(process.getOutputStream(), err, modes);
+        try
+        {
+            process = builder.start();
+            out = new TtyFilterInputStream(process.getInputStream(), modes);
+            err = new TtyFilterInputStream(process.getErrorStream(), modes);
+            in = new TtyFilterOutputStream(process.getOutputStream(), err, modes);
+        }
+        catch (IOException ioe)
+        {
+            out = new TtyFilterInputStream(InputStream.nullInputStream(), modes);
+            ByteArrayInputStream errStream = new ByteArrayInputStream((ioe.getMessage() + "\n").getBytes(StandardCharsets.UTF_8));
+            err = new TtyFilterInputStream(errStream, modes);
+            in = new TtyFilterOutputStream(OutputStream.nullOutputStream(), err, modes);
+        }
     }
 
     protected Map<String, String> resolveShellEnvironment(Map<String, String> env) {
@@ -144,7 +155,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
 
     @Override
     public boolean isAlive() {
-        return process.isAlive();
+        return process != null && process.isAlive();
     }
 
     @Override
@@ -156,7 +167,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
                 throw new RuntimeException(e);
             }
         } else {
-            return process.exitValue();
+            return process == null ? 127 : process.exitValue();
         }
     }
 

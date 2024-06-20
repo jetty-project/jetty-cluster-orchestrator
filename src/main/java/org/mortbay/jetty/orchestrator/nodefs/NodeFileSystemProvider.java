@@ -40,8 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.xfer.FilePermission;
+import org.apache.sshd.client.SshClient;
 
 /**
  * URI format is:
@@ -49,8 +48,13 @@ import net.schmizz.sshj.xfer.FilePermission;
  */
 public class NodeFileSystemProvider extends FileSystemProvider
 {
-    public static final String PREFIX = "jco";
-    public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
+    public static final String SCHEME = "jco";
+    public static final String IS_WINDOWS_ENV = "windows";
+    public static final String SFTP_HOST_ENV = "host";
+    public static final String SFTP_PORT_ENV = "port";
+    public static final String SFTP_USERNAME_ENV = "username";
+    public static final String SFTP_PASSWORD_ENV = "password";
+
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
     static
     {
@@ -100,13 +104,17 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
-            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
-            SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
+            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV);
+            String sftpHost = (String)env.get(SFTP_HOST_ENV);
+            Integer sftpPort = (Integer)env.get(SFTP_PORT_ENV);
+            String sftpUsername = (String)env.get(SFTP_USERNAME_ENV);
+            char[] sftpPassword = (char[])env.get(SFTP_PASSWORD_ENV);
+            SshClient sshClient = (SshClient)env.get(SshClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractPath(uri), windows);
+            NodeFileSystem fileSystem = new NodeFileSystem(this, sshClient, hostId, extractPath(uri), windows, sftpHost, sftpPort, sftpUsername, sftpPassword);
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }
@@ -142,13 +150,22 @@ public class NodeFileSystemProvider extends FileSystemProvider
         return nodeId;
     }
 
-    private static List<String> extractPath(URI uri)
+    private static String extractPath(URI uri)
     {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
         if (i == -1)
-            return Collections.emptyList();
-        return NodePath.toSegments(nodeId.substring(i + 1));
+            return "";
+        return nodeId.substring(i + 1);
+    }
+
+    private static String extractPathAsString(URI uri)
+    {
+        String nodeId = uri.getSchemeSpecificPart();
+        int i = nodeId.indexOf("!/");
+        if (i == -1)
+            return ".";
+        return nodeId.substring(i + 1);
     }
 
     @Override
@@ -160,14 +177,14 @@ public class NodeFileSystemProvider extends FileSystemProvider
             NodeFileSystem fileSystem = fileSystems.get(hostId);
             if (fileSystem == null)
                 throw new FileSystemNotFoundException(uri.toString());
-            return fileSystem.getPath(false, extractPath(uri));
+            return fileSystem.getPath(extractPathAsString(uri));
         }
     }
 
     @Override
     public String getScheme()
     {
-        return PREFIX;
+        return SCHEME;
     }
 
     @Override
@@ -191,31 +208,29 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public InputStream newInputStream(Path path, OpenOption... options) throws IOException
     {
-        if (!(path instanceof NodePath))
-            throw new ProviderMismatchException();
-        return ((NodeFileSystem)path.getFileSystem()).newInputStream((NodePath)path, options);
+        return path.getFileSystem().provider().newInputStream(path, options);
     }
 
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
     {
-        if (!(path instanceof NodePath))
-            throw new ProviderMismatchException();
-        return ((NodeFileSystem)path.getFileSystem()).newByteChannel((NodePath)path, options, attrs);
+        return path.getFileSystem().provider().newByteChannel(path, options, attrs);
     }
 
     @Override
     public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) throws IOException
     {
         if (!(dir instanceof NodePath))
-            throw new ProviderMismatchException();
-        return ((NodeFileSystem)dir.getFileSystem()).newDirectoryStream((NodePath)dir, filter);
+            throw new ProviderMismatchException("Path is not NodePath: " + dir.getClass());
+        NodeFileSystem delegateFileSystem = (NodeFileSystem)dir.getFileSystem();
+        Path path = delegateFileSystem.delegatePath((NodePath) dir);
+        return delegateFileSystem.delegateProvider().newDirectoryStream(path, filter);
     }
 
     @Override
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException
     {
-        return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, type, options);
+        return path.getFileSystem().provider().readAttributes(path, type, options);
     }
 
     @Override
@@ -241,17 +256,17 @@ public class NodeFileSystemProvider extends FileSystemProvider
             masks[i] = mask;
         }
 
-        NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
-        for (FilePermission permission : attributes.getLstat().getPermissions())
-        {
-            if (masks.length == 0) // existence check
-                return;
-            for (int mask : masks)
-            {
-                if (permission.isIn(mask))
-                    return;
-            }
-        }
+//        NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
+//        for (FilePermission permission : attributes.getLstat().getPermissions())
+//        {
+//            if (masks.length == 0) // existence check
+//                return;
+//            for (int mask : masks)
+//            {
+//                if (permission.isIn(mask))
+//                    return;
+//            }
+//        }
         throw new IOException("Access check failed");
     }
 }

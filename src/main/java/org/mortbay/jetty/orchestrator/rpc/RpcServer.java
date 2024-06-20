@@ -56,6 +56,8 @@ public class RpcServer implements AutoCloseable
             return thread;
         });
         clusterTools = new ClusterTools(curator, globalNodeId);
+        if (LOG.isDebugEnabled())
+            LOG.debug("RPC server started on {}", globalNodeId.getNodeId());
     }
 
     public long getLastCommandTimestamp()
@@ -88,7 +90,7 @@ public class RpcServer implements AutoCloseable
         {
             // does not matter, ZK is shutting down if this happens
             if (LOG.isDebugEnabled())
-                LOG.debug("", e);
+                LOG.debug("exception caught during abort", e);
         }
     }
 
@@ -107,6 +109,8 @@ public class RpcServer implements AutoCloseable
                 if (request.getCommand().getClass() == AbortCommand.class)
                 {
                     active = false;
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("RPC server got Abort command");
                     return;
                 }
 
@@ -159,6 +163,8 @@ public class RpcServer implements AutoCloseable
             catch (InterruptedException e)
             {
                 active = false;
+                if (LOG.isDebugEnabled())
+                    LOG.debug("RPC server interrupted", e);
                 return;
             }
             catch (Exception e)
@@ -167,6 +173,8 @@ public class RpcServer implements AutoCloseable
                 throw new RuntimeException("Error reading command on node " + globalNodeId.getNodeId(), e);
             }
         }
+        if (LOG.isDebugEnabled())
+            LOG.debug("RPC server is now inactive; request queue processing returning");
     }
 
     private static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException

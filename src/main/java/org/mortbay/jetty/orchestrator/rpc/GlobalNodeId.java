@@ -119,4 +119,16 @@ public class GlobalNodeId
     {
         return Objects.hash(nodeId);
     }
+
+    @Override
+    public String toString()
+    {
+        return "GlobalNodeId{" +
+            "clusterId='" + clusterId + '\'' +
+            ", hostname='" + hostname + '\'' +
+            ", hostId='" + hostId + '\'' +
+            ", nodeId='" + nodeId + '\'' +
+            ", local=" + local +
+            '}';
+    }
 }

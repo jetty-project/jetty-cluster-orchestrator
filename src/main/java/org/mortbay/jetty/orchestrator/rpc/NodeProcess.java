@@ -127,7 +127,16 @@ public class NodeProcess implements Serializable, AutoCloseable
         });
         Runtime.getRuntime().addShutdownHook(shutdown);
 
-        rpcServer.run();
+        if (LOG.isDebugEnabled())
+            LOG.debug("Node [{}] ready to serve", nodeId);
+        try
+        {
+            rpcServer.run();
+        }
+        catch (Exception e)
+        {
+            LOG.error("RPC server failed on node {}; aborting", nodeId, e);
+        }
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
         shutdown.run(); // do not start that thread, run its runnable on the current thread
@@ -183,7 +192,7 @@ public class NodeProcess implements Serializable, AutoCloseable
 
     private static File defaultRootPath(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
+        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.SCHEME + "/" + hostId);
     }
 
     private static File defaultLibPath(String hostId)

@@ -13,17 +13,18 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,17 +33,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.connection.channel.Channel;
-import net.schmizz.sshj.connection.channel.direct.Session;
-import net.schmizz.sshj.connection.channel.direct.Signal;
-import net.schmizz.sshj.connection.channel.forwarded.ConnectListener;
-import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.xfer.FileSystemFile;
-import net.schmizz.sshj.xfer.LocalSourceFile;
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.channel.ChannelExec;
+import org.apache.sshd.client.channel.ClientChannel;
+import org.apache.sshd.client.channel.ClientChannelEvent;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.client.session.forward.PortForwardingTracker;
+import org.apache.sshd.common.util.net.SshdSocketAddress;
+import org.apache.sshd.server.forward.AcceptAllForwardingFilter;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -115,76 +115,85 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         if (nodes.putIfAbsent(nodeId.getHostname(), RemoteNodeHolder.NULL) != null)
             throw new IllegalArgumentException("ssh launcher already launched node on host " + nodeId.getHostname());
 
-        SSHClient sshClient = new SSHClient();
+        SshClient sshClient = SshClient.setUpDefaultClient();
+        sshClient.setForwardingFilter(new AcceptAllForwardingFilter()); // must be set, otherwise port forwarding does not work
+        sshClient.start();
         FileSystem fileSystem = null;
-        SocketForwardingConnectListener forwardingConnectListener = null;
-        AutoCloseable forwarding = null;
-        Session.Command cmd = null;
-        Session session = null;
+        PortForwardingTracker forwarding = null;
+        ClientChannel clientChannel = null;
+        ClientSession session = null;
         try
         {
-            sshClient.addHostKeyVerifier(new PromiscuousVerifier()); // or loadKnownHosts() instead?
-            sshClient.connect(nodeId.getHostname(), port);
+            session = sshClient.connect(username, nodeId.getHostname(), port)
+                .verify(30, TimeUnit.SECONDS)
+                .getSession();
 
             if (LOG.isDebugEnabled())
-                LOG.debug("ssh to {} with username {} and empty password {}", nodeId.getHostname(), username, password == null);
+                LOG.debug("ssh to {} with username {} and password {}", nodeId.getHostname(), username, password == null ? null : "'" + new String(password) + "'");
 
-            if (password == null)
-                sshClient.authPublickey(username); // public key auth
-            else
-                sshClient.authPassword(username, password); // pw auth
+            if (password != null && password.length > 0)
+                session.addPasswordIdentity(new String(password)); // pw auth
+
+            session.auth().verify(30, TimeUnit.SECONDS);
 
             // detect windows
-            boolean windows = isWindows(sshClient);
+            boolean windows = isWindows(session);
 
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
-            forwardingConnectListener = new SocketForwardingConnectListener(nodeId.getHostname(), new InetSocketAddress("localhost", zkPort));
-            RemotePortForwarder.Forward forward = sshClient.getRemotePortForwarder().bind(
-                new RemotePortForwarder.Forward(0), // remote port, dynamically choose one
-                forwardingConnectListener
+            forwarding = session.createRemotePortForwardingTracker(
+                new SshdSocketAddress("localhost", 0), // remote port, dynamically choose one
+                new SshdSocketAddress("localhost", zkPort)
             );
-            forwarding = () -> sshClient.getRemotePortForwarder().cancel(forward);
-            String remoteConnectString = "localhost:" + forward.getPort();
+            String remoteConnectString = forwarding.getBoundAddress().toString(); // read the dynamically chosen port
 
+            // create remote filesystem
             HashMap<String, Object> env = new HashMap<>();
-            env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, windows);
-            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
+            env.put(SshClient.class.getName(), sshClient);
+            env.put(NodeFileSystemProvider.SFTP_HOST_ENV, nodeId.getHostname());
+            env.put(NodeFileSystemProvider.SFTP_PORT_ENV, port);
+            env.put(NodeFileSystemProvider.SFTP_USERNAME_ENV, username);
+            env.put(NodeFileSystemProvider.SFTP_PASSWORD_ENV, password);
+            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV, windows);
+            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.SCHEME + ":" + nodeId.getHostId()), env);
 
+            // upload classpath
             List<String> remoteClasspathEntries = new ArrayList<>();
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
             String delimiter = windows ? "\\" : "/";
-            try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
+            try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session))
             {
                 for (String classpathEntry : classpathEntries)
                 {
                     File cpFile = new File(classpathEntry);
                     String cpFileName = cpFile.getName();
-                    if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR"))
-                        remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
+                    if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar"))
+                        remoteClasspathEntries.add("." + NodeFileSystemProvider.SCHEME + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
                     if (cpFile.isDirectory())
                         copyDir(sftpClient, nodeId.getHostId(), cpFile, 1);
                     else
-                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, new FileSystemFile(cpFile));
+                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpFile);
                 }
             }
-            remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
+            remoteClasspathEntries.add("." + NodeFileSystemProvider.SCHEME + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
 
+            // spawn remote node jvm
             String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
-            session = sshClient.startSession();
-            cmd = session.exec(cmdLine);
 
-            new StreamCopier(cmd.getInputStream(), System.out, true).spawnDaemon(nodeId.getHostname() + "-stdout");
-            new StreamCopier(cmd.getErrorStream(), System.err, true).spawnDaemon(nodeId.getHostname() + "-stderr");
+            LOG.info("spawning node command '{}'...", cmdLine);
+            clientChannel = session.createExecChannel(cmdLine);
+            clientChannel.setRedirectErrorStream(true);
+            clientChannel.open().verify(30, TimeUnit.SECONDS);
 
-            RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwardingConnectListener, forwarding, session, cmd);
+            new StreamCopier(clientChannel.getInvertedOut(), System.out, true).spawnDaemon(nodeId.getHostname() + "-stdout");
+
+            RemoteNodeHolder remoteNodeHolder = new RemoteNodeHolder(nodeId, fileSystem, sshClient, forwarding, session, clientChannel);
             nodes.put(nodeId.getHostname(), remoteNodeHolder);
             return remoteConnectString;
         }
         catch (Exception e)
         {
-            IOUtil.close(fileSystem, cmd, session, forwardingConnectListener, forwarding, sshClient);
+            IOUtil.close(fileSystem, clientChannel, session, forwarding, sshClient);
             throw new Exception("Error launching host '" + nodeId.getHostname() + "'", e);
         }
         finally
@@ -194,37 +203,33 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static boolean isWindows(SSHClient sshClient) throws IOException
+    private static boolean isWindows(ClientSession session) throws IOException
     {
-        try (Session session = sshClient.startSession())
+        String output;
+        Integer exitStatus;
+        try (ChannelExec channel = session.createExecChannel("uname -s"))
         {
-            Session.Command uname = session.exec("uname -s");
-            uname.join();
-            InputStream is = uname.getInputStream();
-            StringBuilder sb = new StringBuilder();
-            while (true)
-            {
-                int read = is.read();
-                if (read == -1)
-                    break;
-                sb.append((char)read);
-            }
-            String output = sb.toString().toLowerCase(Locale.ROOT);
-            uname.close();
-            Integer exitStatus = uname.getExitStatus();
-            if (exitStatus == null)
-                throw new IOException("Executing 'uname' command did not provide an exit status");
-
-            // Cannot run "uname -s"? Assume windows.
-            if (exitStatus != 0)
-                return true;
-            // Outputs a well-known windows uname? Assume windows.
-            for (String winUname : COMMON_WIN_UNAMES)
-                if (output.contains(winUname.toLowerCase(Locale.ROOT)))
-                    return true;
-            // Assume *nix.
-            return false;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            channel.setOut(baos);
+            channel.setRedirectErrorStream(true);
+            channel.open().verify(30, TimeUnit.SECONDS);
+            channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0L);
+            exitStatus = channel.getExitStatus();
+            output = baos.toString(StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
         }
+
+        if (exitStatus == null)
+            throw new IOException("Executing 'uname' command did not provide an exit status");
+
+        // Cannot run "uname -s"? Assume windows.
+        if (exitStatus != 0)
+            return true;
+        // Outputs a well-known windows uname? Assume windows.
+        for (String winUname : COMMON_WIN_UNAMES)
+            if (output.contains(winUname.toLowerCase(Locale.ROOT)))
+                return true;
+        // Assume *nix.
+        return false;
     }
 
     private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries, String delimiter, String nodeId, String hostname, String connectString)
@@ -243,19 +248,21 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private static List<String> filterOutEmptyStrings(List<String> opts)
     {
-        return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
+        return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
-    private static void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception
+    private static void copyFile(SftpClient sftpClient, String hostId, String filename, File localSourceFile) throws Exception
     {
-        String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
-        String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
+        String destFilename = "." + NodeFileSystemProvider.SCHEME + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
 
-        sftpClient.mkdirs(parentFilename);
-        sftpClient.put(localSourceFile, destFilename);
+        try (OutputStream os = sftpClient.write(destFilename);
+             FileInputStream is = new FileInputStream(localSourceFile))
+        {
+            IOUtil.copy(is, os);
+        }
     }
 
-    private static void copyDir(SFTPClient sftpClient, String hostId, File cpFile, int depth) throws Exception
+    private static void copyDir(SftpClient sftpClient, String hostId, File cpFile, int depth) throws Exception
     {
         File[] files = cpFile.listFiles();
         if (files == null)
@@ -265,6 +272,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         {
             if (file.isDirectory())
             {
+                try
+                {
+                    sftpClient.lstat(file.getName());
+                }
+                catch (IOException e)
+                {
+                    sftpClient.mkdir(file.getName());
+                }
                 copyDir(sftpClient, hostId, file, depth + 1);
             }
             else
@@ -276,27 +291,25 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                     currentFile = currentFile.getParentFile();
                     filename = currentFile.getName() + "/" + filename;
                 }
-                copyFile(sftpClient, hostId, filename, new FileSystemFile(file));
+                copyFile(sftpClient, hostId, filename, file);
             }
         }
     }
 
     private static class RemoteNodeHolder implements AutoCloseable {
-        private static final RemoteNodeHolder NULL = new RemoteNodeHolder(null, null, null, null, null, null, null);
+        private static final RemoteNodeHolder NULL = new RemoteNodeHolder(null, null, null, null, null, null);
 
         private final GlobalNodeId nodeId;
         private final FileSystem fileSystem;
-        private final SSHClient sshClient;
-        private final SocketForwardingConnectListener forwardingConnectListener;
+        private final SshClient sshClient;
         private final AutoCloseable forwarding;
-        private final Session session;
-        private final Session.Command command;
+        private final ClientSession session;
+        private final ClientChannel command;
 
-        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SSHClient sshClient, SocketForwardingConnectListener forwardingConnectListener, AutoCloseable forwarding, Session session, Session.Command command) {
+        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SshClient sshClient, AutoCloseable forwarding, ClientSession session, ClientChannel command) {
             this.nodeId = nodeId;
             this.fileSystem = fileSystem;
             this.sshClient = sshClient;
-            this.forwardingConnectListener = forwardingConnectListener;
             this.forwarding = forwarding;
             this.session = session;
             this.command = command;
@@ -305,84 +318,45 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         @Override
         public void close() throws Exception
         {
+            if (LOG.isDebugEnabled())
+                LOG.debug("closing remote node holder of node id {}", nodeId);
             IOUtil.close(fileSystem);
 
             // 0x03 is the character for CTRL-C -> send it to the remote PTY
-            session.getOutputStream().write(0x03);
-            // also send TERM signal
-            command.signal(Signal.TERM);
+            command.getInvertedIn().write(0x03);
             try
             {
-                command.join(10, TimeUnit.SECONDS);
+                command.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0L);
             }
             catch (Exception e)
             {
                 // timeout? error? too late, try to kill the process
-                command.signal(Signal.KILL);
+                command.close(true);
             }
             IOUtil.close(command);
             IOUtil.close(session);
             if (!LocalHostLauncher.skipDiskCleanup())
             {
-                try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
+                try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session))
                 {
-                    deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
+                    deltree(sftpClient, "." + NodeFileSystemProvider.SCHEME + "/" + nodeId.getClusterId());
                 }
             }
-            IOUtil.close(forwardingConnectListener);
             IOUtil.close(forwarding);
             IOUtil.close(sshClient);
         }
 
-        private static void deltree(SFTPClient sftpClient, String path) throws IOException
+        private static void deltree(SftpClient sftpClient, String path) throws IOException
         {
-            List<RemoteResourceInfo> ls = sftpClient.ls(path);
-            for (RemoteResourceInfo l : ls)
+            Iterable<SftpClient.DirEntry> ls = sftpClient.readDir(path);
+            for (SftpClient.DirEntry l : ls)
             {
-                if (l.isDirectory())
-                    deltree(sftpClient, l.getPath());
+                if (l.getAttributes().isDirectory())
+                    deltree(sftpClient, l.getLongFilename());
                 else
-                    sftpClient.rm(l.getPath());
+                    sftpClient.remove(l.getFilename());
             }
             sftpClient.rmdir(path);
-        }
-    }
-
-    private static class SocketForwardingConnectListener implements ConnectListener, AutoCloseable
-    {
-        private final String threadNamePrefix;
-        private final SocketAddress addr;
-        private Socket socket;
-        private Channel.Forwarded channel;
-
-        private SocketForwardingConnectListener(String threadNamePrefix, SocketAddress addr)
-        {
-            this.threadNamePrefix = threadNamePrefix;
-            this.addr = addr;
-        }
-
-        @Override
-        public void close()
-        {
-            IOUtil.close(channel, socket);
-        }
-
-        @Override
-        public void gotConnect(Channel.Forwarded channel) throws IOException
-        {
-            this.channel = channel;
-            socket = new Socket();
-            socket.setSendBufferSize(channel.getLocalMaxPacketSize());
-            socket.setReceiveBufferSize(channel.getRemoteMaxPacketSize());
-            socket.connect(addr);
-
-            channel.confirm();
-
-            new StreamCopier(socket.getInputStream(), channel.getOutputStream(), channel.getRemoteMaxPacketSize(), false)
-                .spawnDaemon(threadNamePrefix + "-soc2chan");
-
-            new StreamCopier(channel.getInputStream(), socket.getOutputStream(), channel.getLocalMaxPacketSize(), false)
-                .spawnDaemon(threadNamePrefix + "-chan2soc");
         }
     }
 }

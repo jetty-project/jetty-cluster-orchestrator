@@ -115,18 +115,24 @@ public class Cluster implements AutoCloseable
                 throw new IllegalStateException("No configured host launcher to start node on " + hostname);
             futures.add(executor.submit(() ->
             {
+                if (LOG.isDebugEnabled())
+                    LOG.debug("launching {}", globalNodeId);
                 String remoteConnectString = launcher.launch(globalNodeId, connectString);
+                if (LOG.isDebugEnabled())
+                    LOG.debug("launched {}", globalNodeId);
                 return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
             }));
         }
         executor.shutdown();
         for (Future<Map.Entry<GlobalNodeId, String>> future : futures)
         {
-            Map.Entry<GlobalNodeId, String> entry = future.get();
+            Map.Entry<GlobalNodeId, String> entry = future.get(120, TimeUnit.SECONDS);
             GlobalNodeId globalNodeId = entry.getKey();
             String remoteConnectString = entry.getValue();
             hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
         }
+        if (LOG.isDebugEnabled())
+            LOG.debug("All hosts nodes connected to cluster, spawning node arrays...");
 
         // start all worker nodes
         for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
@@ -164,6 +170,9 @@ public class Cluster implements AutoCloseable
                 }
             }
         }, RpcClient.HEALTH_CHECK_DELAY_MS, RpcClient.HEALTH_CHECK_DELAY_MS);
+
+        if (LOG.isDebugEnabled())
+            LOG.info("Cluster initialized, requested host nodes to spawn their node arrays: {}", hosts.values());
     }
 
     public ClusterTools tools()
