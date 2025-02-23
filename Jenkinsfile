@@ -1,7 +1,7 @@
 #!groovy
 
 pipeline {
-  agent any
+  agent none
   options {
     buildDiscarder logRotator( numToKeepStr: '20' )
   }
@@ -9,7 +9,7 @@ pipeline {
     stage("Parallel Stage") {
       parallel {
         stage("Build / Test - JDK11") {
-          agent { node { label 'linux' } }
+          agent { node { label 'linux-light' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
             mavenBuild("jdk11", "clean install")
@@ -21,14 +21,14 @@ pipeline {
           }
         }
         stage("Build / Test - JDK17") {
-          agent { node { label 'linux' } }
+          agent { node { label 'linux-light' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
             mavenBuild("jdk17", "clean install")
           }
         }
         stage("Build / Test - JDK21") {
-          agent { node { label 'linux' } }
+          agent { node { label 'linux-light' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
             mavenBuild("jdk21", "clean install")
