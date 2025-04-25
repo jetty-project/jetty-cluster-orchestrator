@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -106,20 +105,26 @@ public class Cluster implements AutoCloseable
             .distinct()
             .collect(Collectors.toList());
         List<Future<Map.Entry<GlobalNodeId, String>>> futures = new ArrayList<>();
-        ExecutorService executor = Executors.newFixedThreadPool(8);
-        for (String hostname : hostnames)
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        try
         {
-            GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
-            HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
-            if (launcher == null)
-                throw new IllegalStateException("No configured host launcher to start node on " + hostname);
-            futures.add(executor.submit(() ->
+            for (String hostname : hostnames)
             {
-                String remoteConnectString = launcher.launch(globalNodeId, connectString);
-                return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
-            }));
+                GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
+                HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+                if (launcher == null)
+                    throw new IllegalStateException("No configured host launcher to start node on " + hostname);
+                futures.add(executor.submit(() ->
+                {
+                    String remoteConnectString = launcher.launch(globalNodeId, connectString);
+                    return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
+                }));
+            }
         }
-        executor.shutdown();
+        finally
+        {
+            executor.shutdown();
+        }
         for (Future<Map.Entry<GlobalNodeId, String>> future : futures)
         {
             Map.Entry<GlobalNodeId, String> entry = future.get();
