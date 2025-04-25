@@ -16,14 +16,17 @@ package org.mortbay.jetty.orchestrator.configuration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent
 {
-    private static final Jvm DEFAULT_JVM = new Jvm((f, h) -> "java");
-
-    private Jvm jvm = DEFAULT_JVM;
+    private Jvm jvm = JvmUtil.currentJvm();
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private HostLauncher hostLauncher = new SshRemoteHostLauncher();
+
+    public SimpleClusterConfiguration()
+    {
+    }
 
     public SimpleClusterConfiguration jvm(Jvm jvm)
     {
