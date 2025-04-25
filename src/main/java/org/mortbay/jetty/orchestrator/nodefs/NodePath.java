@@ -67,13 +67,13 @@ class NodePath implements Path
             @Override
             public boolean hasNext()
             {
-                return (i < getNameCount());
+                return (i < pathSegments.size());
             }
 
             @Override
             public Path next()
             {
-                if (i < getNameCount())
+                if (i < pathSegments.size())
                 {
                     Path result = getName(i);
                     i++;
@@ -151,10 +151,9 @@ class NodePath implements Path
     {
         if (index >= pathSegments.size())
             throw new IllegalArgumentException("index " + index + " too big for " + this);
-        List<String> parentSegments = new ArrayList<>(pathSegments);
-        for (int i = 0; i < index; i++)
-            parentSegments.remove(parentSegments.size() - 1);
-        return new NodePath(fileSystem, basePath, parentSegments);
+        List<String> parentSegments = pathSegments.subList(0, index);
+        NodePath base = new NodePath(fileSystem, basePath, parentSegments);
+        return new NodePath(fileSystem, base, List.of(pathSegments.get(index)));
     }
 
     @Override
