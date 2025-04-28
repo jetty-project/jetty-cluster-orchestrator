@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
-import org.apache.curator.test.TestingServer;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
@@ -42,6 +41,7 @@ import org.mortbay.jetty.orchestrator.rpc.command.CheckNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.KillNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.SpawnNodeCommand;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +56,7 @@ public class Cluster implements AutoCloseable
     private final Map<String, NodeArray> nodeArrays = new HashMap<>(); // keyed by NodeArrayId
     private final Map<GlobalNodeId, Host> hosts = new HashMap<>(); // keyed by HostId
     private final Timer hostsCheckerTimer = new Timer();
-    private TestingServer zkServer;
+    private ZooKeeperServer zkServer;
     private CuratorFramework curator;
     private ClusterTools clusterTools;
 
@@ -91,7 +91,7 @@ public class Cluster implements AutoCloseable
 
     private void init() throws Exception
     {
-        zkServer = new TestingServer(true);
+        zkServer = new ZooKeeperServer();
         String connectString = "localhost:" + zkServer.getPort();
         curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
         curator.start();
