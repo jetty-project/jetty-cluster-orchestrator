@@ -29,15 +29,18 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
 import java.nio.file.ReadOnlyFileSystemException;
+import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.xfer.FilePermission;
@@ -85,7 +88,33 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options)
     {
-        throw new UnsupportedOperationException();
+        if (Objects.requireNonNull(type) == BasicFileAttributeView.class)
+        {
+            BasicFileAttributeView basicFileAttributeView = new BasicFileAttributeView()
+            {
+                @Override
+                public String name()
+                {
+                    return "basic";
+                }
+
+                @Override
+                public BasicFileAttributes readAttributes() throws IOException
+                {
+                    return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, BasicFileAttributes.class, options);
+                }
+
+                @Override
+                public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime)
+                {
+                    throw new UnsupportedOperationException();
+                }
+            };
+            @SuppressWarnings("unchecked")
+            V v = (V)basicFileAttributeView;
+            return v;
+        }
+        return null;
     }
 
     @Override
