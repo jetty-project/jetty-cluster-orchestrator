@@ -27,6 +27,7 @@ import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 import sshd.AbstractSshTest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,6 +39,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testTwoClustersOnSameHost() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -45,6 +47,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
         new Cluster(cfg1).close();
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -56,6 +59,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testSmallFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -92,6 +96,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testSmallFileLocalhost() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
             ;
 
@@ -127,6 +132,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     public void testLargeFile() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;

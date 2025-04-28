@@ -53,6 +53,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectProcessDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -72,6 +73,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testDetectTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -95,6 +97,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testZeroTimeoutThenDetectDeath() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
@@ -123,6 +126,7 @@ public class NodeArrayFutureTest extends AbstractSshTest
     public void testTimeoutIsSpread() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())).node(new Node("2", InetAddress.getLocalHost().getHostName())))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;

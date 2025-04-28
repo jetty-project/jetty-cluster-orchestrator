@@ -19,6 +19,7 @@ import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class HealthCheckTest
 {
@@ -26,6 +27,7 @@ public class HealthCheckTest
     public void testClusterStaysAliveAfterHealthCheckDelay() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(500)
             .healthCheckTimeout(2000)
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
@@ -50,6 +52,7 @@ public class HealthCheckTest
     public void testFailHealthCheck() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(2000)
             .healthCheckTimeout(1000)
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))

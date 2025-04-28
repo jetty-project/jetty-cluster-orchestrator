@@ -31,6 +31,7 @@ import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 import sshd.AbstractSshTest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,17 +41,20 @@ public class ClusterTest extends AbstractSshTest
     public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")))
             ;
 
         String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))

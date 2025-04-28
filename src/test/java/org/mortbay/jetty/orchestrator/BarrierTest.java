@@ -23,6 +23,7 @@ import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.tools.Barrier;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class BarrierTest
 {
@@ -30,6 +31,7 @@ public class BarrierTest
     public void testNoTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
             ;
 
@@ -58,6 +60,7 @@ public class BarrierTest
     public void testTimeout() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm())
             .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
             ;
 
@@ -77,7 +80,8 @@ public class BarrierTest
     @Test
     public void testNotCyclic() throws Exception
     {
-        ClusterConfiguration cfg = new SimpleClusterConfiguration();
+        ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(JvmUtil.currentJvm());
 
         try (Cluster cluster = new Cluster(cfg))
         {
