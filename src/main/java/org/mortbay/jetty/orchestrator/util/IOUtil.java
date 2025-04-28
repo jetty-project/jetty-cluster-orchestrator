@@ -36,7 +36,7 @@ public class IOUtil
         catch (Exception e)
         {
             if (LOG.isDebugEnabled())
-                LOG.debug("", e);
+                LOG.debug("error closing {}", closeable, e);
         }
     }
 

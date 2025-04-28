@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.Channel;
 import net.schmizz.sshj.connection.channel.direct.Session;
-import net.schmizz.sshj.connection.channel.direct.Signal;
 import net.schmizz.sshj.connection.channel.forwarded.ConnectListener;
 import net.schmizz.sshj.connection.channel.forwarded.RemotePortForwarder;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
@@ -305,32 +304,32 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
 
         @Override
-        public void close() throws Exception
+        public void close()
         {
             IOUtil.close(fileSystem);
-
-            // 0x03 is the character for CTRL-C -> send it to the remote PTY
-            session.getOutputStream().write(0x03);
-            // also send TERM signal
-            command.signal(Signal.TERM);
-            try
-            {
-                command.join(1, TimeUnit.SECONDS);
-            }
-            catch (Exception e)
-            {
-                // timeout? error? too late, try to kill the process
-                command.signal(Signal.KILL);
-            }
-            IOUtil.close(command);
-            IOUtil.close(session);
             if (!LocalHostLauncher.skipDiskCleanup())
             {
                 try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
                 {
                     deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
                 }
+                catch (Exception e)
+                {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("error deleting temporary files using ssh client {}", sshClient, e);
+                }
             }
+            try
+            {
+                sshClient.disconnect(); // disconnect first to make sure closing the command does not block
+            }
+            catch (Exception e)
+            {
+                if (LOG.isDebugEnabled())
+                    LOG.debug("error disconnecting ssh client {}", sshClient, e);
+            }
+            IOUtil.close(command);
+            IOUtil.close(session);
             IOUtil.close(forwardingConnectListener);
             IOUtil.close(forwarding);
             IOUtil.close(sshClient);

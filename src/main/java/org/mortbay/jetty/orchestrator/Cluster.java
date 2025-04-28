@@ -230,12 +230,12 @@ public class Cluster implements AutoCloseable
                 {
                     if (LOG.isDebugEnabled())
                         LOG.debug("Host {} failed check of {}", globalNodeId.getHostId(), nodeProcess, e);
-                    unsaneHostIds.add(String.format(" Host %s failed check of %s\n", globalNodeId.getHostId(), nodeProcess));
+                    unsaneHostIds.add(String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
                 }
             }
             if (!unsaneHostIds.isEmpty())
             {
-                LOG.error("Forcibly closing the cluster as some hosts failed their health check:\n{}", unsaneHostIds);
+                LOG.error("Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}", unsaneHostIds.size(), String.join("\n", unsaneHostIds));
                 close();
             }
         }
