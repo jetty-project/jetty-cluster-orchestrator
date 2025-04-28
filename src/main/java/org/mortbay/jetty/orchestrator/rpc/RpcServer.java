@@ -21,7 +21,6 @@ import java.io.ObjectOutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
 import org.mortbay.jetty.orchestrator.ClusterTools;
@@ -56,6 +55,7 @@ public class RpcServer implements AutoCloseable
             return thread;
         });
         clusterTools = new ClusterTools(curator, globalNodeId);
+        lastCommandTimestamp = System.nanoTime();
     }
 
     public long getLastCommandTimestamp()
@@ -104,6 +104,8 @@ public class RpcServer implements AutoCloseable
                 Object obj = deserialize(cmdBytes);
                 Request request = (Request)obj;
                 lastCommandTimestamp = System.nanoTime();
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
                 if (request.getCommand().getClass() == AbortCommand.class)
                 {
                     active = false;

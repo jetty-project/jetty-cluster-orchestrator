@@ -22,6 +22,8 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
 {
     private Jvm jvm = JvmUtil.currentJvm();
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
+    private long healthCheckTimeout = 30_000L;
+    private long healthCheckDelay = 5000L;
     private HostLauncher hostLauncher = new SshRemoteHostLauncher();
 
     public SimpleClusterConfiguration()
@@ -52,6 +54,30 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     {
         ensureJvmSet(hostLauncher);
         return hostLauncher;
+    }
+
+    public SimpleClusterConfiguration healthCheckTimeout(long healthCheckTimeout)
+    {
+        this.healthCheckTimeout = healthCheckTimeout;
+        return this;
+    }
+
+    @Override
+    public long healthCheckTimeout()
+    {
+        return healthCheckTimeout;
+    }
+
+    public SimpleClusterConfiguration healthCheckDelay(long healthCheckDelay)
+    {
+        this.healthCheckDelay = healthCheckDelay;
+        return this;
+    }
+
+    @Override
+    public long healthCheckDelay()
+    {
+        return healthCheckDelay;
     }
 
     public SimpleClusterConfiguration nodeArray(NodeArrayConfiguration nodeArrayConfiguration)

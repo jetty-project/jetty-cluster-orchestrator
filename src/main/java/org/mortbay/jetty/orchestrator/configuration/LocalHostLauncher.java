@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -35,7 +34,7 @@ public class LocalHostLauncher implements HostLauncher
     private GlobalNodeId nodeId;
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
+    public String launch(GlobalNodeId globalNodeId, String connectString, String... extraArgs) throws Exception
     {
         lock.lock();
         try
@@ -69,7 +68,7 @@ public class LocalHostLauncher implements HostLauncher
 
             try
             {
-                this.thread = NodeProcess.spawnThread(nodeId.getHostId(), connectString);
+                this.thread = NodeProcess.spawnThread(nodeId.getHostId(), connectString, extraArgs);
             }
             catch (Exception e)
             {

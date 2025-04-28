@@ -14,6 +14,8 @@
   <logger name="org.apache.curator" level="error" />
   <logger name="org.apache.sshd" level="error" />
 
+  <logger name="org.mortbay.jetty.orchestrator" level="info" />
+
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>

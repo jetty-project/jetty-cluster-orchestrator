@@ -20,4 +20,6 @@ public interface ClusterConfiguration
     Jvm jvm();
     Collection<NodeArrayConfiguration> nodeArrays();
     HostLauncher hostLauncher();
+    long healthCheckTimeout();
+    long healthCheckDelay();
 }

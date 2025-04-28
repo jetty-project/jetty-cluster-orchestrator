@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -45,7 +44,7 @@ public class NodeProcess implements Serializable, AutoCloseable
         this.processHelper = ProcessHolder.from(process);
     }
 
-    public boolean isAlive() throws Exception
+    public boolean isAlive()
     {
         return processHelper.isAlive();
     }
@@ -76,6 +75,19 @@ public class NodeProcess implements Serializable, AutoCloseable
     {
         String nodeId = args[0];
         String connectString = args[1];
+        long healthCheckTimeout = 30_000L;
+        if (args.length > 2)
+        {
+            String healthCheckTimeoutString = args[2];
+            try
+            {
+                healthCheckTimeout = Long.parseLong(healthCheckTimeoutString);
+            }
+            catch (NumberFormatException e)
+            {
+                LOG.warn("Invalid health check timeout {}, using default of {}ms", healthCheckTimeoutString, healthCheckTimeout);
+            }
+        }
 
         if (LOG.isDebugEnabled())
             LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"), connectString);
@@ -89,13 +101,14 @@ public class NodeProcess implements Serializable, AutoCloseable
 
         // The Cluster sends a CheckNodeCommand every 5 seconds, if we miss too many
         // we can assume the connection is dead.
+        final long finalHealthCheckTimeout = healthCheckTimeout;
         Thread keepalive = new Thread(() ->
         {
             while (true)
             {
                 try
                 {
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 }
                 catch (InterruptedException e)
                 {
@@ -103,13 +116,13 @@ public class NodeProcess implements Serializable, AutoCloseable
                 }
 
                 long delta = System.nanoTime() - rpcServer.getLastCommandTimestamp();
-                if (delta > TimeUnit.MILLISECONDS.toNanos(RpcClient.HEALTH_CHECK_DELAY_MS * 3))
+                if (delta > TimeUnit.MILLISECONDS.toNanos(finalHealthCheckTimeout))
                 {
-                    LOG.error("Node [{}] missed three consecutive health checks, assuming the cluster is dead", nodeId);
+                    LOG.error("Node [{}] missed too many health checks, assuming the cluster is dead", nodeId);
                     System.exit(1);
                 }
                 if (LOG.isDebugEnabled())
-                    LOG.debug("node {} healthcheck passed as it happened {} ms ago", nodeId, TimeUnit.NANOSECONDS.toMillis(delta));
+                    LOG.debug("node {} health check not timed out as it happened {} ms ago", nodeId, TimeUnit.NANOSECONDS.toMillis(delta));
             }
         });
         keepalive.setDaemon(true);
@@ -141,13 +154,13 @@ public class NodeProcess implements Serializable, AutoCloseable
         }
     }
 
-    public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString) throws IOException
+    public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString, String... extraArgs) throws IOException
     {
         File nodeRootPath = defaultRootPath(nodeId);
         IOUtil.deltree(nodeRootPath);
         nodeRootPath.mkdirs();
 
-        List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString);
+        List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString, extraArgs);
         // Inherited IO bypasses the System.setOut/setErr mechanism, so use piping for stdout/stderr such as
         // System.setOut/setErr can redirect the output of the process.
         Process process = new ProcessBuilder(cmdLine)
@@ -161,7 +174,7 @@ public class NodeProcess implements Serializable, AutoCloseable
         return new NodeProcess(process);
     }
 
-    public static Thread spawnThread(String nodeId, String connectString)
+    public static Thread spawnThread(String nodeId, String connectString, String... extraArgs)
     {
         File nodeRootPath = defaultRootPath(nodeId);
         nodeRootPath.mkdirs();
@@ -170,7 +183,11 @@ public class NodeProcess implements Serializable, AutoCloseable
         {
             try
             {
-                NodeProcess.main(new String[]{nodeId, connectString});
+                List<String> args = new ArrayList<>();
+                args.add(nodeId);
+                args.add(connectString);
+                args.addAll(List.of(extraArgs));
+                NodeProcess.main(args.toArray(new String[0]));
             }
             catch (Exception e)
             {
@@ -192,7 +209,7 @@ public class NodeProcess implements Serializable, AutoCloseable
         return new File(rootPath, CLASSPATH_FOLDER_NAME);
     }
 
-    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, File libPath, String nodeId, String hostname, String connectString)
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, File libPath, String nodeId, String hostname, String connectString, String... extraArgs)
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
@@ -202,23 +219,27 @@ public class NodeProcess implements Serializable, AutoCloseable
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add(nodeId);
         cmdLine.add(connectString);
+        cmdLine.addAll(List.of(extraArgs));
         return cmdLine;
     }
 
     private static List<String> filterOutEmptyStrings(List<String> opts)
     {
-        return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
+        return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
     private static String buildClassPath(File libPath)
     {
-        File[] entries = libPath.listFiles();
         StringBuilder sb = new StringBuilder();
-        for (File entry : entries)
+        File[] entries = libPath.listFiles();
+        if (entries != null)
         {
-            String path = entry.getPath();
-            if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
-                sb.append(path).append(File.pathSeparatorChar);
+            for (File entry : entries)
+            {
+                String path = entry.getPath();
+                if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
+                    sb.append(path).append(File.pathSeparatorChar);
+            }
         }
         sb.append(libPath.getPath()).append(File.separatorChar).append("*");
         return sb.toString();

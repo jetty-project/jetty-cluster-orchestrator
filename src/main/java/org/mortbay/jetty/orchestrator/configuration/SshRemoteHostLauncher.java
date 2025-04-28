@@ -103,11 +103,12 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString) throws Exception
+    public String launch(GlobalNodeId globalNodeId, String connectString, String... extraArgs) throws Exception
     {
         long start = System.nanoTime();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
-        LOG.debug("start launch of node: {}", nodeId.getHostname());
+        if (LOG.isDebugEnabled())
+            LOG.debug("start launch of node: {}", nodeId.getHostname());
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
         if (nodes.putIfAbsent(nodeId.getHostname(), RemoteNodeHolder.NULL) != null)
@@ -169,7 +170,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             }
             remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
 
-            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(), nodeId.getHostname(), remoteConnectString));
+            String cmdLine = String.join(" ", buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(), nodeId.getHostname(), remoteConnectString, extraArgs));
             session = sshClient.startSession();
             cmd = session.exec(cmdLine);
 
@@ -225,7 +226,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries, String delimiter, String nodeId, String hostname, String connectString)
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries, String delimiter, String nodeId, String hostname, String connectString, String... extraArgs)
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add("\"" + jvm.executable(fileSystem, hostname) + "\"");
@@ -236,12 +237,14 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add("\"" + nodeId + "\"");
         cmdLine.add("\"" + connectString + "\"");
+        for (String extraArg : extraArgs)
+            cmdLine.add("\"" + extraArg + "\"");
         return cmdLine;
     }
 
     private static List<String> filterOutEmptyStrings(List<String> opts)
     {
-        return opts.stream().filter(s -> !s.trim().equals("")).collect(Collectors.toList());
+        return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
     private static void copyFile(SFTPClient sftpClient, String hostId, String filename, LocalSourceFile localSourceFile) throws Exception

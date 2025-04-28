@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.TimeUnit;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
@@ -158,7 +158,7 @@ public class NodeArray
 
         void selfCheck() throws Exception
         {
-            rpcClient.call(new CheckNodeCommand(nodeProcess));
+            rpcClient.callAsync(new CheckNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
         }
 
         @Override

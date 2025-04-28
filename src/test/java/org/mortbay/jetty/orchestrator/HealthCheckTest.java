@@ -23,19 +23,20 @@ import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration
 public class HealthCheckTest
 {
     @Test
-    @Disabled("too slow")
     public void testClusterStaysAliveAfterHealthCheckDelay() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .healthCheckDelay(500)
+            .healthCheckTimeout(2000)
             .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
         {
-            // If this doesn't throw after 20s, the 15s healthcheck still works.
+            // If this doesn't throw after 5s, the 2s health check timeout check still works.
             cluster.nodeArray("client-array").executeOnAll(tools ->
             {
-                for (int i = 0; i < 20; i++)
+                for (int i = 0; i < 5; i++)
                 {
                     Thread.sleep(1000);
                     System.out.println("hello from " + tools.getGlobalNodeId().getNodeId());
@@ -44,4 +45,26 @@ public class HealthCheckTest
         }
     }
 
+    @Test
+    @Disabled("kills the JVM, no way to assert failure")
+    public void testFailHealthCheck() throws Exception
+    {
+        ClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .healthCheckDelay(2000)
+            .healthCheckTimeout(1000)
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
+            ;
+
+        try (Cluster cluster = new Cluster(cfg))
+        {
+            cluster.nodeArray("client-array").executeOnAll(tools ->
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    Thread.sleep(1000);
+                    System.out.println("hello from " + tools.getGlobalNodeId().getNodeId());
+                }
+            }).get();
+        }
+    }
 }

@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
@@ -36,8 +35,6 @@ import org.slf4j.LoggerFactory;
 public class RpcClient implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcClient.class);
-
-    public static final long HEALTH_CHECK_DELAY_MS = 5000;
 
     private final SimpleDistributedQueue commandQueue;
     private final SimpleDistributedQueue responseQueue;

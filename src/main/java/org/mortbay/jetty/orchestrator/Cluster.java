@@ -116,7 +116,8 @@ public class Cluster implements AutoCloseable
                     throw new IllegalStateException("No configured host launcher to start node on " + hostname);
                 futures.add(executor.submit(() ->
                 {
-                    String remoteConnectString = launcher.launch(globalNodeId, connectString);
+                    long healthCheckTimeout = configuration.healthCheckTimeout();
+                    String remoteConnectString = launcher.launch(globalNodeId, connectString, Long.toString(healthCheckTimeout));
                     return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
                 }));
             }
@@ -133,6 +134,21 @@ public class Cluster implements AutoCloseable
             hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
         }
 
+        // start heath check timer
+        long healthCheckDelay = configuration.healthCheckDelay();
+        hostsCheckerTimer.schedule(new TimerTask() {
+            @Override
+            public void run()
+            {
+                for (Host host : hosts.values())
+                {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("Checking health of host {}", host);
+                    host.check();
+                }
+            }
+        }, healthCheckDelay, healthCheckDelay);
+
         // start all worker nodes
         for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
         {
@@ -143,7 +159,7 @@ public class Cluster implements AutoCloseable
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
                 try
                 {
-                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString)).get(10, TimeUnit.SECONDS);
+                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, Long.toString(configuration.healthCheckTimeout()))).get(10, TimeUnit.SECONDS);
                     NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(curator, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
@@ -155,20 +171,6 @@ public class Cluster implements AutoCloseable
             }
             nodeArrays.put(nodeArrayConfig.id(), new NodeArray(nodeArrayNodes));
         }
-
-        // start heath checker timer
-        hostsCheckerTimer.schedule(new TimerTask() {
-            @Override
-            public void run()
-            {
-                for (Host host : hosts.values())
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Checking host {}", host);
-                    host.check();
-                }
-            }
-        }, RpcClient.HEALTH_CHECK_DELAY_MS, RpcClient.HEALTH_CHECK_DELAY_MS);
     }
 
     public ClusterTools tools()
@@ -219,7 +221,7 @@ public class Cluster implements AutoCloseable
                     if (LOG.isDebugEnabled())
                        LOG.debug("client checking node {}", node);
                     // Ask the host node to check the spawned node.
-                    rpcClient.call(new CheckNodeCommand(nodeProcess));
+                    rpcClient.callAsync(new CheckNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
                     // Ask the spawned node to check itself. Must happen to create
                     // a heartbeat for the health checks.
                     node.selfCheck();
@@ -246,7 +248,7 @@ public class Cluster implements AutoCloseable
                 NodeProcess nodeProcess = node.getNodeProcess();
                 try
                 {
-                    rpcClient.call(new KillNodeCommand(nodeProcess));
+                    rpcClient.callAsync(new KillNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
                 }
                 catch (Exception e)
                 {
