@@ -47,7 +47,7 @@ public class IOUtil
 
     public static void copy(InputStream is, OutputStream os) throws IOException
     {
-        copy(is, os, 1024, false);
+        copy(is, os, 8192, false);
     }
 
     public static void copy(InputStream is, OutputStream os, int bufferSize, boolean flushOnWrite) throws IOException
