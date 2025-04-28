@@ -20,6 +20,7 @@ import java.nio.file.FileSystem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -128,8 +129,11 @@ public class NodeProcess implements Serializable, AutoCloseable
         keepalive.setDaemon(true);
         keepalive.start();
 
+        AtomicBoolean isShutdown = new AtomicBoolean();
         Thread shutdown = new Thread(() ->
         {
+            if (!isShutdown.compareAndSet(false, true))
+                return;
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopping", nodeId);
             keepalive.interrupt();
