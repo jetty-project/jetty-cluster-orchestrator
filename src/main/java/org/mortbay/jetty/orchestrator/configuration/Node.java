@@ -13,10 +13,15 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 public class Node
 {
     private final String id;
     private final String hostname;
+    private final Map<String, String> nodeSelectors;
 
     public Node(String hostname)
     {
@@ -25,8 +30,14 @@ public class Node
 
     public Node(String id, String hostname)
     {
+        this(id, hostname, Collections.emptyMap());
+    }
+
+    public Node(String id, String hostname, Map<String, String> nodeSelectors)
+    {
         this.id = id;
         this.hostname = hostname;
+        this.nodeSelectors = Collections.unmodifiableMap(new HashMap<>(nodeSelectors));
     }
 
     public String getId()
@@ -37,5 +48,26 @@ public class Node
     public String getHostname()
     {
         return hostname;
+    }
+
+    public Map<String, String> getNodeSelectors()
+    {
+        return nodeSelectors;
+    }
+
+    public Node nodeSelector(String key, String value)
+    {
+        Map<String, String> merged = new HashMap<>(this.nodeSelectors);
+        merged.put(key, value);
+        return new Node(id, hostname, merged);
+    }
+
+    @Override
+    public String toString() {
+        return "Node{" +
+                "id='" + id + '\'' +
+                ", hostname='" + hostname + '\'' +
+                ", nodeSelectors=" + nodeSelectors +
+                '}';
     }
 }

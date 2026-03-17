@@ -16,6 +16,7 @@ package org.mortbay.jetty.orchestrator;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -96,17 +97,31 @@ public class Cluster implements AutoCloseable
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
         // start all host nodes
-        List<String> hostnames = configuration.nodeArrays().stream()
-            .flatMap(cfg -> cfg.nodes().stream())
-            .map(Node::getHostname)
-            .distinct()
-            .collect(Collectors.toList());
+        List<Node> nodes = new ArrayList<>(
+            configuration.nodeArrays().stream()
+                .flatMap(cfg -> {
+                    // node selectors at array level
+                    Map<String, String> nodeArraySelectors = cfg.nodeSelectors();
+                    // but each node will be to override it
+                    return cfg.nodes().stream().map(node -> {
+                        Map<String, String> nodeSelectors = new HashMap<>(nodeArraySelectors);
+                        nodeSelectors.putAll(node.getNodeSelectors());
+                        return new Node(node.getId(), node.getHostname(), nodeSelectors);
+                    });
+                })
+                .collect(Collectors.toMap(
+                    Node::getHostname,
+                    n -> n,
+                    (a, b) -> a,          // keep first occurrence for duplicate hostnames
+                    LinkedHashMap::new))  // preserve insertion order
+                .values());
         List<Future<Map.Entry<GlobalNodeId, String>>> futures = new ArrayList<>();
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         try
         {
-            for (String hostname : hostnames)
+            for (Node node : nodes)
             {
+                String hostname = node.getHostname();
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
                 HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
                 if (launcher == null)
@@ -114,7 +129,7 @@ public class Cluster implements AutoCloseable
                 futures.add(executor.submit(() ->
                 {
                     long healthCheckTimeout = configuration.healthCheckTimeout();
-                    String remoteConnectString = launcher.launch(globalNodeId, connectString, Long.toString(healthCheckTimeout));
+                    String remoteConnectString = launcher.launch(globalNodeId, node, connectString, Long.toString(healthCheckTimeout));
                     return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
                 }));
             }

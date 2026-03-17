@@ -34,7 +34,7 @@ public class LocalHostLauncher implements HostLauncher
     private GlobalNodeId nodeId;
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString, String... extraArgs) throws Exception
+    public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
     {
         lock.lock();
         try

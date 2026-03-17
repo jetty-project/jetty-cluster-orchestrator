@@ -44,7 +44,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class NodeFileSystemTest
+public class SFTPNodeFileSystemTest
 {
     private Closer closer;
 
@@ -74,7 +74,7 @@ public class NodeFileSystemTest
         HashMap<String, Object> env = new HashMap<>();
         env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, false);
         env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-        NodeFileSystem fileSystem = closer.register((NodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
+        SFTPNodeFileSystem fileSystem = closer.register((SFTPNodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
         Iterator<Path> iterator = paths.iterator();

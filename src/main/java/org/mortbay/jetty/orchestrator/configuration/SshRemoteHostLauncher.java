@@ -103,7 +103,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, String connectString, String... extraArgs) throws Exception
+    public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
     {
         long start = System.nanoTime();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();

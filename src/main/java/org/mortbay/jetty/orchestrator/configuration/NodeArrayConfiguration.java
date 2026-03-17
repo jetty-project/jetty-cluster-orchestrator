@@ -14,10 +14,12 @@
 package org.mortbay.jetty.orchestrator.configuration;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface NodeArrayConfiguration
 {
     String id();
     Jvm jvm();
     Collection<Node> nodes();
+    Map<String, String> nodeSelectors();
 }

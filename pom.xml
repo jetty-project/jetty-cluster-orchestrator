@@ -4,7 +4,7 @@
 
   <groupId>org.mortbay.jetty.orchestrator</groupId>
   <artifactId>jetty-cluster-orchestrator</artifactId>
-  <version>1.1.7-SNAPSHOT</version>
+  <version>2.0-SNAPSHOT</version>
   <name>Jetty :: JVM Cluster Orchestrator</name>
   <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
   <description>
@@ -15,6 +15,11 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <k8s.image>jettyproject/jetty-perf-node:ubuntu24-jdk21</k8s.image>
+    <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
+    <!-- The path to the Kubernetes config file, if not set, tests will not run -->
+    <!-- -Dkubernetes.config.path=${user.home}/.kube/config -->
+    <kubernetes.config.path></kubernetes.config.path>
   </properties>
 
   <licenses>
@@ -231,6 +236,13 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.5.5</version>
+          <configuration>
+            <systemProperties>
+              <k8s.image>${k8s.image}</k8s.image>
+              <k8s.namespace>${k8s.namespace}</k8s.namespace>
+              <kubernetes.config.path>${kubernetes.config.path}</kubernetes.config.path>
+            </systemProperties>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
@@ -276,6 +288,24 @@
       <groupId>com.hierynomus</groupId>
       <artifactId>sshj</artifactId>
       <version>0.40.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>kubernetes-client</artifactId>
+      <version>6.13.4</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.28.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>kubernetes-server-mock</artifactId>
+      <version>6.13.4</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

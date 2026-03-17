@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.xfer.FilePermission;
 
@@ -128,13 +129,25 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         synchronized (fileSystems)
         {
-            boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
-            SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
             String hostId = extractHostId(uri);
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = new NodeFileSystem(this, sftpClient, hostId, extractPath(uri), windows);
+            NodeFileSystem fileSystem;
+            if (env.containsKey(KubernetesClient.class.getName()))
+            {
+                KubernetesClient k8sClient = (KubernetesClient)env.get(KubernetesClient.class.getName());
+                String ns = (String)env.get("namespace");
+                String podName = (String)env.get("podName");
+                String podHome = (String)env.get("podHome");
+                fileSystem = new KubernetesNodeFileSystem(this, k8sClient, ns, podName, podHome, hostId, extractPath(uri));
+            }
+            else
+            {
+                boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
+                SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
+                fileSystem = new SFTPNodeFileSystem(this, sftpClient, hostId, extractPath(uri), windows);
+            }
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
         }
@@ -261,6 +274,10 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public void checkAccess(Path path, AccessMode... modes) throws IOException
     {
+        // K8s-backed filesystems don't use SFTP attributes; assume accessible.
+        if (!(path.getFileSystem() instanceof SFTPNodeFileSystem))
+            return;
+
         int[] masks = new int[modes.length];
         for (int i = 0; i < modes.length; i++)
         {

@@ -51,9 +51,9 @@ class NodePath implements Path
 
     static List<String> toSegments(String path)
     {
-        if (path.equals(NodeFileSystem.PATH_SEPARATOR))
-            return Collections.singletonList(NodeFileSystem.PATH_SEPARATOR);
-        String[] segments = path.split(NodeFileSystem.PATH_SEPARATOR);
+        if (path.equals(SFTPNodeFileSystem.PATH_SEPARATOR))
+            return Collections.singletonList(SFTPNodeFileSystem.PATH_SEPARATOR);
+        String[] segments = path.split(SFTPNodeFileSystem.PATH_SEPARATOR);
         return Arrays.stream(segments).filter(s -> !"".equals(s)).collect(Collectors.toList());
     }
 
@@ -96,7 +96,7 @@ class NodePath implements Path
     @Override
     public NodePath resolve(String other)
     {
-        boolean absolute = other.startsWith(NodeFileSystem.PATH_SEPARATOR);
+        boolean absolute = other.startsWith(SFTPNodeFileSystem.PATH_SEPARATOR);
         return resolve(absolute, toSegments(other));
     }
 

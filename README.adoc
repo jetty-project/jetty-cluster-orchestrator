@@ -201,3 +201,48 @@ After running this test, you should have a hierarchy on the local filesystem tha
 
 A NIO `FileSystem` is created for each remote machine that transparently works across the SSH connection, or locally
 in case the node's machine is `localhost`. Please just note that the transparent remote filesystem is read-only.
+
+=== Kubernetes mode
+
+Nodes can also be launched as Kubernetes pods. See link:KUBERNETES.md[KUBERNETES.md] for the full API reference.
+
+==== Quick start with kind
+
+https://kind.sigs.k8s.io[kind] (Kubernetes IN Docker) is the easiest way to get a local cluster for testing.
+
+[source,bash]
+----
+# Install kind (if not already installed)
+go install sigs.k8s.io/kind@latest
+# or: brew install kind
+
+# Create a local cluster
+kind create cluster --name jco-test
+
+# Verify kubectl can reach it
+kubectl cluster-info --context kind-jco-test
+----
+
+Once the cluster is up, run the full build including Kubernetes integration tests:
+
+[source,bash]
+----
+mvn clean install -Dkubernetes.config.path=$HOME/.kube/config
+----
+
+To also specify the container image and namespace:
+
+[source,bash]
+----
+mvn clean install \
+  -Dkubernetes.config.path=$HOME/.kube/config \
+  -Dk8s.image=eclipse-temurin:21-jre \
+  -Dk8s.namespace=default
+----
+
+To tear down the cluster when done:
+
+[source,bash]
+----
+kind delete cluster --name jco-test
+----

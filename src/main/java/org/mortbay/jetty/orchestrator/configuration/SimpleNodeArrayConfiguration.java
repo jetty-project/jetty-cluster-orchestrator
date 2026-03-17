@@ -22,6 +22,7 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
 {
     private final String id;
     private final Map<String, Node> nodes = new HashMap<>();
+    private final Map<String, String> nodeSelectors = new HashMap<>();
     private Jvm jvm;
 
     public SimpleNodeArrayConfiguration(String id)
@@ -57,6 +58,17 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
     public SimpleNodeArrayConfiguration jvm(Jvm jvm)
     {
         this.jvm = jvm;
+        return this;
+    }
+
+    public Map<String, String> nodeSelectors()
+    {
+        return Collections.unmodifiableMap(nodeSelectors);
+    }
+
+    public SimpleNodeArrayConfiguration nodeSelector(String key, String value)
+    {
+        nodeSelectors.put(key, value);
         return this;
     }
 }
