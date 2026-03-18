@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
@@ -64,10 +66,11 @@ public class KubernetesClusterTest
 
     private static void assumeKubernetesAvailable()
     {
-        boolean hasKubeconfig = System.getenv("KUBECONFIG") != null
-            || Files.exists(Paths.get(System.getProperty("kubernetes.config.path")));
+
+        boolean hasKubeconfig = StringUtils.isNotEmpty(System.getProperty("kubernetes.config.path"))
+            && Files.exists(Paths.get(System.getProperty("kubernetes.config.path")));
         Assumptions.assumeTrue(hasKubeconfig, "Kubernetes not configured (no KUBECONFIG env var or -Dkubernetes.config.path=");
-        Assumptions.assumeTrue(K8S_IMAGE != null, "k8s.image system property not set");
+        Assumptions.assumeTrue(StringUtils.isNotEmpty(K8S_IMAGE), "k8s.image system property not set");
     }
 
     @Test
