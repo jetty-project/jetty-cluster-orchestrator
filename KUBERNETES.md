@@ -14,13 +14,23 @@ download work the same way as in SSH mode.
   - Build a custom image (see `docker/Dockerfile` in jetty-perf for an example) if you need `mpstat`, `sar`,
     `iostat`, or async-profiler
 
-## Maven Dependency
+## Maven Dependencies
+
+For Kubernetes functionality, you need both the core API and Kubernetes modules:
 
 ```xml
+<!-- Core API (required) -->
 <dependency>
     <groupId>org.mortbay.jetty.orchestrator</groupId>
-    <artifactId>jetty-cluster-orchestrator</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>jetty-cluster-orchestrator-api</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+
+<!-- Kubernetes support (required for K8s functionality) -->
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-k8s</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 

@@ -4,6 +4,88 @@ image::https://github.com/jetty-project/jetty-cluster-orchestrator/workflows/Git
 
 Jetty's `Cluster Orchestrator` is an API to ease writing tests that execute code over different JVMs, locally or across networks.
 
+== Maven Dependencies
+
+The project is structured as a multi-module Maven build with three modules:
+
+=== Core API Module (Always Required)
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-api</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+The API module provides the core orchestration functionality including:
+
+* `Cluster`, `ClusterConfiguration`, and core interfaces
+* `LocalHostLauncher` for local JVM processes 
+* Coordination tools (`Barrier`, `AtomicCounter`)
+* RPC framework and embedded ZooKeeper
+
+=== SSH Support (Optional)
+
+For remote execution over SSH, add:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-ssh</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+This module provides:
+
+* `SshRemoteHostLauncher` for SSH-based remote hosts
+* `SFTPNodeFileSystem` for remote file access over SFTP
+* Requires SSH public key authentication
+
+=== Kubernetes Support (Optional)
+
+For Kubernetes pod execution, add:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-k8s</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+This module provides:
+
+* `KubernetesRemoteHostLauncher` for Kubernetes pod hosts
+* `KubernetesNodeFileSystem` for remote file access via kubectl exec
+* Requires kubeconfig with pod creation permissions
+
+== Multi-Module Build Commands
+
+[source,bash]
+----
+# Build all modules
+mvn clean install
+
+# Build specific module
+mvn clean install -pl jetty-cluster-orchestrator-api
+mvn clean install -pl jetty-cluster-orchestrator-ssh  
+mvn clean install -pl jetty-cluster-orchestrator-k8s
+
+# Test specific module
+mvn test -pl jetty-cluster-orchestrator-api
+mvn test -pl jetty-cluster-orchestrator-k8s
+
+# Run Kubernetes integration tests
+mvn clean install -pl jetty-cluster-orchestrator-k8s \
+  -Dkubernetes.config.path=$HOME/.kube/config \
+  -Dk8s.image=eclipse-temurin:21-jre
+----
+
 == Cluster Orchestrator API
 
 === A word of warning
@@ -97,6 +179,8 @@ The way the JVMs are created on the remote machines is the same as in the local 
 command is used to create a JVM. The only difference is that this time copying and creating a process is done over SSH
 so it is assumed that the remote machines are reachable over SSH with public key auth pre-configured. The keys in `${HOME}/.ssh`
 are going to be used for that purpose.
+
+IMPORTANT: To use SSH functionality, you must include the `jetty-cluster-orchestrator-ssh` module dependency in your project.
 
 === Specifying the JVM
 
@@ -205,6 +289,8 @@ in case the node's machine is `localhost`. Please just note that the transparent
 === Kubernetes mode
 
 Nodes can also be launched as Kubernetes pods. See link:KUBERNETES.md[KUBERNETES.md] for the full API reference.
+
+IMPORTANT: To use Kubernetes functionality, you must include the `jetty-cluster-orchestrator-k8s` module dependency in your project.
 
 ==== Quick start with kind
 
