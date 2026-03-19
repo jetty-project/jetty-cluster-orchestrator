@@ -159,6 +159,12 @@ public class LocalHostLauncher implements HostLauncher
         }
     }
 
+    @Override
+    public String getZooKeeperConnectString() throws Exception
+    {
+        return null; // LocalHostLauncher uses the default embedded ZooKeeper
+    }
+
     static boolean skipDiskCleanup()
     {
         return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipDiskCleanup");

@@ -386,4 +386,10 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
                 .spawnDaemon(threadNamePrefix + "-chan2soc");
         }
     }
+
+    @Override
+    public String getZooKeeperConnectString() throws Exception
+    {
+        return null; // SshRemoteHostLauncher uses the default embedded ZooKeeper
+    }
 }

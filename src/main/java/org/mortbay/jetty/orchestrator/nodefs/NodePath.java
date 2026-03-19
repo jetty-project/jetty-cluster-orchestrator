@@ -49,11 +49,13 @@ class NodePath implements Path
         return pathSegments;
     }
 
+    private static final String PATH_SEPARATOR = "/";
+    
     static List<String> toSegments(String path)
     {
-        if (path.equals(SFTPNodeFileSystem.PATH_SEPARATOR))
-            return Collections.singletonList(SFTPNodeFileSystem.PATH_SEPARATOR);
-        String[] segments = path.split(SFTPNodeFileSystem.PATH_SEPARATOR);
+        if (path.equals(PATH_SEPARATOR))
+            return Collections.singletonList(PATH_SEPARATOR);
+        String[] segments = path.split(PATH_SEPARATOR);
         return Arrays.stream(segments).filter(s -> !"".equals(s)).collect(Collectors.toList());
     }
 

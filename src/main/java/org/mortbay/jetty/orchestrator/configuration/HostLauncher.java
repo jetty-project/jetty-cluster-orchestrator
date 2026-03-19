@@ -25,10 +25,7 @@ public interface HostLauncher extends AutoCloseable
      * this connect string instead. The launcher is responsible for keeping the ZooKeeper
      * accessible for the lifetime of the cluster.
      */
-    default String getZooKeeperConnectString() throws Exception
-    {
-        return null;
-    }
+    String getZooKeeperConnectString() throws Exception;
 
     /**
      * @return the modified {@code connectString} that nodes running on this host must connect to.

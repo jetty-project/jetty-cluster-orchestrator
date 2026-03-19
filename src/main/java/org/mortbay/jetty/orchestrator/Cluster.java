@@ -121,11 +121,10 @@ public class Cluster implements AutoCloseable
         {
             for (Node node : nodes)
             {
-                String hostname = node.getHostname();
-                GlobalNodeId globalNodeId = new GlobalNodeId(id, hostname);
-                HostLauncher launcher = hostname.equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
+                GlobalNodeId globalNodeId = new GlobalNodeId(id, node.getHostname());
+                HostLauncher launcher = node.getHostname().equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
                 if (launcher == null)
-                    throw new IllegalStateException("No configured host launcher to start node on " + hostname);
+                    throw new IllegalStateException("No configured host launcher to start node on " + node.getHostname());
                 futures.add(executor.submit(() ->
                 {
                     long healthCheckTimeout = configuration.healthCheckTimeout();

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
@@ -25,6 +26,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
@@ -54,6 +56,12 @@ public class NodeFileSystemProvider extends FileSystemProvider
 {
     public static final String PREFIX = "jco";
     public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
+    
+    // Kubernetes environment property keys
+    public static final String K8S_NAMESPACE_ENV_PROPERTY = "namespace";
+    public static final String K8S_POD_NAME_ENV_PROPERTY = "podName";
+    public static final String K8S_POD_HOME_ENV_PROPERTY = "podHome";
+    
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
     static
     {
@@ -137,9 +145,9 @@ public class NodeFileSystemProvider extends FileSystemProvider
             if (env.containsKey(KubernetesClient.class.getName()))
             {
                 KubernetesClient k8sClient = (KubernetesClient)env.get(KubernetesClient.class.getName());
-                String ns = (String)env.get("namespace");
-                String podName = (String)env.get("podName");
-                String podHome = (String)env.get("podHome");
+                String ns = (String)env.get(K8S_NAMESPACE_ENV_PROPERTY);
+                String podName = (String)env.get(K8S_POD_NAME_ENV_PROPERTY);
+                String podHome = (String)env.get(K8S_POD_HOME_ENV_PROPERTY);
                 fileSystem = new KubernetesNodeFileSystem(this, k8sClient, ns, podName, podHome, hostId, extractPath(uri));
             }
             else
@@ -274,29 +282,59 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public void checkAccess(Path path, AccessMode... modes) throws IOException
     {
-        // K8s-backed filesystems don't use SFTP attributes; assume accessible.
-        if (!(path.getFileSystem() instanceof SFTPNodeFileSystem))
-            return;
-
-        int[] masks = new int[modes.length];
-        for (int i = 0; i < modes.length; i++)
+        if (path.getFileSystem() instanceof SFTPNodeFileSystem)
         {
-            AccessMode mode = modes[i];
-            int mask = ACCESS_MODES_MASKS.get(mode);
-            masks[i] = mask;
-        }
-
-        NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
-        for (FilePermission permission : attributes.getLstat().getPermissions())
-        {
-            if (masks.length == 0) // existence check
-                return;
-            for (int mask : masks)
+            // SFTP filesystem - use existing SFTP attribute checking
+            int[] masks = new int[modes.length];
+            for (int i = 0; i < modes.length; i++)
             {
-                if (permission.isIn(mask))
+                AccessMode mode = modes[i];
+                int mask = ACCESS_MODES_MASKS.get(mode);
+                masks[i] = mask;
+            }
+
+            NodeFileAttributes attributes = readAttributes(path, NodeFileAttributes.class);
+            for (FilePermission permission : attributes.getLstat().getPermissions())
+            {
+                if (masks.length == 0) // existence check
                     return;
+                for (int mask : masks)
+                {
+                    if (permission.isIn(mask))
+                        return;
+                }
+            }
+            throw new IOException("Access check failed");
+        }
+        else if (path.getFileSystem() instanceof KubernetesNodeFileSystem)
+        {
+            // Kubernetes filesystem - check if file exists using readAttributes
+            try
+            {
+                BasicFileAttributes attrs = readAttributes(path, BasicFileAttributes.class);
+                // If readAttributes succeeds, the file exists and is accessible.
+                // For Kubernetes pods, we assume basic read access if the file exists.
+                // Write/execute permissions are harder to determine reliably via kubectl exec.
+                for (AccessMode mode : modes)
+                {
+                    if (mode == AccessMode.WRITE)
+                    {
+                        // Kubernetes filesystem is read-only from the perspective of the NIO provider
+                        throw new AccessDeniedException(path.toString(), null, "Kubernetes filesystem is read-only");
+                    }
+                    // READ and EXECUTE are allowed if file exists
+                }
+            }
+            catch (IOException e)
+            {
+                // readAttributes failed, likely because file doesn't exist
+                throw new NoSuchFileException(path.toString());
             }
         }
-        throw new IOException("Access check failed");
+        else
+        {
+            // Unknown filesystem type - assume accessible (fallback behavior)
+            return;
+        }
     }
 }

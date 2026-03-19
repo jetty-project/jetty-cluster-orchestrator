@@ -47,6 +47,7 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
@@ -57,6 +58,15 @@ import org.mortbay.jetty.orchestrator.util.StreamCopier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class is responsible to start Kubernetes nodes.
+ * It's not thread-safe, but it is expected that the cluster controller will call it in a single-threaded manner during cluster startup and shutdown.
+ * It maintains a map of launched pods so that it can clean them up on close(), and to prevent multiple pods from being launched for the same host.
+ * It also manages a ZooKeeper pod for cluster coordination if manageZooKeeper is true (the default), and provides the connect string to the controller and nodes as needed.
+ * The launcher creates a headless service to give the pods stable DNS names, and registers NIO filesystems for each pod so that ReportUtil.download() can access pod files via jco: URIs.
+ * The launcher copies the local classpath to each pod under $HOME/.jco/classpath, and constructs a command line that runs the NodeProcess main class with that classpath and the appropriate JVM options.
+ * The launcher uses the fabric8 Kubernetes client library to interact with the cluster.
+ */
 public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 {
     private static final Logger LOG = LoggerFactory.getLogger(KubernetesRemoteHostLauncher.class);
@@ -70,14 +80,13 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     private Jvm jvm;
     private KubernetesClient client;
     private boolean manageZooKeeper = true;
-    private volatile String zkPodName;
-    private volatile String zkServiceName;
-    private volatile LocalPortForward zkPortForward;
+    private String zkPodName;
+    private String zkServiceName;
+    private LocalPortForward zkPortForward;
     private final String headlessServiceName = "jco-nodes-" + launcherId;
-    private volatile boolean headlessServiceCreated = false;
+    private boolean headlessServiceCreated = false;
 
-
-    KubernetesRemoteHostLauncher(String namespace, String image, Path kubernetesConfig) throws IOException {
+    KubernetesRemoteHostLauncher(String namespace, String image, Path kubernetesConfig, Map<String, String> namespaceLabels) throws IOException {
         this.namespace = namespace;
         this.image = image;
         try(InputStream inputStream = Files.newInputStream(kubernetesConfig)) {
@@ -89,7 +98,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             ns = new NamespaceBuilder()
                     .withNewMetadata()
                     .withName(this.namespace)
-                    .addToLabels("jetty-cluster-orchestrator", "true")
+                    .withLabels(namespaceLabels)
                     .endMetadata()
                     .build();
 
@@ -105,6 +114,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         private String controllerHost;
         private boolean manageZooKeeper = true;
         private Path kubernetesConfig;
+        private final Map<String, String> namespaceLabels = new HashMap<>();
 
         public Builder namespace(String namespace)
         {
@@ -115,6 +125,18 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         public Builder image(String image)
         {
             this.image = image;
+            return this;
+        }
+        
+        public Builder withNamespaceLabel(String key, String value)
+        {
+            this.namespaceLabels.put(key, value);
+            return this;
+        }
+        
+        public Builder withNamespaceLabels(Map<String, String> labels)
+        {
+            this.namespaceLabels.putAll(labels);
             return this;
         }
 
@@ -146,7 +168,8 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             KubernetesRemoteHostLauncher launcher =
                     new KubernetesRemoteHostLauncher(Objects.requireNonNull(namespace, "Namespace cannot be null"),
                             Objects.requireNonNull(image, "Image cannot be null"),
-                            Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"));
+                            Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"),
+                            new HashMap<>(namespaceLabels));
             launcher.manageZooKeeper = manageZooKeeper;
             launcher.controllerHost = controllerHost;
             return launcher;
@@ -167,7 +190,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         return this;
     }
 
-    private synchronized void ensureHeadlessService()
+    private void ensureHeadlessService()
     {
         if (headlessServiceCreated)
             return;
@@ -180,16 +203,16 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                 .withClusterIP("None")
             .endSpec()
             .build();
-        client.services().inNamespace(namespace).resource(svc).create();
+        try {
+            client.services().inNamespace(namespace).resource(svc).create();
+        } catch (KubernetesClientException e)
+        {
+            if(e.getCode() == 429)
+            {
+                LOG.debug("Headless service {} already exists, continuing", headlessServiceName);
+            }
+        }
         headlessServiceCreated = true;
-    }
-
-    public String podDnsNameFor(String hostname)
-    {
-        String label = sanitizePodName(hostname);
-        if (label.length() > 63)
-            label = label.substring(0, 55) + "-" + launcherId.substring(0, 7);
-        return label + "." + headlessServiceName + "." + namespace + ".svc.cluster.local";
     }
 
     private String podHostnameFor(GlobalNodeId nodeId)
@@ -200,12 +223,14 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         String label = (dotIdx >= 0) ? hostname.substring(0, dotIdx) : sanitizePodName(hostname);
         // Enforce the 63-char Kubernetes DNS label limit
         if (label.length() > 63)
-            label = label.substring(0, 55) + "-" + launcherId.substring(0, 7);
+            throw new IllegalArgumentException("Hostname '" + hostname + "' sanitizes to '" + label + 
+                "' which exceeds Kubernetes DNS label limit of 63 characters. " +
+                "Use shorter hostnames to avoid potential name collisions.");
         return label;
     }
 
     @Override
-    public synchronized String getZooKeeperConnectString() throws Exception
+    public String getZooKeeperConnectString() throws Exception
     {
         if (!manageZooKeeper)
             return null;
@@ -250,7 +275,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             .build();
         client.services().inNamespace(namespace).resource(zkService).create();
 
-        // Wait for ZK pod to be ready
+        // Wait for ZK pod to be ready - 2 minutes allows time for image pulling and container startup
         client.pods().inNamespace(namespace).withName(zkPodName).waitUntilReady(2, TimeUnit.MINUTES);
 
         // Open local port-forward to ZK pod
@@ -335,6 +360,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                 .withNewMetadata()
                     .withName(podName)
                     .withNamespace(namespace)
+                    .withLabels(node.getLabels())
                 .endMetadata()
                 .withNewSpec()
                     .withRestartPolicy("Never")
@@ -350,6 +376,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                 .build();
             client.pods().inNamespace(namespace).resource(pod).create();
 
+            // Wait for pod to be ready - 2 minutes allows time for image pulling and container startup
             client.pods().inNamespace(namespace).withName(podName).waitUntilReady(2, TimeUnit.MINUTES);
 
             String homeOutput = runAndCollect(client, namespace, podName, "sh", "-c", "echo $HOME").trim();
@@ -359,9 +386,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             URI fsUri = URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId());
             Map<String, Object> fsEnv = new HashMap<>();
             fsEnv.put(KubernetesClient.class.getName(), client);
-            fsEnv.put("namespace", namespace);
-            fsEnv.put("podName", podName);
-            fsEnv.put("podHome", podHome);
+            fsEnv.put(NodeFileSystemProvider.K8S_NAMESPACE_ENV_PROPERTY, namespace);
+            fsEnv.put(NodeFileSystemProvider.K8S_POD_NAME_ENV_PROPERTY, podName);
+            fsEnv.put(NodeFileSystemProvider.K8S_POD_HOME_ENV_PROPERTY, podHome);
             FileSystems.newFileSystem(fsUri, fsEnv);
 
             String classpathDir = podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/" + NodeProcess.CLASSPATH_FOLDER_NAME;

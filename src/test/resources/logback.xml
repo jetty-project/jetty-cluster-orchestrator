@@ -14,7 +14,7 @@
   <logger name="org.apache.sshd" level="error" />
 
   <logger name="org.mortbay.jetty.orchestrator" level="info" />
-  <logger name="org.mortbay.jetty.orchestrator.configuration.KubernetesRemoteHostLauncher" level="debug" />
+  <logger name="org.mortbay.jetty.orchestrator.configuration.KubernetesRemoteHostLauncher" level="info" />
 
   <root level="info">
     <appender-ref ref="STDOUT" />

@@ -76,7 +76,7 @@ Node selectors constrain which Kubernetes nodes a pod may be scheduled on. They 
 
 ```java
 new SimpleNodeArrayConfiguration("loaders")
-    .nodeSelector("kubernetes.io/hostname", "k8s-node-2")
+    .withNodeSelector("kubernetes.io/hostname", "k8s-node-2")
     .node(new Node("loader-1"))
     .node(new Node("loader-2"))
 ```
@@ -85,8 +85,8 @@ new SimpleNodeArrayConfiguration("loaders")
 
 ```java
 new Node("server", "server")
-    .nodeSelector("kubernetes.io/hostname", "k8s-node-1")
-    .nodeSelector("beer", "australian")
+    .withNodeSelector("kubernetes.io/hostname", "k8s-node-1")
+    .withNodeSelector("beer", "australian")
 ```
 
 `Cluster` merges the two levels: array-level selectors are the base and node-level selectors are merged
@@ -124,28 +124,25 @@ The Fabric8 exec API does not set a working directory; pod processes start in th
 for `eclipse-temurin`), not in `$HOME/.jco/<nodeId>/`. Files written with relative paths land in `/root`.
 Use `rootPathOf(id)` to resolve report files by their absolute path inside the pod.
 
-**`clusterConfiguration` is transient so do not call `getClusterConfiguration()` inside a node lambda.**
-The `ClusterConfiguration` object is marked `transient` and will not be serialized to the pod.
-Any values the lambda needs (hostnames, participant counts, etc.) must be captured in non-transient fields
-before the lambda is created.
-
 **`rootPathOf()` is read-only and backed by `kubectl exec`.**
 The launcher registers a `jco:` NIO filesystem for each pod at launch time, so `rootPathOf(id)` works for
 Kubernetes nodes the same way it does for SSH nodes. Use it to download files after the test, not to write them.
 For absolute paths inside the pod, use `rootPathOf(id).getFileSystem().getPath("/abs/path")`.
 
 **Image must include all required tools.**
-`eclipse-temurin:21-jre` ships no `mpstat`, `sar`, `iostat`, or `perf`. Build a custom image if monitoring
-is needed (see `docker/Dockerfile` in jetty-perf for a minimal Ubuntu 24.04 + temurin-21 + sysstat example).
+The base `eclipse-temurin:21-jre` image ships without monitoring tools like `mpstat`, `sar`, `iostat`, or `perf`. 
+If your tests require system monitoring, build a custom image that includes the necessary tools (e.g., sysstat package).
 
 **Pod hostname limit.**
 Kubernetes DNS labels must be ≤ 63 characters. The launcher truncates automatically, but keep node IDs short
 to avoid collisions between truncated names.
 
-**ZooKeeper pod lifecycle.**
-By default the launcher creates a `zookeeper:3.9` pod and a ClusterIP service in your namespace for
-coordination, and deletes them when the `Cluster` is closed. It exposes the ZooKeeper address to `Cluster`
-via `HostLauncher.getZooKeeperConnectString()`, so the controller connects through a `LocalPortForward`
-and no inbound network access to the controller machine is required. Use `manageZooKeeper(false)` to skip
-this and connect pods to the controller's embedded ZooKeeper instead (pods must be able to reach the
-controller IP, auto-detected or set via `controllerHost()`).
+**ZooKeeper coordination modes.**
+The launcher supports two coordination modes:
+
+1. **Managed ZooKeeper (default):** Creates a `zookeeper:3.9` pod and ClusterIP service in your namespace. 
+   The controller connects via `LocalPortForward`, requiring no inbound network access to the controller machine.
+   Pods connect to the ZooKeeper service within the cluster.
+
+2. **Embedded ZooKeeper:** Use `manageZooKeeper(false)` to connect pods directly to the controller's embedded 
+   ZooKeeper. Requires pods to reach the controller IP (auto-detected or set via `controllerHost()`).

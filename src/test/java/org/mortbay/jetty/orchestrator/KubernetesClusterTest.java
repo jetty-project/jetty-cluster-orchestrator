@@ -103,11 +103,11 @@ public class KubernetesClusterTest
             });
 
             long testCounter = cluster.tools().atomicCounter("counter", 0L).incrementAndGet();
-            cluster.tools().barrier("barrier", participantCount).await(5, TimeUnit.MINUTES);
-            future.get(5, TimeUnit.MINUTES);
+            cluster.tools().barrier("barrier", participantCount).await(2, TimeUnit.MINUTES);
+            future.get(2, TimeUnit.MINUTES);
 
             long finalCount = cluster.tools().atomicCounter("counter", 0L).get();
-            assertThat(finalCount, greaterThan(0L));
+            assertThat(finalCount, equalTo(2L)); // 1 from test thread + 1 from node
         }
     }
 
@@ -153,18 +153,18 @@ public class KubernetesClusterTest
 
             NodeArrayFuture future = workerArray.executeOnAll(tools ->
             {
-                // Write a marker file to /tmp — a known location that always exists in any container.
+                // Write a marker file to the pod's working directory ($HOME/.jco/<nodeId>/).
                 // The test will read it back via the KubernetesNodeFileSystem to verify the
                 // filesystem's newInputStream / file-read path works end-to-end.
-                try (FileOutputStream fos = new FileOutputStream("/tmp/jco-fs-test.txt"))
+                try (FileOutputStream fos = new FileOutputStream("jco-fs-test.txt"))
                 {
                     fos.write("k8s-filesystem-works".getBytes(StandardCharsets.UTF_8));
                 }
                 tools.barrier("fs-barrier", participantCount).await();
             });
 
-            cluster.tools().barrier("fs-barrier", participantCount).await(5, TimeUnit.MINUTES);
-            future.get(5, TimeUnit.MINUTES);
+            cluster.tools().barrier("fs-barrier", participantCount).await(2, TimeUnit.MINUTES);
+            future.get(2, TimeUnit.MINUTES);
 
             for (String id : workerArray.ids())
             {
@@ -180,9 +180,9 @@ public class KubernetesClusterTest
                     "Expected .jco directory to exist and be a directory: " + jcoDir);
 
                 // 3. File reading: use the KubernetesNodeFileSystem to read the marker file
-                //    written by the node lambda above.  We access it via an absolute path on
-                //    the same filesystem (getFileSystem().getPath("/tmp/...")).
-                Path markerPath = rootPath.getFileSystem().getPath("/tmp/jco-fs-test.txt");
+                //    written by the node lambda above. The file was written to the working directory,
+                //    which is $HOME/.jco/<nodeId>/ for node processes, so we can read it via rootPath.
+                Path markerPath = rootPath.resolve("jco-fs-test.txt");
                 byte[] content = Files.readAllBytes(markerPath);
                 assertThat("Marker file content must match what the node wrote",
                     new String(content, StandardCharsets.UTF_8),
@@ -222,9 +222,9 @@ public class KubernetesClusterTest
             NodeArrayFuture clientFuture = clientArray.executeOnAll(tools ->
                 tools.barrier("barrier", participantCount).await());
 
-            cluster.tools().barrier("barrier", participantCount).await(5, TimeUnit.MINUTES);
-            serverFuture.get(5, TimeUnit.MINUTES);
-            clientFuture.get(5, TimeUnit.MINUTES);
+            cluster.tools().barrier("barrier", participantCount).await(2, TimeUnit.MINUTES);
+            serverFuture.get(2, TimeUnit.MINUTES);
+            clientFuture.get(2, TimeUnit.MINUTES);
         }
     }
 }

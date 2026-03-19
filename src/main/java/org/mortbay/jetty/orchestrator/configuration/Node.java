@@ -22,6 +22,7 @@ public class Node
     private final String id;
     private final String hostname;
     private final Map<String, String> nodeSelectors;
+    private final Map<String, String> labels;
 
     public Node(String hostname)
     {
@@ -38,6 +39,7 @@ public class Node
         this.id = id;
         this.hostname = hostname;
         this.nodeSelectors = Collections.unmodifiableMap(new HashMap<>(nodeSelectors));
+        this.labels = new HashMap<>();
     }
 
     public String getId()
@@ -55,11 +57,23 @@ public class Node
         return nodeSelectors;
     }
 
-    public Node nodeSelector(String key, String value)
+    public Node withNodeSelector(String key, String value)
     {
         Map<String, String> merged = new HashMap<>(this.nodeSelectors);
         merged.put(key, value);
         return new Node(id, hostname, merged);
+    }
+
+    public Node withLabel(String key, String value)
+    {
+        Node newNode = new Node(id, hostname, nodeSelectors);
+        newNode.labels.putAll(this.labels);
+        newNode.labels.put(key, value);
+        return newNode;
+    }
+
+    public Map<String, String> getLabels() {
+        return labels;
     }
 
     @Override
@@ -67,6 +81,7 @@ public class Node
         return "Node{" +
                 "id='" + id + '\'' +
                 ", hostname='" + hostname + '\'' +
+                ", label='" + labels + '\'' +
                 ", nodeSelectors=" + nodeSelectors +
                 '}';
     }
