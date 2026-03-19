@@ -308,21 +308,50 @@ public class NodeFileSystemProvider extends FileSystemProvider
         }
         else if (path.getFileSystem() instanceof KubernetesNodeFileSystem)
         {
-            // Kubernetes filesystem - check if file exists using readAttributes
+            // Kubernetes filesystem - check actual file permissions
             try
             {
                 BasicFileAttributes attrs = readAttributes(path, BasicFileAttributes.class);
-                // If readAttributes succeeds, the file exists and is accessible.
-                // For Kubernetes pods, we assume basic read access if the file exists.
-                // Write/execute permissions are harder to determine reliably via kubectl exec.
-                for (AccessMode mode : modes)
+                
+                // If we have KubernetesNodeFileAttributes, use actual permissions
+                if (attrs instanceof KubernetesNodeFileAttributes)
                 {
-                    if (mode == AccessMode.WRITE)
+                    KubernetesNodeFileAttributes k8sAttrs = (KubernetesNodeFileAttributes)attrs;
+                    
+                    for (AccessMode mode : modes)
                     {
-                        // Kubernetes filesystem is read-only from the perspective of the NIO provider
-                        throw new AccessDeniedException(path.toString(), null, "Kubernetes filesystem is read-only");
+                        switch (mode)
+                        {
+                            case READ:
+                                if (!k8sAttrs.isReadable())
+                                    throw new AccessDeniedException(path.toString(), null, "Read access denied");
+                                break;
+                            case WRITE:
+                                if (!k8sAttrs.isWritable())
+                                    throw new AccessDeniedException(path.toString(), null, "Write access denied");
+                                break;
+                            case EXECUTE:
+                                if (!k8sAttrs.isExecutable())
+                                    throw new AccessDeniedException(path.toString(), null, "Execute access denied");
+                                break;
+                        }
                     }
-                    // READ and EXECUTE are allowed if file exists
+                }
+                else
+                {
+                    // Fallback for basic attributes - maintain previous behavior
+                    // If readAttributes succeeds, the file exists and is accessible.
+                    // For Kubernetes pods, we assume basic read access if the file exists.
+                    // Write/execute permissions are harder to determine reliably via kubectl exec.
+                    for (AccessMode mode : modes)
+                    {
+                        if (mode == AccessMode.WRITE)
+                        {
+                            // Kubernetes filesystem is read-only from the perspective of the NIO provider
+                            throw new AccessDeniedException(path.toString(), null, "Kubernetes filesystem is read-only");
+                        }
+                        // READ and EXECUTE are allowed if file exists
+                    }
                 }
             }
             catch (IOException e)

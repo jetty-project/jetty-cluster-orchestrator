@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -205,80 +206,60 @@ class KubernetesNodeFileSystem extends NodeFileSystem
     @SuppressWarnings("unchecked")
     <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
     {
+        Objects.requireNonNull(type);
+        if (!type.equals(BasicFileAttributes.class) && !type.equals(KubernetesNodeFileAttributes.class))
+            throw new UnsupportedOperationException("Unsupported attribute type: " + type);
+
         String abs = absolutePathString(path);
         String output;
         try
         {
-            output = podRunAndCollect("stat", "--format=%F %s %Y", abs).trim();
+            // Enhanced stat format with quotes for robust parsing
+            // Format: '%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'
+            output = podRunAndCollect("stat", "--format='%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'", abs).trim();
         }
         catch (IOException e)
         {
             throw new IOException("Error reading attributes of path: " + path, e);
         }
 
-        // "%F %s %Y" -> e.g. "regular file 1234 1678901234"
-        // %F may contain a space ("regular file"), so split from the right.
-        int lastSpace = output.lastIndexOf(' ');
-        int secondLastSpace = output.lastIndexOf(' ', lastSpace - 1);
-        if (lastSpace < 0 || secondLastSpace < 0)
-            throw new IOException("Unexpected stat output for " + abs + ": " + output);
+        // Parse quoted stat output: "'%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'"
+        // e.g. "'regular file' '1234' '755' '1000' '1000' '1678901234' '1678901230' '1678901235'"
+        // Split on single quotes and extract every other element (skip empty strings between quotes)
+        String[] parts = output.split("'");
+        if (parts.length < 15) // Should have 16 parts: empty + 8 quoted fields + 7 separators
+            throw new IOException("Unexpected stat output format for " + abs + ": " + output);
 
-        String fileType = output.substring(0, secondLastSpace);
-        long size = Long.parseLong(output.substring(secondLastSpace + 1, lastSpace));
-        long mtimeSeconds = Long.parseLong(output.substring(lastSpace + 1));
-        boolean directory = "directory".equals(fileType);
-        boolean regularFile = "regular file".equals(fileType);
+        // Extract quoted fields (at indices 1, 3, 5, 7, 9, 11, 13, 15)
+        String fileType = parts[1];
+        String sizeStr = parts[3];
+        String permissionsStr = parts[5];
+        String userIdStr = parts[7];
+        String groupIdStr = parts[9];
+        String mtimeStr = parts[11];
+        String atimeStr = parts[13];
+        String ctimeStr = parts[15];
 
-        BasicFileAttributes result = new BasicFileAttributes()
+        try
         {
-            @Override
-            public FileTime lastModifiedTime()
-            {
-                return FileTime.from(mtimeSeconds, TimeUnit.SECONDS);
-            }
-            @Override
-            public FileTime lastAccessTime()
-            {
-                return lastModifiedTime();
-            }
-            @Override
-            public FileTime creationTime()
-            {
-                return lastModifiedTime();
-            }
-            @Override
-            public boolean isRegularFile()
-            {
-                return regularFile;
-            }
-            @Override
-            public boolean isDirectory()
-            {
-                return directory;
-            }
-            @Override
-            public boolean isSymbolicLink()
-            {
-                return "symbolic link".equals(fileType);
-            }
-            @Override
-            public boolean isOther()
-            {
-                return !directory && !regularFile && !isSymbolicLink();
-            }
-            @Override
-            public long size()
-            {
-                return size;
-            }
-            @Override
-            public Object fileKey()
-            {
-                return null;
-            }
-        };
+            long size = Long.parseLong(sizeStr);
+            int permissions = Integer.parseInt(permissionsStr, 8); // Parse as octal
+            int userId = Integer.parseInt(userIdStr);
+            int groupId = Integer.parseInt(groupIdStr);
+            long mtimeSeconds = Long.parseLong(mtimeStr);
+            long atimeSeconds = Long.parseLong(atimeStr);
+            long ctimeSeconds = Long.parseLong(ctimeStr);
 
-        return (A)result;
+            KubernetesNodeFileAttributes result = new KubernetesNodeFileAttributes(
+                fileType, size, permissions, userId, groupId, 
+                mtimeSeconds, atimeSeconds, ctimeSeconds);
+
+            return (A)result;
+        }
+        catch (NumberFormatException e)
+        {
+            throw new IOException("Failed to parse stat output for " + abs + ": " + output, e);
+        }
     }
 
     @Override
