@@ -158,7 +158,7 @@ public class NodeArray
 
         void selfCheck() throws Exception
         {
-            rpcClient.callAsync(new CheckNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
+            rpcClient.call(new CheckNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
         }
 
         @Override

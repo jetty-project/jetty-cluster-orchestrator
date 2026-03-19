@@ -11,4 +11,4 @@
 ## ========================================================================
 ##
 
-org.mortbay.jetty.orchestrator.nodefs.KubernetesNodeFileSystemFactory
+org.mortbay.jetty.orchestrator.k8s.nodefs.KubernetesNodeFileSystemFactory

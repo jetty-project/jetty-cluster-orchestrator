@@ -32,21 +32,21 @@ import java.util.Set;
  * Provides the extra methods that {@link NodePath} and {@link NodeFileSystemProvider} need
  * beyond the standard {@link FileSystem} API.
  */
-abstract class NodeFileSystem extends FileSystem
+public abstract class NodeFileSystem extends FileSystem
 {
-    abstract String getHostId();
+    abstract public String getHostId();
 
-    abstract boolean isWindows();
+    abstract public boolean isWindows();
 
-    abstract InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
+    abstract public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
 
-    abstract SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException;
+    abstract public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException;
 
-    abstract DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException;
+    abstract public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException;
 
-    abstract <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException;
+    abstract public  <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException;
 
-    abstract Path getPath(boolean absolute, List<String> segments);
+    abstract public Path getPath(boolean absolute, List<String> segments);
     
     /**
      * Check access to the given path for the specified modes.

@@ -30,7 +30,7 @@ import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.SshRemoteHostLauncher;
+import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
 import org.mortbay.jetty.orchestrator.util.JvmUtil;
 import sshd.AbstractSshTest;
 

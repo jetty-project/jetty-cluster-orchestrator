@@ -6,8 +6,8 @@
     </encoder>
   </appender>
 
-  <logger name="org.mortbay.jetty.orchestrator.nodefs.InMemoryFile" level="error" />
-  <logger name="org.mortbay.jetty.orchestrator.nodefs.PipingFile" level="error" />
+  <logger name="org.mortbay.jetty.orchestrator.ssh.nodefs.InMemoryFile" level="error" />
+  <logger name="org.mortbay.jetty.orchestrator.ssh.nodefs.PipingFile" level="error" />
   <logger name="org.zeroturnaround.process" level="error" />
   <logger name="net.schmizz.sshj" level="error" />
   <logger name="org.apache.zookeeper" level="error" />
@@ -15,7 +15,7 @@
   <logger name="org.apache.sshd" level="error" />
 
   <logger name="org.mortbay.jetty.orchestrator" level="info" />
-  <logger name="org.mortbay.jetty.orchestrator.configuration.KubernetesRemoteHostLauncher" level="info" />
+  <logger name="org.mortbay.jetty.orchestrator.k8s.launcher.KubernetesRemoteHostLauncher" level="info" />
 
   <root level="info">
     <appender-ref ref="STDOUT" />

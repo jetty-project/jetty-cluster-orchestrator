@@ -13,64 +13,10 @@
 
 package org.mortbay.jetty.orchestrator.tools;
 
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
-import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
-
-public class Barrier
+public interface Barrier
 {
-    private final DistributedDoubleBarrier distributedDoubleBarrier;
-    private final AtomicCounter atomicCounter;
-    private final int parties;
-    private final AtomicBoolean guard = new AtomicBoolean();
-
-    public Barrier(CuratorFramework curator, GlobalNodeId globalNodeId, String name, int parties)
-    {
-        this.parties = parties;
-        distributedDoubleBarrier = new DistributedDoubleBarrier(curator, "/clients/" + globalNodeId.getClusterId() + "/Barrier/" + name, parties);
-        atomicCounter = new AtomicCounter(curator, globalNodeId, "BarrierCounter", name, parties);
-    }
-
-    public int await() throws Exception
-    {
-        if (!guard.compareAndSet(false, true))
-            throw new BrokenBarrierException("Barrier is not cyclic");
-        distributedDoubleBarrier.enter();
-        try
-        {
-            int index = (int)atomicCounter.decrementAndGet();
-            if (index == 0)
-                atomicCounter.set(parties);
-            return index;
-        }
-        finally
-        {
-            distributedDoubleBarrier.leave();
-        }
-    }
-
-    public int await(long timeout, TimeUnit unit) throws Exception
-    {
-        if (!guard.compareAndSet(false, true))
-            throw new BrokenBarrierException("Barrier is not cyclic");
-        boolean success = distributedDoubleBarrier.enter(timeout, unit);
-        if (!success)
-            throw new TimeoutException("Timeout awaiting on barrier");
-        try
-        {
-            int index = (int)atomicCounter.decrementAndGet();
-            if (index == 0)
-                atomicCounter.set(parties);
-            return index;
-        }
-        finally
-        {
-            distributedDoubleBarrier.leave(timeout, unit);
-        }
-    }
+    int await() throws Exception;
+    int await(long timeout, TimeUnit unit) throws Exception;
 }

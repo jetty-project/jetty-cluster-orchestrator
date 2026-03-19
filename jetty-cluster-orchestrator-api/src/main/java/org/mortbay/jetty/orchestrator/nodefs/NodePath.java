@@ -31,13 +31,14 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class NodePath implements Path
+public class NodePath implements Path
 {
     private final NodeFileSystem fileSystem;
     private final NodePath basePath;
     private final List<String> pathSegments;
+    private static final String PATH_SEPARATOR = "/";
 
-    NodePath(NodeFileSystem fileSystem, NodePath basePath, List<String> pathSegments)
+    public NodePath(NodeFileSystem fileSystem, NodePath basePath, List<String> pathSegments)
     {
         this.fileSystem = fileSystem;
         this.basePath = basePath;
@@ -49,9 +50,7 @@ class NodePath implements Path
         return pathSegments;
     }
 
-    private static final String PATH_SEPARATOR = "/";
-    
-    static List<String> toSegments(String path)
+    public static List<String> toSegments(String path)
     {
         if (path.equals(PATH_SEPARATOR))
             return Collections.singletonList(PATH_SEPARATOR);
@@ -103,7 +102,7 @@ class NodePath implements Path
         return resolve(absolute, toSegments(other));
     }
 
-    NodePath resolve(boolean absolute, List<String> segments)
+    public NodePath resolve(boolean absolute, List<String> segments)
     {
         NodePath basePath = absolute ? null : this;
         return new NodePath(fileSystem, basePath, segments);

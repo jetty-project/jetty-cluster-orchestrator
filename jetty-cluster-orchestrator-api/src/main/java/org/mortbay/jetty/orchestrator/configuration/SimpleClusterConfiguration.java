@@ -13,6 +13,8 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;

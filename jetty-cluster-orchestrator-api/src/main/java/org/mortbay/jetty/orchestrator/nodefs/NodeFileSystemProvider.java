@@ -192,7 +192,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
         }
     }
 
-    void remove(String hostId)
+    public void remove(String hostId)
     {
         synchronized (fileSystems)
         {

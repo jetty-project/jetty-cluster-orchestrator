@@ -22,14 +22,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryNTimes;
+
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ProcessHolder;
 import org.mortbay.jetty.orchestrator.util.StreamCopier;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,13 +91,11 @@ public class NodeProcess implements Serializable, AutoCloseable
 
         if (LOG.isDebugEnabled())
             LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"), connectString);
-        CuratorFramework curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
-        curator.start();
-        curator.blockUntilConnected();
+        ZooKeeperClient zkClient = new ZooKeeperClient(connectString);
 
         if (LOG.isDebugEnabled())
             LOG.debug("Node [{}] connected to {}", nodeId, connectString);
-        RpcServer rpcServer = new RpcServer(curator, new GlobalNodeId(nodeId));
+        RpcServer rpcServer = new RpcServer(zkClient, new GlobalNodeId(nodeId));
 
         // The Cluster sends a CheckNodeCommand every 5 seconds, if we miss too many
         // we can assume the connection is dead.
@@ -138,7 +135,7 @@ public class NodeProcess implements Serializable, AutoCloseable
                 LOG.debug("Node [{}] stopping", nodeId);
             keepalive.interrupt();
             IOUtil.close(rpcServer);
-            IOUtil.close(curator);
+            IOUtil.close(zkClient);
             if (LOG.isDebugEnabled())
                 LOG.debug("Node [{}] stopped", nodeId);
         });

@@ -11,4 +11,4 @@
 ## ========================================================================
 ##
 
-org.mortbay.jetty.orchestrator.nodefs.SFTPNodeFileSystemFactory
+org.mortbay.jetty.orchestrator.ssh.nodefs.SFTPNodeFileSystemFactory

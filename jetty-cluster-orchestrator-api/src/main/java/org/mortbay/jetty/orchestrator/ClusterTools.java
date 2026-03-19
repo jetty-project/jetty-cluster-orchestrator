@@ -19,17 +19,18 @@ import java.util.concurrent.ConcurrentMap;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.tools.AtomicCounter;
 import org.mortbay.jetty.orchestrator.tools.Barrier;
-import org.apache.curator.framework.CuratorFramework;
+import org.mortbay.jetty.orchestrator.tools.DistributedQueue;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 
 public class ClusterTools
 {
-    private final CuratorFramework curator;
+    private final ZooKeeperClient zkClient;
     private final GlobalNodeId globalNodeId;
-    private final ConcurrentMap<String, Object> nodeEnvironment = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> localEnvironment = new ConcurrentHashMap<>();
 
-    public ClusterTools(CuratorFramework curator, GlobalNodeId globalNodeId)
+    public ClusterTools(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
-        this.curator = curator;
+        this.zkClient = zkClient;
         this.globalNodeId = globalNodeId;
     }
 
@@ -38,27 +39,23 @@ public class ClusterTools
         return globalNodeId;
     }
 
-    /**
-     * @deprecated use {@link #getGlobalNodeId()} instead
-     */
-    @Deprecated
-    public String getNodeId()
-    {
-        return globalNodeId.getNodeId();
-    }
-
     public Barrier barrier(String name, int count)
     {
-        return new Barrier(curator, globalNodeId, name, count);
+        return zkClient.createBarrier(globalNodeId, name, count);
     }
 
     public AtomicCounter atomicCounter(String name, long initialValue)
     {
-        return new AtomicCounter(curator, globalNodeId, name, initialValue);
+        return zkClient.createAtomicCounter(globalNodeId, name, initialValue);
     }
 
-    public ConcurrentMap<String, Object> nodeEnvironment()
+    public DistributedQueue distributedQueue(String name)
     {
-        return nodeEnvironment;
+        return zkClient.createDistributedQueue(globalNodeId, name);
+    }
+
+    public ConcurrentMap<String, Object> localEnvironment()
+    {
+        return localEnvironment;
     }
 }
