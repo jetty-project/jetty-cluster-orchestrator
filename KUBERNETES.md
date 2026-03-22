@@ -78,6 +78,68 @@ try (Cluster cluster = new Cluster(cfg)) {
 }
 ```
 
+## Kubernetes Services for Pod-to-Pod Communication
+
+When a node needs to be reachable via a stable DNS name (e.g., a server that other pods connect to), use `.withServicePort()` to automatically create a Kubernetes Service:
+
+```java
+new SimpleNodeArrayConfiguration("servers")
+    .node(new Node.Builder()
+        .withId("server-1")
+        .withHostname("server")
+        .withServicePort(8080)  // Creates service "server" exposing port 8080
+        .build())
+```
+
+The launcher will:
+1. Create a ClusterIP Service named after the node's hostname (`server` in this example)
+2. Configure the service to route traffic to the pod via label selector `hostname: server`
+3. Wait for service endpoints to be ready (typically 200-500ms for DNS propagation)
+4. Make the pod accessible at `server.<namespace>.svc.cluster.local:8080`
+
+**DNS propagation wait**: The launcher automatically waits up to 30 seconds for the service endpoints to become ready. This ensures that other pods can immediately resolve the DNS name without encountering "Connection refused" or "Unknown host" errors.
+
+**Example - Server and client pods:**
+```java
+ClusterConfiguration cfg = new SimpleClusterConfiguration()
+    .hostLauncher(launcher)
+    .nodeArray(new SimpleNodeArrayConfiguration("server")
+        .node(new Node.Builder()
+            .withId("server-1")
+            .withHostname("server")
+            .withServicePort(8080)
+            .build()))
+    .nodeArray(new SimpleNodeArrayConfiguration("clients")
+        .node(new Node("client-1"))
+        .node(new Node("client-2")));
+
+try (Cluster cluster = new Cluster(cfg)) {
+    String serverUrl = "http://server." + namespace + ".svc.cluster.local:8080";
+
+    cluster.nodeArray("server").executeOnAll(tools -> {
+        // Start HTTP server on port 8080
+        Server server = new Server();
+        ServerConnector connector = new ServerConnector(server);
+        connector.setPort(8080);
+        server.addConnector(connector);
+        server.start();
+
+        tools.barrier("ready", 3).await();
+        tools.barrier("done", 3).await();
+        server.stop();
+    });
+
+    cluster.nodeArray("clients").executeOnAll(tools -> {
+        tools.barrier("ready", 3).await();
+        // Connect to server via DNS name
+        HttpClient client = new HttpClient();
+        client.start();
+        client.GET(serverUrl);  // DNS name is guaranteed to be ready
+        tools.barrier("done", 3).await();
+    });
+}
+```
+
 ## Node Selectors — Pinning Pods to Specific Nodes
 
 Node selectors constrain which Kubernetes nodes a pod may be scheduled on. They can be set at two levels.
