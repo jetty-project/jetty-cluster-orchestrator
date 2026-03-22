@@ -323,7 +323,7 @@ To also specify the container image and namespace:
 mvn clean install \
   -Dkubernetes.config.path=$HOME/.kube/config \
   -Dk8s.image=eclipse-temurin:21-jre \
-  -Dk8s.namespace=default
+  -Dk8s.namespace=foo-bar
 ----
 
 To tear down the cluster when done:

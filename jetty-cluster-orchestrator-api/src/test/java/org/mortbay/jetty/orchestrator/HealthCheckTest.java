@@ -30,7 +30,9 @@ public class HealthCheckTest
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(500)
             .healthCheckTimeout(2000)
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
+                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -55,7 +57,9 @@ public class HealthCheckTest
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(2000)
             .healthCheckTimeout(1000)
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
+                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

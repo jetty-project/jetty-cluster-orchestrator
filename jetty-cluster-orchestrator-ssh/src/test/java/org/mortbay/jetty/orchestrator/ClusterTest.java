@@ -42,21 +42,27 @@ public class ClusterTest extends AbstractSshTest
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")).node(new Node("2", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
+                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
+                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", "localhost")))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
             ;
 
         String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", localHostname)))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node("1", localHostname)))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node.Builder().withId("1").withHostname(localHostname).build()))
+            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node.Builder().withId("1").withHostname(localHostname).build()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -126,7 +132,8 @@ public class ClusterTest extends AbstractSshTest
     public void testInvalidJvmExecutableInNodeArray() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
                 .jvm(new Jvm((f, h) -> "/does/not/exist")
             );
 
@@ -138,7 +145,8 @@ public class ClusterTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm((f, h) -> "/does/not/exist")))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
             ;
 
         assertThrows(Exception.class, () -> new Cluster(cfg));

@@ -40,7 +40,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -48,7 +49,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -60,7 +62,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -97,7 +100,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", "localhost")))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -133,7 +137,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array").node(new Node("1", InetAddress.getLocalHost().getHostName())))
+            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 

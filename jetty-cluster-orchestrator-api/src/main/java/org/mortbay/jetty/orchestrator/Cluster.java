@@ -106,7 +106,7 @@ public class Cluster implements AutoCloseable
                     return cfg.nodes().stream().map(node -> {
                         Map<String, String> nodeSelectors = new HashMap<>(nodeArraySelectors);
                         nodeSelectors.putAll(node.getNodeSelectors());
-                        return new Node(node.getId(), node.getHostname(), nodeSelectors);
+                        return node.withNodeSelectors(nodeSelectors);
                     });
                 })
                 .collect(Collectors.toMap(

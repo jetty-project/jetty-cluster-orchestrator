@@ -20,8 +20,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
     <k8s.image>jettyproject/jetty-perf-node:ubuntu24-jdk21</k8s.image>
     <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
     <!-- The path to the Kubernetes config file, if not set, tests will not run -->

@@ -88,7 +88,7 @@ public class KubernetesClusterTest
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
             .nodeArray(new SimpleNodeArrayConfiguration("worker-array")
-                .node(new Node("1", "k8s-node-1")))
+                .node(new Node.Builder().withId("1").withHostname("k8s-node-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))
@@ -144,7 +144,7 @@ public class KubernetesClusterTest
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
             .nodeArray(new SimpleNodeArrayConfiguration("worker-array")
-                .node(new Node("1", "k8s-fs-node-1")))
+                .node(new Node.Builder().withId("1").withHostname("k8s-fs-node-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))
@@ -206,9 +206,9 @@ public class KubernetesClusterTest
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
             .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                .node(new Node("1", "k8s-server-1")))
+                .node(new Node.Builder().withId("1").withHostname("k8s-server-1").withServicePort(8080).build()))
             .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                .node(new Node("1", "k8s-client-1")))
+                .node(new Node.Builder().withId("2").withHostname("k8s-client-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))

@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -360,16 +361,24 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
             ensureHeadlessService();
 
+            String podHostname = podHostnameFor(nodeId);
+
             Map<String, String> nodeSelectors = node.getNodeSelectors();
+
+            // Merge hostname label with custom node labels
+            Map<String, String> podLabels = new HashMap<>();
+            podLabels.put("hostname", node.getHostname());
+            podLabels.putAll(node.getLabels());
+
             Pod pod = new PodBuilder()
                 .withNewMetadata()
                     .withName(podName)
                     .withNamespace(namespace)
-                    .withLabels(node.getLabels())
+                    .withLabels(podLabels)
                 .endMetadata()
                 .withNewSpec()
                     .withRestartPolicy("Never")
-                    .withHostname(podHostnameFor(nodeId))
+                    .withHostname(podHostname)
                     .withSubdomain(headlessServiceName)
                     .withNodeSelector(nodeSelectors.isEmpty() ? null : nodeSelectors)
                     .addNewContainer()
@@ -383,6 +392,36 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
             // Wait for pod to be ready - 2 minutes allows time for image pulling and container startup
             client.pods().inNamespace(namespace).withName(podName).waitUntilReady(2, TimeUnit.MINUTES);
+
+            Service nodeService = null;
+
+            // we need to create a service mapping port
+            if(node.getServicePort()>0) {
+                nodeService = new ServiceBuilder()
+                        .withNewMetadata()
+                        .withName(node.getHostname())
+                        .withNamespace(namespace)
+                        .endMetadata()
+                        .withNewSpec()
+                        .withSelector(Map.of("hostname", node.getHostname()))
+                        .addNewPort()
+                        .withName("service-port" + node.getServicePort())
+                        .withPort(node.getServicePort())
+                        .withTargetPort(new IntOrString(node.getServicePort()))
+                        .endPort()
+                        .endSpec()
+                        .build();
+                client.services().inNamespace(namespace).resource(nodeService).create();
+
+                // Wait for service endpoints to ensure DNS propagation
+                // This prevents "Connection refused" errors when pods try to connect
+                waitForServiceEndpoints(node.getHostname(), 30);
+
+                LOG.info("Created service {} for node {} on port {}", nodeId.getHostname(), node.getId(), node.getServicePort());
+            }
+
+
+            LOG.info("pod {} is ready, launching node process for host {}", podName, nodeId.getHostname());
 
             String homeOutput = runAndCollect(client, namespace, podName, "sh", "-c", "echo $HOME").trim();
             String podHome = homeOutput.isEmpty() ? "/root" : homeOutput;
@@ -425,7 +464,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             new StreamCopier(execWatch.getOutput(), System.out, true).spawnDaemon(nodeId.getHostname() + "-stdout");
             new StreamCopier(execWatch.getError(), System.err, true).spawnDaemon(nodeId.getHostname() + "-stderr");
 
-            PodHolder holder = new PodHolder(nodeId, podName, execWatch, podHome, client, namespace);
+            PodHolder holder = new PodHolder(nodeId, podName, execWatch, podHome, client, namespace, nodeService);
             pods.put(nodeId.getHostname(), holder);
             LOG.debug("start node {} with remoteConnectString {}", node, remoteConnectString);
             return remoteConnectString;
@@ -447,6 +486,80 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         finally
         {
             LOG.debug("time to start pod for host {}: {}ms", nodeId.getHostname(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+        }
+    }
+
+    /**
+     * Waits for a Kubernetes service to have endpoints, indicating that DNS propagation
+     * is complete and the service is bound to pods.
+     *
+     * @param serviceName the name of the service to wait for
+     * @param timeoutSeconds maximum time to wait in seconds
+     * @throws Exception if the service endpoints don't become ready within the timeout,
+     *                   or if there's an error accessing the Kubernetes API
+     */
+    private void waitForServiceEndpoints(String serviceName, int timeoutSeconds) throws Exception
+    {
+        long startTime = System.nanoTime();
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(timeoutSeconds);
+        int attempt = 0;
+        long sleepMillis = 100;
+
+        LOG.debug("Waiting for service '{}' endpoints (timeout: {}s)", serviceName, timeoutSeconds);
+
+        while (true)
+        {
+            attempt++;
+            long elapsed = System.nanoTime() - startTime;
+
+            if (elapsed > timeoutNanos)
+            {
+                throw new Exception(String.format(
+                    "Timeout waiting for service '%s' endpoints after %d seconds. " +
+                    "DNS propagation may be delayed or service has no matching pods.",
+                    serviceName, timeoutSeconds));
+            }
+
+            try
+            {
+                var endpoints = client.endpoints()
+                    .inNamespace(namespace)
+                    .withName(serviceName)
+                    .get();
+
+                if (endpoints != null &&
+                    endpoints.getSubsets() != null &&
+                    !endpoints.getSubsets().isEmpty())
+                {
+                    boolean hasAddresses = endpoints.getSubsets().stream()
+                        .anyMatch(subset -> subset.getAddresses() != null &&
+                                           !subset.getAddresses().isEmpty());
+
+                    if (hasAddresses)
+                    {
+                        long totalMillis = TimeUnit.NANOSECONDS.toMillis(elapsed);
+                        LOG.info("Service '{}' endpoints ready after {} attempts ({}ms)",
+                            serviceName, attempt, totalMillis);
+                        return;
+                    }
+                }
+
+                if (attempt % 10 == 0)
+                {
+                    LOG.debug("Service '{}' endpoints not ready (attempt {}, elapsed: {}s)",
+                        serviceName, attempt, TimeUnit.NANOSECONDS.toSeconds(elapsed));
+                }
+            }
+            catch (KubernetesClientException e)
+            {
+                if (attempt == 1)
+                {
+                    LOG.debug("Service '{}' not accessible yet: {}", serviceName, e.getMessage());
+                }
+            }
+
+            Thread.sleep(sleepMillis);
+            sleepMillis = Math.min(sleepMillis * 2, 2000);
         }
     }
 
@@ -564,7 +677,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private static class PodHolder implements AutoCloseable
     {
-        private static final PodHolder NULL = new PodHolder(null, null, null, null, null, null);
+        private static final PodHolder NULL = new PodHolder(null, null, null, null, null, null, null);
 
         private final GlobalNodeId nodeId;
         private final String podName;
@@ -572,8 +685,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         private final String podHome;
         private final KubernetesClient client;
         private final String namespace;
+        private final Service nodeService;
 
-        private PodHolder(GlobalNodeId nodeId, String podName, ExecWatch execWatch, String podHome, KubernetesClient client, String namespace)
+        private PodHolder(GlobalNodeId nodeId, String podName, ExecWatch execWatch, String podHome, KubernetesClient client, String namespace, Service nodeService)
         {
             this.nodeId = nodeId;
             this.podName = podName;
@@ -581,6 +695,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             this.podHome = podHome;
             this.client = client;
             this.namespace = namespace;
+            this.nodeService = nodeService;
         }
 
         @Override
@@ -620,6 +735,17 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                 catch (Exception e)
                 {
                     LOG.debug("error deleting pod {}", podName, e);
+                }
+            }
+            if(nodeService != null)
+            {
+                try
+                {
+                    client.services().inNamespace(namespace).withName(nodeService.getMetadata().getName()).delete();
+                } 
+                catch (Exception e)
+                {
+                    LOG.debug("error deleting service {} for node {}", nodeService.getMetadata().getName(), nodeId.getHostname(), e);
                 }
             }
         }

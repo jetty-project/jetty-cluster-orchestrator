@@ -13,7 +13,6 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,25 +20,18 @@ public class Node
 {
     private final String id;
     private final String hostname;
-    private final Map<String, String> nodeSelectors;
+    private Map<String, String> nodeSelectors;
     private final Map<String, String> labels;
+    private final int servicePort;
 
-    public Node(String hostname)
-    {
-        this(hostname, hostname);
-    }
 
-    public Node(String id, String hostname)
-    {
-        this(id, hostname, Collections.emptyMap());
-    }
-
-    public Node(String id, String hostname, Map<String, String> nodeSelectors)
+    private Node(String id, String hostname, Map<String, String> nodeSelectors, Map<String, String> labels, int servicePort)
     {
         this.id = id;
         this.hostname = hostname;
-        this.nodeSelectors = Collections.unmodifiableMap(new HashMap<>(nodeSelectors));
-        this.labels = new HashMap<>();
+        this.nodeSelectors = Map.copyOf(nodeSelectors);
+        this.labels = Map.copyOf(labels);
+        this.servicePort = servicePort;
     }
 
     public String getId()
@@ -57,23 +49,17 @@ public class Node
         return nodeSelectors;
     }
 
-    public Node withNodeSelector(String key, String value)
-    {
-        Map<String, String> merged = new HashMap<>(this.nodeSelectors);
-        merged.put(key, value);
-        return new Node(id, hostname, merged);
-    }
-
-    public Node withLabel(String key, String value)
-    {
-        Node newNode = new Node(id, hostname, nodeSelectors);
-        newNode.labels.putAll(this.labels);
-        newNode.labels.put(key, value);
-        return newNode;
-    }
-
     public Map<String, String> getLabels() {
         return labels;
+    }
+
+    public int getServicePort() {
+        return servicePort;
+    }
+
+    public Node withNodeSelectors(Map<String, String> nodeSelectors) {
+        this.nodeSelectors = nodeSelectors;
+        return this;
     }
 
     @Override
@@ -83,6 +69,51 @@ public class Node
                 ", hostname='" + hostname + '\'' +
                 ", label='" + labels + '\'' +
                 ", nodeSelectors=" + nodeSelectors +
+                ", servicePort=" + servicePort +
                 '}';
     }
+
+    public static final class Builder
+    {
+        private String id;
+        private String hostname;
+        private Map<String, String> nodeSelectors = new HashMap<>();
+        private Map<String, String> labels = new HashMap<>();
+        private int servicePort = -1;
+
+        public Builder withId(String id)
+        {
+            this.id = id;
+            return this;
+        }
+
+        public Builder withHostname(String hostname)
+        {
+            this.hostname = hostname;
+            return this;
+        }
+
+        public Builder withNodeSelectors(Map<String, String> nodeSelectors)
+        {
+            this.nodeSelectors = nodeSelectors;
+            return this;
+        }
+
+        public Builder withLabels(Map<String, String> labels)
+        {
+            this.labels = labels;
+            return this;
+        }
+
+        public Builder withServicePort(int port) {
+            this.servicePort = port;
+            return this;
+        }
+
+        public Node build()
+        {
+            return new Node(id, hostname, nodeSelectors, labels, servicePort);
+        }
+    }
+
 }
