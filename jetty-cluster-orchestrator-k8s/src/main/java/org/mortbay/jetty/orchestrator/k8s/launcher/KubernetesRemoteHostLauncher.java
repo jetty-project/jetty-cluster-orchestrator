@@ -85,10 +85,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     private String controllerHost;
     private Jvm jvm;
     private KubernetesClient client;
-    private boolean manageZooKeeper = true;
+    private LocalPortForward zkPortForward;
     private String zkPodName;
     private String zkServiceName;
-    private LocalPortForward zkPortForward;
     private final String headlessServiceName = "jco-nodes-" + launcherId;
     private boolean headlessServiceCreated = false;
 
@@ -118,7 +117,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         private String namespace;
         private String image;
         private String controllerHost;
-        private boolean manageZooKeeper = true;
         private Path kubernetesConfig;
         private final Map<String, String> namespaceLabels = new HashMap<>();
 
@@ -152,17 +150,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             return this;
         }
 
-        /**
-         * If <code>true</code>, a zookeper image will be launched in the cluster and used for cluster coordination;
-         * if <code>false</code>, the launcher will expect the controller to provide a connect string to an existing ZooKeeper ensemble when launching each node,
-         * and will use that connect string for coordination. Default is <code>true</code>.
-         */
-        public Builder manageZooKeeper(boolean manageZooKeeper)
-        {
-            this.manageZooKeeper = manageZooKeeper;
-            return this;
-        }
-
         public Builder kubernetesConfig(Path kubernetesConfig)
         {
             this.kubernetesConfig = kubernetesConfig;
@@ -176,7 +163,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                             Objects.requireNonNull(image, "Image cannot be null"),
                             Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"),
                             new HashMap<>(namespaceLabels));
-            launcher.manageZooKeeper = manageZooKeeper;
             launcher.controllerHost = controllerHost;
             return launcher;
         }
@@ -236,13 +222,8 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String getZooKeeperConnectString() throws Exception
+    public String initialize() throws Exception
     {
-        if (!manageZooKeeper)
-            return null;
-        if (zkPortForward != null)
-            return "localhost:" + zkPortForward.getLocalPort();
-
         LOG.debug("launching ZooKeeper pod for cluster coordination");
 
         zkPodName = "jco-zk-" + launcherId;
@@ -285,8 +266,8 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         client.pods().inNamespace(namespace).withName(zkPodName).waitUntilReady(2, TimeUnit.MINUTES);
 
         // Open local port-forward to ZK pod
-        zkPortForward = client.pods().inNamespace(namespace).withName(zkPodName).portForward(2181);
-        return zkPortForward.getLocalAddress().getHostAddress() + ":" + zkPortForward.getLocalPort();
+        this.zkPortForward = client.pods().inNamespace(namespace).withName(zkPodName).portForward(2181);
+        return this.zkPortForward.getLocalAddress().getHostAddress() + ":" + this.zkPortForward.getLocalPort();
     }
 
     @Override
@@ -347,17 +328,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         ExecWatch execWatch = null;
         try
         {
-            String remoteConnectString;
-            if (manageZooKeeper)
-            {
-                remoteConnectString = zkServiceName + ":2181";
-            }
-            else
-            {
-                int zkPort = Integer.parseInt(connectString.split(":")[1]);
-                String effectiveControllerHost = (controllerHost != null) ? controllerHost : detectControllerHost();
-                remoteConnectString = effectiveControllerHost + ":" + zkPort;
-            }
+            int zkPort = Integer.parseInt(connectString.split(":")[1]);
+            String effectiveControllerHost = (controllerHost != null) ? controllerHost : detectControllerHost();
+            String remoteConnectString = effectiveControllerHost + ":" + zkPort;
 
             ensureHeadlessService();
 

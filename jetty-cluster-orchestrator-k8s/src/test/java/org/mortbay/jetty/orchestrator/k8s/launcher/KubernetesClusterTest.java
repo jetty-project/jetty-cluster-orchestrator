@@ -81,7 +81,6 @@ public class KubernetesClusterTest
 
         KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder().namespace(K8S_NAMESPACE)
                 .image(K8S_IMAGE)
-                .manageZooKeeper(false)
                 .kubernetesConfig(Paths.get(System.getProperty("kubernetes.config.path")))
                 .build();
 
@@ -137,7 +136,6 @@ public class KubernetesClusterTest
         KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
             .namespace(K8S_NAMESPACE)
             .image(K8S_IMAGE)
-            .manageZooKeeper(false)
             .kubernetesConfig(Paths.get(System.getProperty("kubernetes.config.path")))
             .build();
 

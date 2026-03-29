@@ -51,6 +51,7 @@ import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.StreamCopier;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,11 +88,20 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         this.port = port;
     }
 
+    private ZooKeeperServer zkServer;
+
+    @Override
+    public String initialize() throws Exception {
+        zkServer = new ZooKeeperServer();
+        return "localhost:" + zkServer.getPort();
+    }
+
     @Override
     public void close()
     {
         nodes.values().forEach(IOUtil::close);
         nodes.clear();
+        IOUtil.close(zkServer);
     }
 
     @Override
@@ -392,9 +402,4 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
         }
     }
 
-    @Override
-    public String getZooKeeperConnectString() throws Exception
-    {
-        return null; // SshRemoteHostLauncher uses the default embedded ZooKeeper
-    }
 }

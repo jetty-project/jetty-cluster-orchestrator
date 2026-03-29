@@ -27,6 +27,7 @@ import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 
 public class LocalHostLauncher implements HostLauncher
 {
@@ -35,6 +36,13 @@ public class LocalHostLauncher implements HostLauncher
     private final Lock lock = new ReentrantLock();
     private Thread thread;
     private GlobalNodeId nodeId;
+    private ZooKeeperServer zkServer;
+
+    @Override
+    public String initialize() throws Exception {
+        zkServer = new ZooKeeperServer();
+        return "localhost:" + zkServer.getPort();
+    }
 
     @Override
     public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
@@ -112,6 +120,7 @@ public class LocalHostLauncher implements HostLauncher
         {
             lock.unlock();
         }
+        IOUtil.close(zkServer);
     }
 
     public static File rootPathOf(String hostId)
@@ -160,12 +169,6 @@ public class LocalHostLauncher implements HostLauncher
                 }
             }
         }
-    }
-
-    @Override
-    public String getZooKeeperConnectString() throws Exception
-    {
-        return null; // LocalHostLauncher uses the default embedded ZooKeeper
     }
 
     public static boolean skipDiskCleanup()

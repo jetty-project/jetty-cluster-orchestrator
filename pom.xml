@@ -27,7 +27,7 @@
     <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
     <!-- The path to the Kubernetes config file, if not set, tests will not run -->
     <!-- -Dkubernetes.config.path=${user.home}/.kube/config -->
-    <kubernetes.config.path></kubernetes.config.path>
+    <kubernetes.config.path />
   </properties>
 
   <licenses>
