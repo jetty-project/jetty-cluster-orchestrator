@@ -27,7 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
@@ -39,6 +38,7 @@ import org.mortbay.jetty.orchestrator.rpc.RpcClient;
 import org.mortbay.jetty.orchestrator.rpc.command.CheckNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.KillNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.SpawnNodeCommand;
+import org.mortbay.jetty.orchestrator.util.CuratorUtil;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;

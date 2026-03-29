@@ -249,6 +249,9 @@
               <k8s.image>${k8s.image}</k8s.image>
               <k8s.namespace>${k8s.namespace}</k8s.namespace>
               <kubernetes.config.path>${kubernetes.config.path}</kubernetes.config.path>
+              <jco.curator.sessionTimeoutMs>15000</jco.curator.sessionTimeoutMs>
+              <jco.curator.connectionTimeoutMs>10000</jco.curator.connectionTimeoutMs>
+              <jco.curator.retry.maxRetries>1</jco.curator.retry.maxRetries>
             </systemProperties>
           </configuration>
         </plugin>

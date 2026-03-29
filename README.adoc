@@ -286,6 +286,60 @@ After running this test, you should have a hierarchy on the local filesystem tha
 A NIO `FileSystem` is created for each remote machine that transparently works across the SSH connection, or locally
 in case the node's machine is `localhost`. Please just note that the transparent remote filesystem is read-only.
 
+== Configuration Properties
+
+The Jetty Cluster Orchestrator supports several system properties to configure ZooKeeper connectivity and retry behavior.
+These properties are useful for adapting the cluster behavior to different network environments or CI/CD systems.
+
+=== ZooKeeper Connection Configuration
+
+[cols="1,1,2,1"]
+|===
+|Property |Default |Description |Example
+
+|`jco.curator.retry.baseSleepTimeMs`
+|`1000`
+|Base delay between ZooKeeper retry attempts in milliseconds
+|`-Djco.curator.retry.baseSleepTimeMs=500`
+
+|`jco.curator.retry.maxRetries`
+|`3`
+|Maximum number of retry attempts for ZooKeeper operations
+|`-Djco.curator.retry.maxRetries=5`
+
+|`jco.curator.sessionTimeoutMs`
+|`30000`
+|ZooKeeper session timeout in milliseconds
+|`-Djco.curator.sessionTimeoutMs=15000`
+
+|`jco.curator.connectionTimeoutMs`
+|`15000`
+|ZooKeeper initial connection timeout in milliseconds
+|`-Djco.curator.connectionTimeoutMs=10000`
+|===
+
+==== Configuration Examples
+
+For environments with unstable networks (e.g., CI systems with resource contention):
+
+[source,bash]
+----
+mvn test -Djco.curator.retry.maxRetries=5 -Djco.curator.retry.baseSleepTimeMs=500
+----
+
+For faster test execution in stable environments:
+
+[source,bash]
+----
+mvn test -Djco.curator.sessionTimeoutMs=10000 -Djco.curator.connectionTimeoutMs=5000
+----
+
+The retry policy uses exponential backoff, so with default settings of 3 retries and 1000ms base delay,
+the actual delays will be approximately: 1s, 2s, 4s before giving up.
+
+IMPORTANT: Setting `maxRetries` to 0 will disable retries entirely, which may cause connection failures
+in environments with temporary network hiccups during test execution.
+
 === Kubernetes mode
 
 Nodes can also be launched as Kubernetes pods. See link:KUBERNETES.md[KUBERNETES.md] for the full API reference.
