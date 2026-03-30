@@ -13,18 +13,14 @@
 
 package org.mortbay.jetty.orchestrator.rpc;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
+
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
+import org.mortbay.jetty.orchestrator.tools.DistributedQueue;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,19 +29,19 @@ public class RpcServer implements AutoCloseable
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
 
     private final GlobalNodeId globalNodeId;
-    private final SimpleDistributedQueue commandQueue;
-    private final SimpleDistributedQueue responseQueue;
+    private final DistributedQueue commandQueue;
+    private final DistributedQueue responseQueue;
     private final ExecutorService executorService;
     private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private volatile boolean active;
     private final ClusterTools clusterTools;
     private volatile long lastCommandTimestamp;
 
-    public RpcServer(CuratorFramework curator, GlobalNodeId globalNodeId)
+    public RpcServer(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
         this.globalNodeId = globalNodeId;
-        commandQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/commandQ");
-        responseQueue = new SimpleDistributedQueue(curator, "/clients/" + globalNodeId.getNodeId() + "/responseQ");
+        commandQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/commandQ");
+        responseQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/responseQ");
         executorService = Executors.newCachedThreadPool(r ->
         {
             Thread thread = new Thread(r);
@@ -54,7 +50,7 @@ public class RpcServer implements AutoCloseable
             thread.setName(threadIdGenerator.getAndIncrement() + "|" + shortId);
             return thread;
         });
-        clusterTools = new ClusterTools(curator, globalNodeId);
+        clusterTools = new ClusterTools(zkClient, globalNodeId);
         lastCommandTimestamp = System.nanoTime();
     }
 
@@ -82,7 +78,7 @@ public class RpcServer implements AutoCloseable
     {
         try
         {
-            commandQueue.offer(serialize(new Request(0, new AbortCommand())));
+            commandQueue.offer(new Request(0, new AbortCommand()));
         }
         catch (Exception e)
         {
@@ -97,11 +93,9 @@ public class RpcServer implements AutoCloseable
         active = true;
         while (active)
         {
-            byte[] cmdBytes;
             try
             {
-                cmdBytes = commandQueue.take();
-                Object obj = deserialize(cmdBytes);
+                Object obj = commandQueue.take();
                 Request request = (Request)obj;
                 lastCommandTimestamp = System.nanoTime();
                 if (LOG.isDebugEnabled())
@@ -127,28 +121,10 @@ public class RpcServer implements AutoCloseable
                         throwable = x;
                     }
 
-                    byte[] resBytes;
                     try
                     {
                         Response response = new Response(requestId, result, throwable);
-                        resBytes = serialize(response);
-                    }
-                    catch (IOException e)
-                    {
-                        Response response = new Response(requestId, null, e);
-                        try
-                        {
-                            resBytes = serialize(response);
-                        }
-                        catch (IOException nested)
-                        {
-                            // can't happen
-                            resBytes = null;
-                        }
-                    }
-                    try
-                    {
-                        responseQueue.offer(resBytes);
+                        responseQueue.offer(response);
                     }
                     catch (Exception e)
                     {
@@ -169,20 +145,6 @@ public class RpcServer implements AutoCloseable
                 throw new RuntimeException("Error reading command on node " + globalNodeId.getNodeId(), e);
             }
         }
-    }
-
-    private static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException
-    {
-        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
-        return ois.readObject();
-    }
-
-    private static byte[] serialize(Object obj) throws IOException
-    {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(obj);
-        return baos.toByteArray();
     }
 
     private static class AbortCommand implements Command

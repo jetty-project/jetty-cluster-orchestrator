@@ -26,9 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryNTimes;
+
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
@@ -41,6 +39,7 @@ import org.mortbay.jetty.orchestrator.rpc.command.CheckNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.KillNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.SpawnNodeCommand;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
+import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ public class Cluster implements AutoCloseable
     private final Map<GlobalNodeId, Host> hosts = new HashMap<>(); // keyed by HostId
     private final Timer hostsCheckerTimer = new Timer();
     private ZooKeeperServer zkServer;
-    private CuratorFramework curator;
+    private ZooKeeperClient zkClient;
     private ClusterTools clusterTools;
 
     public Cluster(ClusterConfiguration configuration) throws Exception
@@ -93,10 +92,8 @@ public class Cluster implements AutoCloseable
     {
         zkServer = new ZooKeeperServer();
         String connectString = "localhost:" + zkServer.getPort();
-        curator = CuratorFrameworkFactory.newClient(connectString, new RetryNTimes(0, 0));
-        curator.start();
-        curator.blockUntilConnected();
-        clusterTools = new ClusterTools(curator, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
+        zkClient = new ZooKeeperClient(connectString);
+        clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
         // start all host nodes
         List<String> hostnames = configuration.nodeArrays().stream()
@@ -131,7 +128,7 @@ public class Cluster implements AutoCloseable
             Map.Entry<GlobalNodeId, String> entry = future.get();
             GlobalNodeId globalNodeId = entry.getKey();
             String remoteConnectString = entry.getValue();
-            hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(curator, globalNodeId), remoteConnectString));
+            hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), remoteConnectString));
         }
 
         // start heath check timer
@@ -160,7 +157,7 @@ public class Cluster implements AutoCloseable
                 try
                 {
                     NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, Long.toString(configuration.healthCheckTimeout()))).get(10, TimeUnit.SECONDS);
-                    NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(curator, globalNodeId));
+                    NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
                 }
@@ -187,7 +184,7 @@ public class Cluster implements AutoCloseable
         nodeArrays.clear();
         IOUtil.close(hostLauncher);
         IOUtil.close(localHostLauncher);
-        IOUtil.close(curator);
+        IOUtil.close(zkClient);
         IOUtil.close(zkServer);
     }
 
