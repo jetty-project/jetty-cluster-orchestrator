@@ -13,12 +13,8 @@
 
 package org.mortbay.jetty.orchestrator.tools;
 
-public interface AtomicCounter
+public interface DistributedQueue
 {
-    long incrementAndGet();
-    long decrementAndGet();
-    long getAndIncrement();
-    long getAndDecrement();
-    long get();
-    void set(long value);
+    void offer(Object o) throws Exception;
+    Object take() throws Exception;
 }
