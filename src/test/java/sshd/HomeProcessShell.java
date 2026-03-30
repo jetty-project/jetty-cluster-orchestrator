@@ -111,7 +111,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
         Map<PtyMode, ?> modes = resolveShellTtyOptions(env.getPtyModes());
         out = new TtyFilterInputStream(process.getInputStream(), modes);
         err = new TtyFilterInputStream(process.getErrorStream(), modes);
-        in = new TtyFilterOutputStream(process.getOutputStream(), err, modes);
+        in = new TtyFilterOutputStream(process.getOutputStream(), modes);
     }
 
     protected Map<String, String> resolveShellEnvironment(Map<String, String> env) {
