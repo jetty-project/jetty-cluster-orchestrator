@@ -210,6 +210,7 @@ public class Cluster implements AutoCloseable
         private void check()
         {
             List<String> unsaneHostIds = new ArrayList<>();
+            Exception failure = null;
             for (NodeArray.Node node : nodes)
             {
                 NodeProcess nodeProcess = node.getNodeProcess();
@@ -228,11 +229,15 @@ public class Cluster implements AutoCloseable
                     if (LOG.isDebugEnabled())
                         LOG.debug("Host {} failed check of {}", globalNodeId.getHostId(), nodeProcess, e);
                     unsaneHostIds.add(String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
+                    if (failure == null)
+                        failure = e;
+                    else
+                        failure.addSuppressed(e);
                 }
             }
             if (!unsaneHostIds.isEmpty())
             {
-                LOG.error("Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}", unsaneHostIds.size(), String.join("\n", unsaneHostIds));
+                LOG.error("Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}", unsaneHostIds.size(), String.join("\n", unsaneHostIds), failure);
                 close();
             }
         }
