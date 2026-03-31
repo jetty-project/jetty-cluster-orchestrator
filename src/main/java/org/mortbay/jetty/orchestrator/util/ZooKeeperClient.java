@@ -72,9 +72,9 @@ public class ZooKeeperClient implements Closeable
         return new BarrierImpl(curator, globalNodeId, name, count);
     }
 
-    public DistributedQueue createDistributedQueue(String name)
+    public DistributedQueue createDistributedQueue(GlobalNodeId globalNodeId, String name)
     {
-        return new DistributedQueueImpl(curator, name);
+        return new DistributedQueueImpl(curator, globalNodeId, name);
     }
 
     private static class AtomicCounterImpl implements AtomicCounter
@@ -92,8 +92,8 @@ public class ZooKeeperClient implements Closeable
         {
             this.globalNodeId = globalNodeId;
             this.name = name;
-            String prefix = "/clients/" + globalNodeId.getClusterId() + "/" + internalPath;
-            String counterName = prefix + "/" + name;
+            String prefix = "/" + globalNodeId.getClusterId() + "/" + internalPath;
+            String counterName = prefix + "/Counter/" + name;
             String lockName = prefix + "/Lock/" + name;
             this.distributedAtomicLong = newDistributedAtomicLong(curator, counterName, lockName, initialValue);
         }
@@ -235,8 +235,8 @@ public class ZooKeeperClient implements Closeable
         BarrierImpl(CuratorFramework curator, GlobalNodeId globalNodeId, String name, int parties)
         {
             this.parties = parties;
-            distributedDoubleBarrier = newDistributedDoubleBarrier(curator, "/clients/" + globalNodeId.getClusterId() + "/Barrier/" + name, parties);
-            atomicCounter = new AtomicCounterImpl(curator, globalNodeId, "BarrierCounter", name, parties);
+            distributedDoubleBarrier = newDistributedDoubleBarrier(curator, "/" + globalNodeId.getClusterId() + "/Barrier/" + name, parties);
+            atomicCounter = new AtomicCounterImpl(curator, globalNodeId, "Barrier", name, parties);
         }
 
         private DistributedDoubleBarrier newDistributedDoubleBarrier(CuratorFramework curator, String barrierPath, int parties)
@@ -289,8 +289,9 @@ public class ZooKeeperClient implements Closeable
     {
         private final SimpleDistributedQueue simpleDistributedQueue;
 
-        DistributedQueueImpl(CuratorFramework curator, String queuePath)
+        DistributedQueueImpl(CuratorFramework curator, GlobalNodeId globalNodeId, String name)
         {
+            String queuePath = "/" + globalNodeId.getNodeId() + "/Queue/" + name;
             simpleDistributedQueue = new SimpleDistributedQueue(curator, queuePath);
         }
 

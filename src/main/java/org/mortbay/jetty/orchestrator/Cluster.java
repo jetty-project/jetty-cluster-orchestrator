@@ -156,7 +156,7 @@ public class Cluster implements AutoCloseable
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
                 try
                 {
-                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.callAsync(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, Long.toString(configuration.healthCheckTimeout()))).get(10, TimeUnit.SECONDS);
+                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.call(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, Long.toString(configuration.healthCheckTimeout())), 10, TimeUnit.SECONDS);
                     NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
@@ -219,7 +219,7 @@ public class Cluster implements AutoCloseable
                     if (LOG.isDebugEnabled())
                        LOG.debug("client checking node {}", node);
                     // Ask the host node to check the spawned node.
-                    rpcClient.callAsync(new CheckNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
+                    rpcClient.call(new CheckNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
                     // Ask the spawned node to check itself. Must happen to create
                     // a heartbeat for the health checks.
                     node.selfCheck();
@@ -250,7 +250,7 @@ public class Cluster implements AutoCloseable
                 NodeProcess nodeProcess = node.getNodeProcess();
                 try
                 {
-                    rpcClient.callAsync(new KillNodeCommand(nodeProcess)).get(10, TimeUnit.SECONDS);
+                    rpcClient.call(new KillNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
                 }
                 catch (Exception e)
                 {

@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 public class RpcServer implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
+    static final String COMMAND_QUEUE_NAME = "RPC/commandQ";
+    static final String RESPONSE_QUEUE_NAME = "RPC/responseQ";
 
     private final GlobalNodeId globalNodeId;
     private final DistributedQueue commandQueue;
@@ -40,8 +42,8 @@ public class RpcServer implements AutoCloseable
     public RpcServer(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
         this.globalNodeId = globalNodeId;
-        commandQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/commandQ");
-        responseQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/responseQ");
+        commandQueue = zkClient.createDistributedQueue(globalNodeId, COMMAND_QUEUE_NAME);
+        responseQueue = zkClient.createDistributedQueue(globalNodeId, RESPONSE_QUEUE_NAME);
         executorService = Executors.newCachedThreadPool(r ->
         {
             Thread thread = new Thread(r);
@@ -106,7 +108,7 @@ public class RpcServer implements AutoCloseable
                     return;
                 }
 
-                executorService.submit(()->
+                executorService.submit(() ->
                 {
                     Object result = null;
                     Throwable throwable = null;
