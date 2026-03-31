@@ -101,7 +101,7 @@ public class Cluster implements AutoCloseable
             configuration.nodeArrays().stream()
                 .flatMap(cfg -> {
                     // node selectors at array level
-                    Map<String, String> nodeArraySelectors = cfg.nodeSelectors();
+                    Map<String, String> nodeArraySelectors = cfg.filters();
                     // but each node will be to override it
                     return cfg.nodes().stream().map(node -> {
                         Map<String, String> nodeSelectors = new HashMap<>(nodeArraySelectors);

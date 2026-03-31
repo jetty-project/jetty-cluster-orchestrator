@@ -61,7 +61,7 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
         return this;
     }
 
-    public Map<String, String> nodeSelectors()
+    public Map<String, String> filters()
     {
         return Collections.unmodifiableMap(nodeSelectors);
     }

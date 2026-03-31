@@ -171,8 +171,6 @@ on top, with node-level values winning on key conflicts.
 | `namespace(String)` | required | Kubernetes namespace to use (created if absent) |
 | `image(String)` | required | Container image for all node pods |
 | `kubernetesConfig(Path)` | required | Path to kubeconfig file |
-| `controllerHost(String)` | auto-detected | IP of the controller machine, used when `manageZooKeeper(false)` so pods can reach the embedded ZK |
-| `manageZooKeeper(boolean)` | `true` | `true` — launcher creates a `zookeeper:3.9` pod; `false` — pods connect to the controller's embedded ZK |
 
 ## Collecting Files After the Test
 
@@ -209,12 +207,7 @@ If your tests require system monitoring, build a custom image that includes the 
 Kubernetes DNS labels must be ≤ 63 characters. The launcher truncates automatically, but keep node IDs short
 to avoid collisions between truncated names.
 
-**ZooKeeper coordination modes.**
-The launcher supports two coordination modes:
-
-1. **Managed ZooKeeper (default):** Creates a `zookeeper:3.9` pod and ClusterIP service in your namespace. 
-   The controller connects via `LocalPortForward`, requiring no inbound network access to the controller machine.
-   Pods connect to the ZooKeeper service within the cluster.
-
-2. **Embedded ZooKeeper:** Use `manageZooKeeper(false)` to connect pods directly to the controller's embedded 
-   ZooKeeper. Requires pods to reach the controller IP (auto-detected or set via `controllerHost()`).
+**ZooKeeper coordination.**
+The launcher creates a `zookeeper:3.9` pod and ClusterIP service in your namespace for cluster coordination.
+The controller connects via `LocalPortForward`, requiring no inbound network access to the controller machine.
+Worker pods connect to the ZooKeeper service using cluster-internal DNS.

@@ -21,5 +21,5 @@ public interface NodeArrayConfiguration
     String id();
     Jvm jvm();
     Collection<Node> nodes();
-    Map<String, String> nodeSelectors();
+    Map<String, String> filters();
 }

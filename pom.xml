@@ -252,6 +252,7 @@
               <jco.curator.sessionTimeoutMs>15000</jco.curator.sessionTimeoutMs>
               <jco.curator.connectionTimeoutMs>10000</jco.curator.connectionTimeoutMs>
               <jco.curator.retry.maxRetries>1</jco.curator.retry.maxRetries>
+              <jco.spawn.timeoutMs>180000</jco.spawn.timeoutMs>
             </systemProperties>
           </configuration>
         </plugin>

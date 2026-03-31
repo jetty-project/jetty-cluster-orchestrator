@@ -18,9 +18,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -68,7 +65,7 @@ import org.slf4j.LoggerFactory;
  * This class is responsible to start Kubernetes nodes.
  * It's not thread-safe, but it is expected that the cluster controller will call it in a single-threaded manner during cluster startup and shutdown.
  * It maintains a map of launched pods so that it can clean them up on close(), and to prevent multiple pods from being launched for the same host.
- * It also manages a ZooKeeper pod for cluster coordination if manageZooKeeper is true (the default), and provides the connect string to the controller and nodes as needed.
+ * It manages a ZooKeeper pod and ClusterIP service for cluster coordination, with the controller connecting via LocalPortForward and worker pods using cluster-internal DNS.
  * The launcher creates a headless service to give the pods stable DNS names, and registers NIO filesystems for each pod so that ReportUtil.download() can access pod files via jco: URIs.
  * The launcher copies the local classpath to each pod under $HOME/.jco/classpath, and constructs a command line that runs the NodeProcess main class with that classpath and the appropriate JVM options.
  * The launcher uses the fabric8 Kubernetes client library to interact with the cluster.
@@ -82,7 +79,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     private final String launcherId = UUID.randomUUID().toString().substring(0, 8);
     private String namespace = "default";
     private String image;
-    private String controllerHost;
     private Jvm jvm;
     private KubernetesClient client;
     private LocalPortForward zkPortForward;
@@ -116,7 +112,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
         private String namespace;
         private String image;
-        private String controllerHost;
         private Path kubernetesConfig;
         private final Map<String, String> namespaceLabels = new HashMap<>();
 
@@ -144,12 +139,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             return this;
         }
 
-        public Builder controllerHost(String controllerHost)
-        {
-            this.controllerHost = controllerHost;
-            return this;
-        }
-
         public Builder kubernetesConfig(Path kubernetesConfig)
         {
             this.kubernetesConfig = kubernetesConfig;
@@ -158,13 +147,10 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
         public KubernetesRemoteHostLauncher build() throws IOException {
 
-            KubernetesRemoteHostLauncher launcher =
-                    new KubernetesRemoteHostLauncher(Objects.requireNonNull(namespace, "Namespace cannot be null"),
-                            Objects.requireNonNull(image, "Image cannot be null"),
-                            Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"),
-                            new HashMap<>(namespaceLabels));
-            launcher.controllerHost = controllerHost;
-            return launcher;
+            return new KubernetesRemoteHostLauncher(Objects.requireNonNull(namespace, "Namespace cannot be null"),
+                    Objects.requireNonNull(image, "Image cannot be null"),
+                    Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"),
+                    new HashMap<>(namespaceLabels));
         }
     }
 
@@ -328,9 +314,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
         ExecWatch execWatch = null;
         try
         {
-            int zkPort = Integer.parseInt(connectString.split(":")[1]);
-            String effectiveControllerHost = (controllerHost != null) ? controllerHost : detectControllerHost();
-            String remoteConnectString = effectiveControllerHost + ":" + zkPort;
+            String remoteConnectString = zkServiceName + ":2181";
 
             ensureHeadlessService();
 
@@ -627,26 +611,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             .replaceAll("^-|-$", "");
     }
 
-    static String detectControllerHost() throws IOException
-    {
-        Enumeration<NetworkInterface> ifaces = NetworkInterface.getNetworkInterfaces();
-
-        while (ifaces.hasMoreElements())
-        {
-            NetworkInterface iface = ifaces.nextElement();
-            if (!iface.isUp() || iface.isLoopback())
-                continue;
-            Enumeration<InetAddress> addrs = iface.getInetAddresses();
-            while (addrs.hasMoreElements())
-            {
-                InetAddress addr = addrs.nextElement();
-                if (addr instanceof Inet4Address && !addr.isLoopbackAddress())
-                    return addr.getHostAddress();
-            }
-        }
-
-        throw new IOException("Cannot auto-detect non-loopback IPv4 address; set controllerHost() explicitly");
-    }
 
     private static class PodHolder implements AutoCloseable
     {
