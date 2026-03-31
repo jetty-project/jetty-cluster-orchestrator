@@ -39,15 +39,6 @@ public class ClusterTools
         return globalNodeId;
     }
 
-    /**
-     * @deprecated use {@link #getGlobalNodeId()} instead
-     */
-    @Deprecated
-    public String getNodeId()
-    {
-        return globalNodeId.getNodeId();
-    }
-
     public Barrier barrier(String name, int count)
     {
         return zkClient.createBarrier(globalNodeId, name, count);
