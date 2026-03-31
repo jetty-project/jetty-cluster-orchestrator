@@ -26,7 +26,7 @@ public class ClusterTools
 {
     private final ZooKeeperClient zkClient;
     private final GlobalNodeId globalNodeId;
-    private final ConcurrentMap<String, Object> nodeEnvironment = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> localEnvironment = new ConcurrentHashMap<>();
 
     public ClusterTools(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
@@ -54,8 +54,8 @@ public class ClusterTools
         return zkClient.createDistributedQueue(name);
     }
 
-    public ConcurrentMap<String, Object> nodeEnvironment()
+    public ConcurrentMap<String, Object> localEnvironment()
     {
-        return nodeEnvironment;
+        return localEnvironment;
     }
 }
