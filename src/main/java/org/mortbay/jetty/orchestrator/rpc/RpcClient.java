@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,8 +44,8 @@ public class RpcClient implements AutoCloseable
     public RpcClient(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
         this.globalNodeId = globalNodeId;
-        commandQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/commandQ");
-        responseQueue = zkClient.createDistributedQueue("/clients/" + globalNodeId.getNodeId() + "/responseQ");
+        commandQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.COMMAND_QUEUE_NAME);
+        responseQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.RESPONSE_QUEUE_NAME);
         executorService = Executors.newSingleThreadExecutor(r ->
         {
             Thread t = new Thread(r);
@@ -79,6 +80,11 @@ public class RpcClient implements AutoCloseable
             LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
         commandQueue.offer(request);
         return completableFuture;
+    }
+
+    public Object call(Command command, long timeout, TimeUnit unit) throws Exception
+    {
+        return callAsync(command).get(timeout, unit);
     }
 
     public Object call(Command command) throws Exception

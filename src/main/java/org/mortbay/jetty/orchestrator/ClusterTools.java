@@ -51,7 +51,7 @@ public class ClusterTools
 
     public DistributedQueue distributedQueue(String name)
     {
-        return zkClient.createDistributedQueue(name);
+        return zkClient.createDistributedQueue(globalNodeId, name);
     }
 
     public ConcurrentMap<String, Object> localEnvironment()
