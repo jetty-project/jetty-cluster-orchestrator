@@ -91,7 +91,7 @@ public class Cluster implements AutoCloseable
     private void init() throws Exception
     {
         zkServer = new ZooKeeperServer();
-        String connectString = "localhost:" + zkServer.getPort();
+        String connectString = zkServer.getConnectString();
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 

@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
@@ -64,11 +65,18 @@ public class IOUtil
         }
     }
 
-    public static boolean deltree(File folder) {
+    public static boolean deltree(Path folder)
+    {
+        return deltree(folder.toFile());
+    }
+
+    public static boolean deltree(File folder)
+    {
         File[] files = folder.listFiles();
         if (files != null)
         {
-            for (File file : files) {
+            for (File file : files)
+            {
                 deltree(file);
             }
         }
