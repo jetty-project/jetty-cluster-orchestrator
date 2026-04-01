@@ -15,27 +15,61 @@ package org.mortbay.jetty.orchestrator.util;
 
 import java.io.Closeable;
 import java.io.IOException;
-import org.apache.curator.test.TestingServer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
+
+import org.apache.zookeeper.server.embedded.ZooKeeperServerEmbedded;
 
 public class ZooKeeperServer implements Closeable
 {
-    // TODO this requires curator-test; get rid of that dependency by
-    //  manually building an embedded ZK server.
-    private final TestingServer testingServer;
+    private final ZooKeeperServerEmbedded zk;
+    private final String connectString;
+    private final Path baseDir;
 
     public ZooKeeperServer() throws Exception
     {
-        testingServer = new TestingServer(true);
+        baseDir = createFreshBaseDir();
+        zk = new ZooKeeperServerEmbedded.ZookKeeperServerEmbeddedBuilder()
+            .baseDir(baseDir)
+            .configuration(createConfiguration())
+            .build();
+        zk.start();
+        connectString = zk.getConnectionString();
     }
 
-    public int getPort()
+    private static Properties createConfiguration()
     {
-        return testingServer.getPort();
+        Properties configuration = new Properties();
+        configuration.put("clientPort", "0");
+        return configuration;
+    }
+
+    private Path createFreshBaseDir() throws IOException
+    {
+        long pid = ProcessHandle.current().pid();
+        Path baseDir = Paths.get(System.getProperty("java.io.tmpdir")).resolve("jco-zk-" + pid);
+        IOUtil.deltree(baseDir);
+        Files.createDirectories(baseDir);
+        return baseDir;
+    }
+
+    public String getConnectString()
+    {
+        return connectString;
     }
 
     @Override
     public void close() throws IOException
     {
-        testingServer.close();
+        try
+        {
+            zk.close();
+        }
+        finally
+        {
+            IOUtil.deltree(baseDir);
+        }
     }
 }
