@@ -29,19 +29,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
-import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
 import org.mortbay.jetty.orchestrator.rpc.command.CheckNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.KillNodeCommand;
 import org.mortbay.jetty.orchestrator.rpc.command.SpawnNodeCommand;
-import org.mortbay.jetty.orchestrator.util.CuratorUtil;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
-import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +54,6 @@ public class Cluster implements AutoCloseable
     private final Map<String, NodeArray> nodeArrays = new HashMap<>(); // keyed by NodeArrayId
     private final Map<GlobalNodeId, Host> hosts = new HashMap<>(); // keyed by HostId
     private final Timer hostsCheckerTimer = new Timer();
-    private ZooKeeperServer zkServer;
     private ZooKeeperClient zkClient;
     private ClusterTools clusterTools;
 
@@ -91,8 +88,7 @@ public class Cluster implements AutoCloseable
 
     private void init() throws Exception
     {
-        zkServer = new ZooKeeperServer();
-        String connectString = zkServer.getConnectString();
+        String connectString = (hostLauncher != null ? hostLauncher : localHostLauncher).initialize();
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
@@ -199,7 +195,6 @@ public class Cluster implements AutoCloseable
         IOUtil.close(hostLauncher);
         IOUtil.close(localHostLauncher);
         IOUtil.close(zkClient);
-        IOUtil.close(zkServer);
     }
 
     public NodeArray nodeArray(String id)

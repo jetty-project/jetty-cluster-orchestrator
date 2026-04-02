@@ -41,7 +41,7 @@ public class LocalHostLauncher implements HostLauncher
     @Override
     public String initialize() throws Exception {
         zkServer = new ZooKeeperServer();
-        return "localhost:" + zkServer.getPort();
+        return zkServer.getConnectString();
     }
 
     @Override

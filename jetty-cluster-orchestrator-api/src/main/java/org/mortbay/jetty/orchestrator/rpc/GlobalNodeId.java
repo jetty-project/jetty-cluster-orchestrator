@@ -15,7 +15,7 @@ package org.mortbay.jetty.orchestrator.rpc;
 
 import java.util.Objects;
 
-import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 

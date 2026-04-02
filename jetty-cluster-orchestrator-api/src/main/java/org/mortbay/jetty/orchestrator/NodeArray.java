@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.mortbay.jetty.orchestrator.configuration.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;

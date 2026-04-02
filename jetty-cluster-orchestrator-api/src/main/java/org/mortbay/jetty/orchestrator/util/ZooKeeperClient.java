@@ -25,15 +25,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.atomic.AtomicValue;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong;
 import org.apache.curator.framework.recipes.atomic.PromotedToLock;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.queue.SimpleDistributedQueue;
-import org.apache.curator.retry.RetryNTimes;
 import org.apache.zookeeper.KeeperException;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.tools.AtomicCounter;
@@ -46,7 +43,7 @@ public class ZooKeeperClient implements Closeable
 
     public ZooKeeperClient(String connectString) throws Exception
     {
-        curator = CuratorFrameworkFactory.newClient(connectString, createRetryPolicy());
+        curator = CuratorUtil.newClient(connectString);
         curator.start();
         curator.blockUntilConnected();
     }
@@ -55,11 +52,6 @@ public class ZooKeeperClient implements Closeable
     public void close() throws IOException
     {
         curator.close();
-    }
-
-    private static RetryPolicy createRetryPolicy()
-    {
-        return new RetryNTimes(150, 100);
     }
 
     public AtomicCounter createAtomicCounter(GlobalNodeId globalNodeId, String name, long initialValue)
@@ -117,7 +109,7 @@ public class ZooKeeperClient implements Closeable
 
             return new DistributedAtomicLong(curator,
                 counterPath,
-                createRetryPolicy(),
+                CuratorUtil.newRetryPolicy(),
                 PromotedToLock.builder().lockPath(lockName).build());
         }
 
