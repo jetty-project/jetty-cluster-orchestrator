@@ -8,26 +8,19 @@ pipeline {
   stages {
     stage("Parallel Stage") {
       parallel {
-        stage("Build / Test - JDK11") {
-          agent { node { label 'linux-light' } }
-          options { timeout(time: 30, unit: 'MINUTES') }
-          steps {
-            mavenBuild("jdk11", "clean install")
-            script {
-              if (env.BRANCH_NAME == 'main') {
-                mavenBuild("jdk11", "deploy")
-              }
-            }
-          }
-        }
         stage("Build / Test - JDK17") {
           agent { node { label 'linux-light' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
             mavenBuild("jdk17", "clean install")
+            script {
+              if (env.BRANCH_NAME == 'main') {
+                mavenBuild("jdk17", "deploy")
+              }
+            }
           }
         }
-        stage("Build / Test - JDK21") {
+        stage("Build / Test - JDK25") {
           agent { node { label 'linux-light' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {

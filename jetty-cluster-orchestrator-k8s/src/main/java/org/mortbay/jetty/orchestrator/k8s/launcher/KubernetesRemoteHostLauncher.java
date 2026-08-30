@@ -43,6 +43,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -98,9 +99,12 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
     KubernetesRemoteHostLauncher(String namespace, String image, Path kubernetesConfig, Map<String, String> namespaceLabels) throws IOException {
         this.namespace = namespace;
         this.image = image;
-        try(InputStream inputStream = Files.newInputStream(kubernetesConfig)) {
-            this.client = new KubernetesClientBuilder().withConfig(inputStream).build();
-        }
+        // Parse the file as a kubeconfig. Handing the stream to withConfig(InputStream) does not do
+        // that: it ignores the clusters/contexts in the file and autoconfigures from the ambient
+        // environment instead, so it silently uses ~/.kube/config, or falls back to
+        // https://kubernetes.default.svc where there is none.
+        Config config = Config.fromKubeconfig(Files.readString(kubernetesConfig));
+        this.client = new KubernetesClientBuilder().withConfig(config).build();
         Namespace ns = this.client.namespaces().withName(namespace).get(); // validate namespace exists
         if(ns == null) {
             LOG.debug("specified namespace '{}' does not exist; creating it", namespace);

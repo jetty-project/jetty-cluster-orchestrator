@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import org.junit.jupiter.api.AfterAll;
@@ -333,8 +334,10 @@ public class KubernetesClusterTest
 
     private static String schedulableNodeName()
     {
+        // Config.fromKubeconfig, not withConfig(InputStream): the latter ignores the file and
+        // autoconfigures from the environment instead.
         try (KubernetesClient client = new KubernetesClientBuilder()
-            .withConfig(Files.newInputStream(kubeConfig)).build())
+            .withConfig(Config.fromKubeconfig(Files.readString(kubeConfig))).build())
         {
             return client.nodes().list().getItems().get(0).getMetadata().getName();
         }
