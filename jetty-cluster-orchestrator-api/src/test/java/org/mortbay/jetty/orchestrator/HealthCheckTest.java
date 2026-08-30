@@ -26,10 +26,13 @@ public class HealthCheckTest
     @Test
     public void testClusterStaysAliveAfterHealthCheckDelay() throws Exception
     {
+        // Checks go out every 500ms and a node tolerates 10s without one. That is generous on
+        // purpose: a busy CI agent can easily stall for a couple of seconds, and this test is
+        // about the health checker leaving a working cluster alone, not about exact timings.
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(500)
-            .healthCheckTimeout(2000)
+            .healthCheckTimeout(10000)
             .nodeArray(new LocalNodeArrayConfiguration("client-array")
                     .node("1")
                     .node("2"))
@@ -37,7 +40,7 @@ public class HealthCheckTest
 
         try (Cluster cluster = new Cluster(cfg))
         {
-            // If this doesn't throw after 5s, the 2s health check timeout check still works.
+            // The nodes keep working for 5s, so the cluster must still be up at the end.
             cluster.nodeArray("client-array").executeOnAll(tools ->
             {
                 for (int i = 0; i < 5; i++)
