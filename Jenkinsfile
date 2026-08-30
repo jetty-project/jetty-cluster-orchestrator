@@ -4,6 +4,7 @@ pipeline {
   agent none
   options {
     buildDiscarder logRotator( numToKeepStr: '20' )
+    disableConcurrentBuilds(abortPrevious: true)
   }
   stages {
     stage("Parallel Stage") {
