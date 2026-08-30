@@ -16,8 +16,7 @@ package org.mortbay.jetty.orchestrator.configuration;
 import java.util.Objects;
 
 /**
- * A {@link Node} that is nothing but an id and a hostname, for launchers that need
- * no extra per-node configuration.
+ * A {@link Node} with nothing but an id and a hostname, for launchers that need no more.
  */
 public class SimpleNode implements Node
 {

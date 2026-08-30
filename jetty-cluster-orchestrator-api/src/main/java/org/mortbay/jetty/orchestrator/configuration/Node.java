@@ -14,12 +14,9 @@
 package org.mortbay.jetty.orchestrator.configuration;
 
 /**
- * Identity of a node within a node array: which node it is, and which host it runs on.
- *
- * <p>This is all the orchestrator core needs to know about a node. Anything describing
- * <em>how</em> a host gets created belongs to the launcher that creates it, so launchers
- * define their own {@code Node} implementations alongside their own
- * {@link NodeArrayConfiguration}.</p>
+ * Which node this is and which host it runs on. That is all the cluster needs.
+ * How a host gets created is the launcher's business, so launchers bring their own
+ * {@code Node} types along with their own {@link NodeArrayConfiguration}.
  */
 public interface Node
 {

@@ -164,9 +164,8 @@ new K8sNode.Builder()
     .build()
 ```
 
-`K8sNodeArrayConfiguration` merges the two levels: array-level selectors are the base and node-level
-selectors are merged on top, with node-level values winning on key conflicts. The merge produces new
-`K8sNode` instances, so the nodes you declared are left untouched.
+`K8sNodeArrayConfiguration` merges the two: array selectors come first and node selectors win on
+conflicts. The merge builds new `K8sNode` instances, so the nodes you declared are left alone.
 
 ## Builder Reference
 

@@ -20,12 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Holds what every node array has in common: an id, a JVM and a set of uniquely
- * identified nodes. Launcher-specific subclasses add their own settings and expose
- * a {@code node(...)} method taking whichever {@link Node} type they support.
- *
- * <p>Nodes keep their declaration order, which is what makes cluster startup
- * reproducible from one run to the next.</p>
+ * What every node array has in common: an id, a JVM and nodes with unique ids.
+ * Subclasses add their own settings and a {@code node(...)} method for the {@link Node}
+ * type they accept. Nodes keep their declaration order, so startup is reproducible.
  */
 public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
 {

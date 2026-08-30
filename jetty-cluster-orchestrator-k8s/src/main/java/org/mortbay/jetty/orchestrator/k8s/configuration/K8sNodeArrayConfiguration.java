@@ -27,9 +27,7 @@ import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 
 /**
  * Node array running as Kubernetes pods.
- *
- * <p>Node selectors set here apply to every node of the array; a node setting the same key
- * overrides it.</p>
+ * Node selectors set here apply to every node, and a node setting the same key wins.
  */
 public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 {

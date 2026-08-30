@@ -17,10 +17,9 @@ import java.util.Map;
 
 /**
  * Creates the host JVMs a cluster runs on.
- *
- * <p>A launcher owns a whole node array, not a single node, so it can read whatever
- * launcher-specific settings its own {@link NodeArrayConfiguration} carries. See
- * {@link AbstractHostLauncher}, which takes care of the parts every launcher needs.</p>
+ * A launcher is handed a whole node array rather than one node, so it can read the settings
+ * its own {@link NodeArrayConfiguration} carries. {@link AbstractHostLauncher} does the
+ * common work for you.
  */
 public interface HostLauncher extends AutoCloseable
 {
@@ -30,11 +29,10 @@ public interface HostLauncher extends AutoCloseable
     String initialize() throws Exception;
 
     /**
-     * Launches the host JVMs this node array needs. Nodes sharing a hostname share a host
-     * JVM, and a host already launched for an earlier node array is reused.
+     * Launches the host JVMs this node array needs. Nodes sharing a hostname share a host,
+     * and a host launched for an earlier node array is reused.
      *
-     * @return for every distinct hostname of the array, the connect string that JVMs
-     *         running on that host must use to reach ZooKeeper.
+     * @return for each hostname of the array, the connect string JVMs there use to reach ZooKeeper
      */
     Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs) throws Exception;
 

@@ -49,27 +49,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * End-to-end integration test for {@link KubernetesRemoteHostLauncher}.
- *
- * <p>ZooKeeper is deployed inside the Kubernetes cluster as a pod + service. The controller
- * connects through a {@code LocalPortForward}; pods use cluster-internal DNS, so the controller
- * machine needs no inbound network access.</p>
- *
- * <p>By default a throwaway k3s cluster is started in Docker, which means the test needs nothing
- * but a working Docker daemon. It is skipped when Docker is unavailable.</p>
- *
- * <p>To run against an existing cluster instead:</p>
+ * End to end test of {@link KubernetesRemoteHostLauncher}.
+ * <p>
+ * A throwaway k3s cluster is started in Docker, so a running Docker daemon is all this needs;
+ * without one the test is skipped. To use a cluster you already have:
  * <pre>
  *   mvn test -Dtest=KubernetesClusterTest \
  *       -Dkubernetes.config.path=$HOME/.kube/config \
  *       -Dk8s.namespace=default
  * </pre>
- *
- * <p>Other system properties: {@code k8s.image} (the node image, which needs a JRE and
- * {@code tar}) and {@code k3s.image} (the k3s image used for the throwaway cluster).</p>
- *
- * <p>{@code nodeArray.rootPathOf(id)} is backed by {@code KubernetesNodeFileSystem} and
- * is exercised in {@link #testNodeFileSystemAccess()}.</p>
+ * {@code k8s.image} is the image the node pods run, which needs a JRE and {@code tar}, and
+ * {@code k3s.image} the one the throwaway cluster runs.
  */
 public class KubernetesClusterTest
 {

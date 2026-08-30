@@ -96,7 +96,7 @@ of this library which is to ease writing multi-machine tests.
 
 === Required java version
 
-Starting with version 1.1.0, Java 11 is necessary. Version 1.0.3 is the last one compatible with Java 8.
+Starting with version 2.0.0, Java 17 is necessary. Version 1.x needs Java 11, and version 1.0.3 is the last one compatible with Java 8.
 
 === Configuring a JVM cluster
 
@@ -342,6 +342,31 @@ the actual delays will be approximately: 1s, 2s, 4s before giving up.
 
 IMPORTANT: Setting `maxRetries` to 0 will disable retries entirely, which may cause connection failures
 in environments with temporary network hiccups during test execution.
+
+=== Node Health Check Configuration
+
+[cols="2,1,2,2"]
+|===
+|Property |Default |Description |Example
+
+|`org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure`
+|`false`
+|Make a node that missed too many health checks stop itself instead of killing its JVM
+|`-Dorg.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure=true`
+|===
+
+Every node watches the health checks the cluster sends it, and gives up when too many are missed.
+A node usually has a process of its own, so it calls `System.exit` to get rid of itself. Nodes on
+`localhost` do not: they run in the JVM that started the cluster, so exiting takes that JVM down too.
+
+Set this property to `true` when that JVM has to survive, a surefire fork for instance. The node then
+shuts itself down and the cluster reports the failure as an exception. Nodes with their own process
+still exit, which is what the health check is for.
+
+[source,bash]
+----
+mvn test -Dorg.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure=true
+----
 
 === Kubernetes mode
 

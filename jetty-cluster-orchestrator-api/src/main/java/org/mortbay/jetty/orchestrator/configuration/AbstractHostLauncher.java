@@ -25,12 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 
 /**
- * Base class doing what every {@link HostLauncher} has to do, so that launchers only
- * have to describe how one host is started.
- *
- * <p>It maps nodes onto hosts (several nodes, possibly from different node arrays,
- * share a host when they share a hostname), starts the hosts of a node array in
- * parallel, and remembers what it started so a host is never launched twice.</p>
+ * Does what every {@link HostLauncher} has to do, leaving subclasses to describe how one host
+ * is started. Nodes sharing a hostname get one host between them, even across node arrays,
+ * the hosts of an array start in parallel, and nothing is launched twice.
  */
 public abstract class AbstractHostLauncher implements HostLauncher
 {
@@ -38,14 +35,13 @@ public abstract class AbstractHostLauncher implements HostLauncher
     private final ExecutorService launchPool = Executors.newCachedThreadPool(new LauncherThreadFactory());
 
     /**
-     * The node array configuration this launcher understands. Anything else is rejected
-     * up front, so subclasses can safely narrow the {@link Node}s they are handed.
+     * The node array type this launcher accepts. Anything else is rejected up front, so
+     * subclasses can safely cast the {@link Node}s they are given.
      */
     protected abstract Class<? extends NodeArrayConfiguration> configurationType();
 
     /**
-     * Starts one host JVM and returns the connect string JVMs on that host must use to
-     * reach ZooKeeper.
+     * Starts one host JVM and returns the connect string it uses to reach ZooKeeper.
      */
     protected abstract String launchHost(GlobalNodeId hostId, Node node, String connectString, String... extraArgs) throws Exception;
 
@@ -55,9 +51,8 @@ public abstract class AbstractHostLauncher implements HostLauncher
     protected abstract void closeHosts();
 
     /**
-     * Checks that two nodes sharing a hostname can live on the same host JVM. The default
-     * accepts any pair; launchers carrying per-node host settings override this to reject
-     * conflicting ones rather than silently keeping the first.
+     * Checks that two nodes sharing a hostname can share a host. The default accepts any pair;
+     * launchers with per-node host settings override it to reject conflicting ones.
      */
     protected void checkSharedHost(Node first, Node second)
     {
@@ -71,7 +66,7 @@ public abstract class AbstractHostLauncher implements HostLauncher
             throw new IllegalArgumentException("Node array '" + nodeArray.id() + "' is a " + nodeArray.getClass().getName() +
                 " but " + getClass().getSimpleName() + " needs a " + expected.getName());
 
-        // Several nodes of the array may name the same host: they all run on one host JVM.
+        // Nodes naming the same host all run on one host JVM.
         Map<String, Node> hostNodes = new LinkedHashMap<>();
         for (Node node : nodeArray.nodes())
         {
@@ -89,7 +84,7 @@ public abstract class AbstractHostLauncher implements HostLauncher
             HostLaunch previous = launchedHosts.putIfAbsent(hostname, ours);
             if (previous != null)
             {
-                // An earlier node array already launched this host, or is launching it right now.
+                // Another node array got here first, so wait for the host it is starting.
                 checkSharedHost(previous.node, node);
                 pending.put(hostname, previous.connectString);
                 continue;
@@ -103,7 +98,7 @@ public abstract class AbstractHostLauncher implements HostLauncher
                 }
                 catch (Throwable t)
                 {
-                    // Forget the failed host so a later attempt is not stuck waiting on it.
+                    // Forget the failed host, so a later attempt is not stuck waiting on it.
                     launchedHosts.remove(hostname, ours);
                     ours.connectString.completeExceptionally(t);
                 }

@@ -253,6 +253,8 @@
               <jco.curator.connectionTimeoutMs>10000</jco.curator.connectionTimeoutMs>
               <jco.curator.retry.maxRetries>1</jco.curator.retry.maxRetries>
               <jco.spawn.timeoutMs>180000</jco.spawn.timeoutMs>
+              <!-- Nodes on localhost run inside the test JVM, so a missed health check must not exit it. -->
+              <org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure>true</org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure>
             </systemProperties>
           </configuration>
         </plugin>

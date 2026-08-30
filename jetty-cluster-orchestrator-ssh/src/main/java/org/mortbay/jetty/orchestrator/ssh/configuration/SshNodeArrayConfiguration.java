@@ -20,8 +20,8 @@ import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
 
 /**
- * Node array running on machines reached over SSH, launched by
- * {@link SshRemoteHostLauncher}. Nodes naming the same host share one host JVM.
+ * Node array run by {@link SshRemoteHostLauncher} on machines reached over SSH.
+ * Nodes naming the same machine share one host JVM.
  */
 public class SshNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 {

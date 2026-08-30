@@ -13,12 +13,13 @@
 
 package org.mortbay.jetty.orchestrator;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
 import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.util.JvmUtil;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class HealthCheckTest
 {
@@ -49,9 +50,11 @@ public class HealthCheckTest
     }
 
     @Test
-    @Disabled("kills the JVM, no way to assert failure")
-    public void testFailHealthCheck() throws Exception
+    public void testFailHealthCheck()
     {
+        // Checks only go out every 2s but a node gives up after 1s without one, so the nodes are
+        // bound to die. What matters is that this JVM survives them: the node on localhost runs in
+        // it, and it used to take the whole test JVM down with System.exit.
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(2000)
@@ -61,16 +64,19 @@ public class HealthCheckTest
                     .node("2"))
             ;
 
-        try (Cluster cluster = new Cluster(cfg))
+        assertThrows(Exception.class, () ->
         {
-            cluster.nodeArray("client-array").executeOnAll(tools ->
+            try (Cluster cluster = new Cluster(cfg))
             {
-                for (int i = 0; i < 5; i++)
+                cluster.nodeArray("client-array").executeOnAll(tools ->
                 {
-                    Thread.sleep(1000);
-                    System.out.println("hello from " + tools.getGlobalNodeId().getNodeId());
-                }
-            }).get();
-        }
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Thread.sleep(1000);
+                        System.out.println("hello from " + tools.getGlobalNodeId().getNodeId());
+                    }
+                }).get();
+            }
+        });
     }
 }

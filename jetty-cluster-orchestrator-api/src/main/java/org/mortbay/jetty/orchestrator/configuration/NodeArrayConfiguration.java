@@ -16,10 +16,8 @@ package org.mortbay.jetty.orchestrator.configuration;
 import java.util.Collection;
 
 /**
- * A named group of nodes sharing a JVM configuration.
- *
- * <p>Each {@link HostLauncher} defines its own implementation, so launcher-specific
- * settings can be expressed without leaking into this interface.</p>
+ * A named group of nodes sharing a JVM.
+ * Every {@link HostLauncher} has its own implementation, so its settings stay out of here.
  */
 public interface NodeArrayConfiguration
 {

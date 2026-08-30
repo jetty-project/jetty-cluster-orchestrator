@@ -90,8 +90,8 @@ public class Cluster implements AutoCloseable
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
-        // Start the hosts of every node array. The launcher maps nodes onto hosts and reuses
-        // a host that several node arrays share, so all we get back is hostname -> connect string.
+        // Start the hosts of every node array. The launcher works out which hosts are needed and
+        // reuses the ones shared between arrays, so all we get back is hostname -> connect string.
         String healthCheckTimeout = Long.toString(configuration.healthCheckTimeout());
         List<Future<Map<String, String>>> futures = new ArrayList<>();
         ExecutorService launchPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());

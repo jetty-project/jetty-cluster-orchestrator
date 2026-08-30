@@ -117,6 +117,13 @@ public class NodeProcess implements Serializable, AutoCloseable
                 if (delta > TimeUnit.MILLISECONDS.toNanos(finalHealthCheckTimeout))
                 {
                     LOG.error("Node [{}] missed too many health checks, assuming the cluster is dead", nodeId);
+                    if (skipExitOnHealthCheckFailure())
+                    {
+                        // This node shares its JVM with whoever started it, so stop serving and let
+                        // main() shut the node down rather than taking them down with us.
+                        IOUtil.close(rpcServer);
+                        return;
+                    }
                     System.exit(1);
                 }
                 if (LOG.isDebugEnabled())
@@ -173,6 +180,19 @@ public class NodeProcess implements Serializable, AutoCloseable
         new StreamCopier(process.getInputStream(), System.out, true).spawnDaemon(hostname + "-proc-stdout");
         new StreamCopier(process.getErrorStream(), System.err, true).spawnDaemon(hostname + "-proc-stderr");
         return new NodeProcess(process);
+    }
+
+    /**
+     * Whether a node that missed too many health checks stops itself rather than killing its JVM.
+     * <p>
+     * A node usually has a process of its own, so {@code System.exit} is the way to get rid of it.
+     * Nodes started with {@link #spawnThread} do not: they run in the JVM that started the cluster,
+     * often a test runner, and exiting would take it down too. Set
+     * {@code -Dorg.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure=true} there.
+     */
+    public static boolean skipExitOnHealthCheckFailure()
+    {
+        return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure");
     }
 
     public static Thread spawnThread(String nodeId, String connectString, String... extraArgs)

@@ -67,17 +67,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Starts cluster nodes as Kubernetes pods, one pod per host.
+ * Starts cluster nodes as Kubernetes pods, one pod per host, through the fabric8 client.
  * <p>
- * It keeps a map of the pods it launched so it can clean them up on close, and runs a ZooKeeper
- * pod with a ClusterIP service for coordination: the controller reaches it through a
- * {@link LocalPortForward} while the pods use cluster-internal DNS. A headless service gives the
- * pods stable DNS names, and a NIO filesystem is registered per pod so pod files are readable
- * through {@code jco:} URIs.
+ * ZooKeeper runs as a pod of its own with a ClusterIP service: the controller reaches it through a
+ * {@link LocalPortForward}, the other pods through cluster DNS. A headless service gives the pods
+ * stable names, and each pod gets a NIO filesystem so its files are readable as {@code jco:} URIs.
  * <p>
- * The local classpath is copied to each pod under {@code $HOME/.jco/<hostId>/.classpath}, then a
- * command line running {@link NodeProcess} against that classpath is started in the pod.
- * Everything goes through the fabric8 Kubernetes client.
+ * The local classpath is copied into each pod under {@code $HOME/.jco/<hostId>/.classpath} and a
+ * {@link NodeProcess} is started there against it. Launched pods are remembered so close can
+ * delete them.
  */
 public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent
 {
@@ -99,10 +97,9 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
     KubernetesRemoteHostLauncher(String namespace, String image, Path kubernetesConfig, Map<String, String> namespaceLabels) throws IOException {
         this.namespace = namespace;
         this.image = image;
-        // Parse the file as a kubeconfig. Handing the stream to withConfig(InputStream) does not do
-        // that: it ignores the clusters/contexts in the file and autoconfigures from the ambient
-        // environment instead, so it silently uses ~/.kube/config, or falls back to
-        // https://kubernetes.default.svc where there is none.
+        // Parse the file as a kubeconfig. withConfig(InputStream) does not: it ignores what is in
+        // the file and configures itself from the environment, quietly using ~/.kube/config or
+        // https://kubernetes.default.svc instead.
         Config config = Config.fromKubeconfig(Files.readString(kubernetesConfig));
         this.client = new KubernetesClientBuilder().withConfig(config).build();
         Namespace ns = this.client.namespaces().withName(namespace).get(); // validate namespace exists
@@ -275,7 +272,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
     }
 
     /**
-     * Two nodes on the same host share one pod, so they must not ask for different pods.
+     * Nodes sharing a host share a pod, so they must not ask for different ones.
      */
     @Override
     protected void checkSharedHost(Node first, Node second)

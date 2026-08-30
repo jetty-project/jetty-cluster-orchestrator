@@ -20,9 +20,8 @@ import java.util.Objects;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 
 /**
- * A node running in a Kubernetes pod, with the pod settings the Kubernetes launcher needs.
- *
- * <p>Instances are immutable; {@link #withNodeSelectors(Map)} returns a new node.</p>
+ * A node running in a Kubernetes pod, with the settings that pod needs.
+ * Nodes are immutable: {@link #withNodeSelectors(Map)} returns a new one.
  */
 public class K8sNode implements Node
 {
@@ -72,8 +71,7 @@ public class K8sNode implements Node
     }
 
     /**
-     * Port to expose through a Kubernetes service named after the hostname, or a negative
-     * value to create no service.
+     * Port to expose through a service named after the hostname, or a negative value for no service.
      */
     public int getServicePort()
     {

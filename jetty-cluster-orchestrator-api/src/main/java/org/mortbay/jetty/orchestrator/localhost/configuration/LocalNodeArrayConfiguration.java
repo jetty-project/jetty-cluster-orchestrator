@@ -19,8 +19,8 @@ import org.mortbay.jetty.orchestrator.configuration.SimpleNode;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 
 /**
- * Node array running in the JVM that started the cluster, launched by
- * {@link LocalHostLauncher}. Every node lives on the same host, so only an id is needed.
+ * Node array run by {@link LocalHostLauncher} on the local machine.
+ * Every node is on the same host, so a node only needs an id.
  */
 public class LocalNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 {
