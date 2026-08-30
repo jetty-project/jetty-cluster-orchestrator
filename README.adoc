@@ -80,10 +80,10 @@ mvn clean install -pl jetty-cluster-orchestrator-k8s
 mvn test -pl jetty-cluster-orchestrator-api
 mvn test -pl jetty-cluster-orchestrator-k8s
 
-# Run Kubernetes integration tests
-mvn clean install -pl jetty-cluster-orchestrator-k8s \
-  -Dkubernetes.config.path=$HOME/.kube/config \
-  -Dk8s.image=eclipse-temurin:21-jre
+# Run the Kubernetes integration tests. They start a throwaway k3s cluster in Docker,
+# so a running Docker daemon is all they need. Add -Dkubernetes.config.path=... to run
+# them against an existing cluster instead.
+mvn clean install -pl jetty-cluster-orchestrator-k8s
 ----
 
 == Cluster Orchestrator API
@@ -105,16 +105,16 @@ Creating a `ClusterConfiguration` instance is the first step to creating a clust
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")  // (1)
-        .node(new Node("1", "localhost"))                    // (2)
-        .node(new Node("2", "localhost")));
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")  // (1)
+        .node("1")                                          // (2)
+        .node("2"));
 ----
 
 . Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
  Any number of `NodeArray` s can be added to a cluster, as long as they have unique names.
-. Add two `Node` s to the cluster. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
- while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Note that all node identifiers
- must be unique.
+ The type of node array picks where its JVMs run: `LocalNodeArrayConfiguration` runs them on the local machine.
+. Add two nodes to the cluster, identified by the strings `&quot;1&quot;` and `&quot;2&quot;`. Node identifiers must be unique
+ within a node array.
 
 === Using a configured JVM cluster
 
@@ -160,20 +160,22 @@ deleted and all other resources were reclaimed.
 
 === Over the network
 
-If you want to use machines over the network, you can simply specify their names instead of `localhost` in the configuration:
+If you want to use machines over the network, swap the node array for an `SshNodeArrayConfiguration`, name the machines,
+and give the cluster an `SshRemoteHostLauncher`:
 
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "server-1"))
-        .node(new Node("2", "server-2")));
+    .hostLauncher(new SshRemoteHostLauncher())
+    .nodeArray(new SshNodeArrayConfiguration("my-array")
+        .node("1", "server-1")
+        .node("2", "server-2"));
 ----
 
 Running the above example with this configuration would create a JVM on a machine called `server-1`, another on a machine called
 `server-2` and execute the lambda on both of them, which would end up printing the exact same output as the standard output and
-error are piped from the remote machines to the local one. So by just changing the config, you can decide if the code has to
-run locally or remotely.
+error are piped from the remote machines to the local one. So by just changing the node array type and the launcher, you can
+decide if the code has to run locally or remotely.
 
 The way the JVMs are created on the remote machines is the same as in the local case: the classpath is copied, then the `java`
 command is used to create a JVM. The only difference is that this time copying and creating a process is done over SSH
@@ -190,9 +192,9 @@ If you want to use a specific JVM over the one in your path, you can pass a `Jvm
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "localhost"))
-        .node(new Node("2", "localhost")));
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")
+        .node("1")
+        .node("2"));
 ----
 
 The configuration above is identical to the previous one, except that the `/some/path/to/jdk11/bin/java` command is going to be
@@ -203,10 +205,10 @@ Or you could be more specific by only configuring the JVM on the `NodeArray`:
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")
         .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
-        .node(new Node("1", "localhost"))
-        .node(new Node("2", "localhost")));
+        .node("1")
+        .node("2"));
 ----
 
 In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
@@ -237,9 +239,10 @@ then collect all those reports and eventually merge and transform them.
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()             // (1)
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "server-1"))
-        .node(new Node("2", "server-2")));
+    .hostLauncher(new SshRemoteHostLauncher())
+    .nodeArray(new SshNodeArrayConfiguration("my-array")
+        .node("1", "server-1")
+        .node("2", "server-2"));
 
 try (Cluster cluster = new Cluster(cfg))
 {
@@ -346,31 +349,18 @@ Nodes can also be launched as Kubernetes pods. See link:KUBERNETES.md[KUBERNETES
 
 IMPORTANT: To use Kubernetes functionality, you must include the `jetty-cluster-orchestrator-k8s` module dependency in your project.
 
-==== Quick start with kind
+==== Running the Kubernetes tests
 
-https://kind.sigs.k8s.io[kind] (Kubernetes IN Docker) is the easiest way to get a local cluster for testing.
-
-[source,bash]
-----
-# Install kind (if not already installed)
-go install sigs.k8s.io/kind@latest
-# or: brew install kind
-
-# Create a local cluster
-kind create cluster --name jco-test
-
-# Verify kubectl can reach it
-kubectl cluster-info --context kind-jco-test
-----
-
-Once the cluster is up, run the full build including Kubernetes integration tests:
+The Kubernetes integration tests start a throwaway https://k3s.io[k3s] cluster in Docker through
+Testcontainers, so a running Docker daemon is the only prerequisite. They are skipped when Docker
+is unavailable.
 
 [source,bash]
 ----
-mvn clean install -Dkubernetes.config.path=$HOME/.kube/config
+mvn clean install
 ----
 
-To also specify the container image and namespace:
+To run them against a cluster you already have instead:
 
 [source,bash]
 ----
@@ -380,9 +370,5 @@ mvn clean install \
   -Dk8s.namespace=foo-bar
 ----
 
-To tear down the cluster when done:
-
-[source,bash]
-----
-kind delete cluster --name jco-test
-----
+`k8s.image` is the image the node pods run (it needs a JRE and `tar`) and `k3s.image` picks the k3s
+image used for the throwaway cluster.

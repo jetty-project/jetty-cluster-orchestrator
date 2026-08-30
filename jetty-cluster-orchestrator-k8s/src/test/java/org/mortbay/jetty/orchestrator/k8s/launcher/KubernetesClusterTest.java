@@ -20,74 +20,109 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
-import org.mortbay.jetty.orchestrator.configuration.Node;
+import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNodeArrayConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.k3s.K3sContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end integration test for {@link KubernetesRemoteHostLauncher}.
  *
- * <p>ZooKeeper is deployed automatically inside the Kubernetes cluster as a pod + service.
- * The controller connects via a {@code LocalPortForward}; pods use cluster-internal DNS.
- * No external network access to the controller machine is required.</p>
+ * <p>ZooKeeper is deployed inside the Kubernetes cluster as a pod + service. The controller
+ * connects through a {@code LocalPortForward}; pods use cluster-internal DNS, so the controller
+ * machine needs no inbound network access.</p>
  *
- * <p>This test is skipped unless a Kubernetes cluster is available and
- * the following system properties are provided:</p>
- * <ul>
- *   <li>{@code k8s.image} (required) - container image with a JRE and {@code tar} (e.g. {@code eclipse-temurin:21-jre})</li>
- *   <li>{@code k8s.namespace} (optional, default: {@code default}) - Kubernetes namespace to use</li>
- * </ul>
+ * <p>By default a throwaway k3s cluster is started in Docker, which means the test needs nothing
+ * but a working Docker daemon. It is skipped when Docker is unavailable.</p>
  *
- * <p>Run with:</p>
+ * <p>To run against an existing cluster instead:</p>
  * <pre>
  *   mvn test -Dtest=KubernetesClusterTest \
- *       -Dk8s.image=eclipse-temurin:21-jre \
+ *       -Dkubernetes.config.path=$HOME/.kube/config \
  *       -Dk8s.namespace=default
  * </pre>
+ *
+ * <p>Other system properties: {@code k8s.image} (the node image, which needs a JRE and
+ * {@code tar}) and {@code k3s.image} (the k3s image used for the throwaway cluster).</p>
  *
  * <p>{@code nodeArray.rootPathOf(id)} is backed by {@code KubernetesNodeFileSystem} and
  * is exercised in {@link #testNodeFileSystemAccess()}.</p>
  */
 public class KubernetesClusterTest
 {
-    private static final String K8S_IMAGE = System.getProperty("k8s.image");
+    private static final String KUBECONFIG_PROPERTY = "kubernetes.config.path";
+    private static final String K8S_IMAGE = System.getProperty("k8s.image", "eclipse-temurin:21-jre");
     private static final String K8S_NAMESPACE = System.getProperty("k8s.namespace", "default");
+    private static final String K3S_IMAGE = System.getProperty("k3s.image", "rancher/k3s:v1.36.4-k3s1"); // v1.31.2-k3s1
 
-    private static void assumeKubernetesAvailable()
+    private static final Logger log = LoggerFactory.getLogger(KubernetesClusterTest.class);
+
+    private static K3sContainer k3s;
+    private static Path kubeConfig;
+
+    @BeforeAll
+    public static void startup() throws Exception
     {
+        String configured = System.getProperty(KUBECONFIG_PROPERTY);
+        if (configured != null && !configured.isEmpty() && Files.exists(Paths.get(configured)))
+        {
+            kubeConfig = Paths.get(configured);
+            log.info("using the Kubernetes cluster of {}", kubeConfig);
+            return;
+        }
 
-        String kubeconfigPath = System.getProperty("kubernetes.config.path");
-        boolean hasKubeconfig = kubeconfigPath != null && !kubeconfigPath.isEmpty()
-            && Files.exists(Paths.get(kubeconfigPath));
-        Assumptions.assumeTrue(hasKubeconfig, "Kubernetes not configured (no KUBECONFIG env var or -Dkubernetes.config.path=");
-        Assumptions.assumeTrue(K8S_IMAGE != null && !K8S_IMAGE.isEmpty(), "k8s.image system property not set");
+        Assumptions.assumeTrue(DockerClientFactory.instance().isDockerAvailable(),
+            "no -D" + KUBECONFIG_PROPERTY + " given and Docker is not available to start a k3s cluster");
+
+        k3s = new K3sContainer(DockerImageName.parse(K3S_IMAGE))
+            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("k3s")));
+        k3s.start();
+        kubeConfig = Files.createTempFile("jco-kubeconfig", ".yaml");
+        Files.writeString(kubeConfig, k3s.getKubeConfigYaml());
+        kubeConfig.toFile().deleteOnExit();
+    }
+
+    @AfterAll
+    public static void shutdown()
+    {
+        if (k3s != null)
+            k3s.stop();
     }
 
     @Test
     void testBasicNodeExecution() throws Exception
     {
-        assumeKubernetesAvailable();
-
         KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder().namespace(K8S_NAMESPACE)
                 .image(K8S_IMAGE)
-                .kubernetesConfig(Paths.get(System.getProperty("kubernetes.config.path")))
+                .kubernetesConfig(kubeConfig)
                 .build();
 
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("worker-array")
-                .node(new Node.Builder().withId("1").withHostname("k8s-node-1").build()))
+            .nodeArray(new K8sNodeArrayConfiguration("worker-array")
+                .node(new K8sNode.Builder().withId("1").withHostname("k8s-node-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))
@@ -131,18 +166,16 @@ public class KubernetesClusterTest
     @Test
     void testNodeFileSystemAccess() throws Exception
     {
-        assumeKubernetesAvailable();
-
         KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
             .namespace(K8S_NAMESPACE)
             .image(K8S_IMAGE)
-            .kubernetesConfig(Paths.get(System.getProperty("kubernetes.config.path")))
+            .kubernetesConfig(kubeConfig)
             .build();
 
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("worker-array")
-                .node(new Node.Builder().withId("1").withHostname("k8s-fs-node-1").build()))
+            .nodeArray(new K8sNodeArrayConfiguration("worker-array")
+                .node(new K8sNode.Builder().withId("1").withHostname("k8s-fs-node-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))
@@ -193,20 +226,18 @@ public class KubernetesClusterTest
     @Test
     void testMultipleNodesExecution() throws Exception
     {
-        assumeKubernetesAvailable();
-
         KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
                 .namespace(K8S_NAMESPACE)
                 .image(K8S_IMAGE)
-                .kubernetesConfig(Paths.get(System.getProperty("kubernetes.config.path")))
+                .kubernetesConfig(kubeConfig)
                 .build();
 
         SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(new Jvm((fs, h) -> "java"))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                .node(new Node.Builder().withId("1").withHostname("k8s-server-1").withServicePort(8080).build()))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                .node(new Node.Builder().withId("2").withHostname("k8s-client-1").build()))
+            .nodeArray(new K8sNodeArrayConfiguration("server-array")
+                .node(new K8sNode.Builder().withId("1").withHostname("k8s-server-1").withServicePort(8080).build()))
+            .nodeArray(new K8sNodeArrayConfiguration("client-array")
+                .node(new K8sNode.Builder().withId("2").withHostname("k8s-client-1").build()))
             .hostLauncher(launcher);
 
         try (Cluster cluster = new Cluster(cfg))
@@ -224,6 +255,92 @@ public class KubernetesClusterTest
             cluster.tools().barrier("barrier", participantCount).await(2, TimeUnit.MINUTES);
             serverFuture.get(2, TimeUnit.MINUTES);
             clientFuture.get(2, TimeUnit.MINUTES);
+        }
+    }
+
+    /**
+     * Node selectors set on the array apply to every node, and a node setting the same key wins.
+     * Both nodes are pinned to the cluster's only node, so they must actually get scheduled.
+     */
+    @Test
+    void testNodeSelectors() throws Exception
+    {
+        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+            .namespace(K8S_NAMESPACE)
+            .image(K8S_IMAGE)
+            .kubernetesConfig(kubeConfig)
+            .build();
+
+        String schedulableNode = schedulableNodeName();
+
+        K8sNodeArrayConfiguration workers = new K8sNodeArrayConfiguration("worker-array")
+            .nodeSelector("kubernetes.io/hostname", "does-not-exist")
+            .nodeSelector("kubernetes.io/os", "linux")
+            // this node overrides the array-level hostname selector with a node that does exist
+            .node(new K8sNode.Builder().withId("1").withHostname("k8s-selector-1")
+                .withNodeSelector("kubernetes.io/hostname", schedulableNode)
+                .build());
+
+        // the merge must not have mutated the declared node
+        assertThat(workers.nodes().iterator().next().getHostname(), equalTo("k8s-selector-1"));
+
+        SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> "java"))
+            .nodeArray(workers)
+            .hostLauncher(launcher);
+
+        try (Cluster cluster = new Cluster(cfg))
+        {
+            final int participantCount = 2; // 1 node + 1 test thread
+            NodeArrayFuture future = cluster.nodeArray("worker-array").executeOnAll(tools ->
+                tools.barrier("barrier", participantCount).await());
+
+            cluster.tools().barrier("barrier", participantCount).await(2, TimeUnit.MINUTES);
+            future.get(2, TimeUnit.MINUTES);
+        }
+    }
+
+    /**
+     * Two nodes on one host share a pod, so asking for different pods must be rejected.
+     */
+    @Test
+    void testConflictingSharedHostIsRejected() throws Exception
+    {
+        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+            .namespace(K8S_NAMESPACE)
+            .image(K8S_IMAGE)
+            .kubernetesConfig(kubeConfig)
+            .build();
+
+        SimpleClusterConfiguration cfg = new SimpleClusterConfiguration()
+            .jvm(new Jvm((fs, h) -> "java"))
+            .nodeArray(new K8sNodeArrayConfiguration("worker-array")
+                .node(new K8sNode.Builder().withId("1").withHostname("k8s-shared").withServicePort(8080).build())
+                .node(new K8sNode.Builder().withId("2").withHostname("k8s-shared").withServicePort(9090).build()))
+            .hostLauncher(launcher);
+
+        Exception e = assertThrows(Exception.class, () -> new Cluster(cfg));
+        assertThat(rootCauseMessage(e), containsString("different service ports"));
+    }
+
+    private static String rootCauseMessage(Throwable t)
+    {
+        Throwable cause = t;
+        while (cause.getCause() != null)
+            cause = cause.getCause();
+        return String.valueOf(cause.getMessage());
+    }
+
+    private static String schedulableNodeName()
+    {
+        try (KubernetesClient client = new KubernetesClientBuilder()
+            .withConfig(Files.newInputStream(kubeConfig)).build())
+        {
+            return client.nodes().list().getItems().get(0).getMetadata().getName();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("cannot list the nodes of the Kubernetes cluster", e);
         }
     }
 }

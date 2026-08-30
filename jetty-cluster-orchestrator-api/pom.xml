@@ -37,12 +37,6 @@
       <version>1.1.10.8</version>
     </dependency>
     <dependency>
-      <groupId>com.hierynomus</groupId>
-      <artifactId>sshj</artifactId>
-      <version>0.40.0</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.14.3</version>

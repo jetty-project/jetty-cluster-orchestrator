@@ -28,6 +28,13 @@ import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
  */
 public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory
 {
+    /** Namespace the pod runs in. */
+    public static final String NAMESPACE_ENV_PROPERTY = "namespace";
+    /** Name of the pod to read files from. */
+    public static final String POD_NAME_ENV_PROPERTY = "podName";
+    /** Home directory inside the pod. */
+    public static final String POD_HOME_ENV_PROPERTY = "podHome";
+
     @Override
     public boolean canHandle(Map<String, ?> env)
     {
@@ -38,9 +45,9 @@ public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory
     public NodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
     {
         KubernetesClient k8sClient = (KubernetesClient)env.get(KubernetesClient.class.getName());
-        String ns = (String)env.get(NodeFileSystemProvider.K8S_NAMESPACE_ENV_PROPERTY);
-        String podName = (String)env.get(NodeFileSystemProvider.K8S_POD_NAME_ENV_PROPERTY);
-        String podHome = (String)env.get(NodeFileSystemProvider.K8S_POD_HOME_ENV_PROPERTY);
+        String ns = (String)env.get(NAMESPACE_ENV_PROPERTY);
+        String podName = (String)env.get(POD_NAME_ENV_PROPERTY);
+        String podHome = (String)env.get(POD_HOME_ENV_PROPERTY);
         String hostId = extractHostId(uri);
         String pathStr = extractPath(uri);
         List<String> path = pathStr.isEmpty() ? Collections.emptyList() : java.util.Arrays.asList(pathStr.split("/"));

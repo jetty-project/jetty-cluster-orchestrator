@@ -13,8 +13,15 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
+import java.util.Map;
 
+/**
+ * Creates the host JVMs a cluster runs on.
+ *
+ * <p>A launcher owns a whole node array, not a single node, so it can read whatever
+ * launcher-specific settings its own {@link NodeArrayConfiguration} carries. See
+ * {@link AbstractHostLauncher}, which takes care of the parts every launcher needs.</p>
+ */
 public interface HostLauncher extends AutoCloseable
 {
     /**
@@ -23,7 +30,14 @@ public interface HostLauncher extends AutoCloseable
     String initialize() throws Exception;
 
     /**
-     * @return the modified {@code connectString} that nodes running on this host must connect to.
+     * Launches the host JVMs this node array needs. Nodes sharing a hostname share a host
+     * JVM, and a host already launched for an earlier node array is reused.
+     *
+     * @return for every distinct hostname of the array, the connect string that JVMs
+     *         running on that host must use to reach ZooKeeper.
      */
-    String launch(GlobalNodeId hostId, Node node, String connectString, String... extraArgs) throws Exception;
+    Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs) throws Exception;
+
+    @Override
+    void close();
 }

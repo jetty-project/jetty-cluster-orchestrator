@@ -41,12 +41,15 @@ import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
-import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
+import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.JvmDependent;
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
+import org.mortbay.jetty.orchestrator.ssh.nodefs.SFTPNodeFileSystemFactory;
+import org.mortbay.jetty.orchestrator.ssh.configuration.SshNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
@@ -55,7 +58,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
+public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent
 {
     private static final Logger LOG = LoggerFactory.getLogger(SshRemoteHostLauncher.class);
     private static final List<String> COMMON_WIN_UNAMES = Arrays.asList("Windows", "CYGWIN", "MINGW", "MSYS", "UWIN");
@@ -97,7 +100,13 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public void close()
+    protected Class<? extends NodeArrayConfiguration> configurationType()
+    {
+        return SshNodeArrayConfiguration.class;
+    }
+
+    @Override
+    protected void closeHosts()
     {
         nodes.values().forEach(IOUtil::close);
         nodes.clear();
@@ -118,7 +127,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
     {
         long start = System.nanoTime();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
@@ -126,8 +135,6 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
             LOG.debug("start launch of node: {}", nodeId.getHostname());
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
-        if (nodes.putIfAbsent(nodeId.getHostname(), RemoteNodeHolder.NULL) != null)
-            throw new IllegalArgumentException("ssh launcher already launched node on host " + nodeId.getHostname());
 
         SSHClient sshClient = new SSHClient();
         FileSystem fileSystem = null;
@@ -163,7 +170,7 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
 
             HashMap<String, Object> env = new HashMap<>();
             env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
-            env.put(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY, windows);
+            env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, windows);
             fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
             List<String> remoteClasspathEntries = new ArrayList<>();
@@ -298,8 +305,6 @@ public class SshRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     private static class RemoteNodeHolder implements AutoCloseable {
-        private static final RemoteNodeHolder NULL = new RemoteNodeHolder(null, null, null, null, null, null, null);
-
         private final GlobalNodeId nodeId;
         private final FileSystem fileSystem;
         private final SSHClient sshClient;

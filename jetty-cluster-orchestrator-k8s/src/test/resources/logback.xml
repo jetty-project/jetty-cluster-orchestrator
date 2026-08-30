@@ -17,6 +17,9 @@
   <logger name="org.mortbay.jetty.orchestrator" level="info" />
   <logger name="org.mortbay.jetty.orchestrator.k8s.launcher.KubernetesRemoteHostLauncher" level="info" />
 
+  <!-- k3s boot logs are very chatty, turn this up when a cluster fails to start -->
+  <logger name="k3s" level="warn" />
+
   <root level="info">
     <appender-ref ref="STDOUT" />
   </root>

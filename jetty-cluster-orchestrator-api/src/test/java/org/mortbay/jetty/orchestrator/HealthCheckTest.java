@@ -16,9 +16,8 @@ package org.mortbay.jetty.orchestrator;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class HealthCheckTest
@@ -30,9 +29,9 @@ public class HealthCheckTest
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(500)
             .healthCheckTimeout(2000)
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
-                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
+            .nodeArray(new LocalNodeArrayConfiguration("client-array")
+                    .node("1")
+                    .node("2"))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -57,9 +56,9 @@ public class HealthCheckTest
             .jvm(JvmUtil.currentJvm())
             .healthCheckDelay(2000)
             .healthCheckTimeout(1000)
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
-                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
+            .nodeArray(new LocalNodeArrayConfiguration("client-array")
+                    .node("1")
+                    .node("2"))
             ;
 
         try (Cluster cluster = new Cluster(cfg))

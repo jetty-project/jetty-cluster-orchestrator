@@ -48,11 +48,15 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
+import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.JvmDependent;
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
+import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
+import org.mortbay.jetty.orchestrator.k8s.nodefs.KubernetesNodeFileSystemFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -62,15 +66,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class is responsible to start Kubernetes nodes.
- * It's not thread-safe, but it is expected that the cluster controller will call it in a single-threaded manner during cluster startup and shutdown.
- * It maintains a map of launched pods so that it can clean them up on close(), and to prevent multiple pods from being launched for the same host.
- * It manages a ZooKeeper pod and ClusterIP service for cluster coordination, with the controller connecting via LocalPortForward and worker pods using cluster-internal DNS.
- * The launcher creates a headless service to give the pods stable DNS names, and registers NIO filesystems for each pod so that ReportUtil.download() can access pod files via jco: URIs.
- * The launcher copies the local classpath to each pod under $HOME/.jco/classpath, and constructs a command line that runs the NodeProcess main class with that classpath and the appropriate JVM options.
- * The launcher uses the fabric8 Kubernetes client library to interact with the cluster.
+ * Starts cluster nodes as Kubernetes pods, one pod per host.
+ * <p>
+ * It keeps a map of the pods it launched so it can clean them up on close, and runs a ZooKeeper
+ * pod with a ClusterIP service for coordination: the controller reaches it through a
+ * {@link LocalPortForward} while the pods use cluster-internal DNS. A headless service gives the
+ * pods stable DNS names, and a NIO filesystem is registered per pod so pod files are readable
+ * through {@code jco:} URIs.
+ * <p>
+ * The local classpath is copied to each pod under {@code $HOME/.jco/<hostId>/.classpath}, then a
+ * command line running {@link NodeProcess} against that classpath is started in the pod.
+ * Everything goes through the fabric8 Kubernetes client.
  */
-public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
+public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent
 {
     private static final Logger LOG = LoggerFactory.getLogger(KubernetesRemoteHostLauncher.class);
     private static final String ZK_IMAGE = System.getProperty("zookeeper.image.name", "zookeeper:3.9");
@@ -257,7 +265,32 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public void close()
+    protected Class<? extends NodeArrayConfiguration> configurationType()
+    {
+        return K8sNodeArrayConfiguration.class;
+    }
+
+    /**
+     * Two nodes on the same host share one pod, so they must not ask for different pods.
+     */
+    @Override
+    protected void checkSharedHost(Node first, Node second)
+    {
+        K8sNode a = (K8sNode)first;
+        K8sNode b = (K8sNode)second;
+        if (a.getServicePort() != b.getServicePort())
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
+                " but ask for different service ports: " + a.getServicePort() + " and " + b.getServicePort());
+        if (!a.getNodeSelectors().equals(b.getNodeSelectors()))
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
+                " but ask for different node selectors: " + a.getNodeSelectors() + " and " + b.getNodeSelectors());
+        if (!a.getLabels().equals(b.getLabels()))
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
+                " but ask for different labels: " + a.getLabels() + " and " + b.getLabels());
+    }
+
+    @Override
+    protected void closeHosts()
     {
         pods.values().forEach(IOUtil::close);
         pods.clear();
@@ -300,15 +333,14 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
     {
         long start = System.nanoTime();
+        K8sNode k8sNode = (K8sNode)node;
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
         LOG.debug("start launch of k8s pod for node: {}", node);
         if (!nodeId.equals(globalNodeId))
             throw new IllegalArgumentException("node id is not the one of a host node");
-        if (pods.putIfAbsent(nodeId.getHostname(), PodHolder.NULL) != null)
-            throw new IllegalArgumentException("k8s launcher already launched pod for host " + nodeId.getHostname());
 
         String podName = sanitizePodName(nodeId.getHostId());
         ExecWatch execWatch = null;
@@ -320,12 +352,12 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
             String podHostname = podHostnameFor(nodeId);
 
-            Map<String, String> nodeSelectors = node.getNodeSelectors();
+            Map<String, String> nodeSelectors = k8sNode.getNodeSelectors();
 
             // Merge hostname label with custom node labels
             Map<String, String> podLabels = new HashMap<>();
             podLabels.put("hostname", node.getHostname());
-            podLabels.putAll(node.getLabels());
+            podLabels.putAll(k8sNode.getLabels());
 
             Pod pod = new PodBuilder()
                 .withNewMetadata()
@@ -353,7 +385,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             Service nodeService = null;
 
             // we need to create a service mapping port
-            if(node.getServicePort()>0) {
+            if(k8sNode.getServicePort()>0) {
                 nodeService = new ServiceBuilder()
                         .withNewMetadata()
                         .withName(node.getHostname())
@@ -362,9 +394,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                         .withNewSpec()
                         .withSelector(Map.of("hostname", node.getHostname()))
                         .addNewPort()
-                        .withName("service-port" + node.getServicePort())
-                        .withPort(node.getServicePort())
-                        .withTargetPort(new IntOrString(node.getServicePort()))
+                        .withName("service-port" + k8sNode.getServicePort())
+                        .withPort(k8sNode.getServicePort())
+                        .withTargetPort(new IntOrString(k8sNode.getServicePort()))
                         .endPort()
                         .endSpec()
                         .build();
@@ -374,7 +406,7 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
                 // This prevents "Connection refused" errors when pods try to connect
                 waitForServiceEndpoints(node.getHostname(), 30);
 
-                LOG.info("Created service {} for node {} on port {}", nodeId.getHostname(), node.getId(), node.getServicePort());
+                LOG.info("Created service {} for node {} on port {}", nodeId.getHostname(), node.getId(), k8sNode.getServicePort());
             }
 
 
@@ -387,9 +419,9 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
             URI fsUri = URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId());
             Map<String, Object> fsEnv = new HashMap<>();
             fsEnv.put(KubernetesClient.class.getName(), client);
-            fsEnv.put(NodeFileSystemProvider.K8S_NAMESPACE_ENV_PROPERTY, namespace);
-            fsEnv.put(NodeFileSystemProvider.K8S_POD_NAME_ENV_PROPERTY, podName);
-            fsEnv.put(NodeFileSystemProvider.K8S_POD_HOME_ENV_PROPERTY, podHome);
+            fsEnv.put(KubernetesNodeFileSystemFactory.NAMESPACE_ENV_PROPERTY, namespace);
+            fsEnv.put(KubernetesNodeFileSystemFactory.POD_NAME_ENV_PROPERTY, podName);
+            fsEnv.put(KubernetesNodeFileSystemFactory.POD_HOME_ENV_PROPERTY, podHome);
             FileSystems.newFileSystem(fsUri, fsEnv);
 
             String classpathDir = podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/" + NodeProcess.CLASSPATH_FOLDER_NAME;
@@ -614,7 +646,6 @@ public class KubernetesRemoteHostLauncher implements HostLauncher, JvmDependent
 
     private static class PodHolder implements AutoCloseable
     {
-        private static final PodHolder NULL = new PodHolder(null, null, null, null, null, null, null);
 
         private final GlobalNodeId nodeId;
         private final String podName;

@@ -14,12 +14,18 @@
 package org.mortbay.jetty.orchestrator.configuration;
 
 import java.util.Collection;
-import java.util.Map;
 
+/**
+ * A named group of nodes sharing a JVM configuration.
+ *
+ * <p>Each {@link HostLauncher} defines its own implementation, so launcher-specific
+ * settings can be expressed without leaking into this interface.</p>
+ */
 public interface NodeArrayConfiguration
 {
     String id();
+
     Jvm jvm();
-    Collection<Node> nodes();
-    Map<String, String> filters();
+
+    Collection<? extends Node> nodes();
 }

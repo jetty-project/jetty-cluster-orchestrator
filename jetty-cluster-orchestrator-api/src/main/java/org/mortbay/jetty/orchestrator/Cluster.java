@@ -13,10 +13,8 @@
 
 package org.mortbay.jetty.orchestrator;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -26,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
@@ -49,7 +46,6 @@ public class Cluster implements AutoCloseable
 
     private final String id;
     private final ClusterConfiguration configuration;
-    private final LocalHostLauncher localHostLauncher = new LocalHostLauncher();
     private final HostLauncher hostLauncher;
     private final Map<String, NodeArray> nodeArrays = new HashMap<>(); // keyed by NodeArrayId
     private final Map<GlobalNodeId, Host> hosts = new HashMap<>(); // keyed by HostId
@@ -75,6 +71,8 @@ public class Cluster implements AutoCloseable
         this.id = id;
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
+        if (this.hostLauncher == null)
+            throw new IllegalStateException("No configured host launcher to start the nodes of cluster " + id);
         try
         {
             init();
@@ -88,57 +86,35 @@ public class Cluster implements AutoCloseable
 
     private void init() throws Exception
     {
-        String connectString = (hostLauncher != null ? hostLauncher : localHostLauncher).initialize();
+        String connectString = hostLauncher.initialize();
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
 
-        // start all host nodes
-        List<Node> nodes = new ArrayList<>(
-            configuration.nodeArrays().stream()
-                .flatMap(cfg -> {
-                    // node selectors at array level
-                    Map<String, String> nodeArraySelectors = cfg.filters();
-                    // but each node will be to override it
-                    return cfg.nodes().stream().map(node -> {
-                        Map<String, String> nodeSelectors = new HashMap<>(nodeArraySelectors);
-                        nodeSelectors.putAll(node.getNodeSelectors());
-                        return node.withNodeSelectors(nodeSelectors);
-                    });
-                })
-                .collect(Collectors.toMap(
-                    Node::getHostname,
-                    n -> n,
-                    (a, b) -> a,          // keep first occurrence for duplicate hostnames
-                    LinkedHashMap::new))  // preserve insertion order
-                .values());
-        List<Future<Map.Entry<GlobalNodeId, String>>> futures = new ArrayList<>();
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        // Start the hosts of every node array. The launcher maps nodes onto hosts and reuses
+        // a host that several node arrays share, so all we get back is hostname -> connect string.
+        String healthCheckTimeout = Long.toString(configuration.healthCheckTimeout());
+        List<Future<Map<String, String>>> futures = new ArrayList<>();
+        ExecutorService launchPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         try
         {
-            for (Node node : nodes)
+            for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
             {
-                GlobalNodeId globalNodeId = new GlobalNodeId(id, node.getHostname());
-                HostLauncher launcher = node.getHostname().equals(LocalHostLauncher.HOSTNAME) ? localHostLauncher : hostLauncher;
-                if (launcher == null)
-                    throw new IllegalStateException("No configured host launcher to start node on " + node.getHostname());
-                futures.add(executor.submit(() ->
-                {
-                    long healthCheckTimeout = configuration.healthCheckTimeout();
-                    String remoteConnectString = launcher.launch(globalNodeId, node, connectString, Long.toString(healthCheckTimeout));
-                    return new AbstractMap.SimpleImmutableEntry<>(globalNodeId, remoteConnectString);
-                }));
+                futures.add(launchPool.submit(() -> hostLauncher.launch(id, nodeArrayConfig, connectString, healthCheckTimeout)));
             }
         }
         finally
         {
-            executor.shutdown();
+            launchPool.shutdown();
         }
-        for (Future<Map.Entry<GlobalNodeId, String>> future : futures)
+        for (Future<Map<String, String>> future : futures)
         {
-            Map.Entry<GlobalNodeId, String> entry = future.get();
-            GlobalNodeId globalNodeId = entry.getKey();
-            String remoteConnectString = entry.getValue();
-            hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), remoteConnectString));
+            for (Map.Entry<String, String> entry : future.get().entrySet())
+            {
+                GlobalNodeId globalNodeId = new GlobalNodeId(id, entry.getKey());
+                // A host shared by several node arrays is reported once per array.
+                if (!hosts.containsKey(globalNodeId))
+                    hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), entry.getValue()));
+            }
         }
 
         // start heath check timer
@@ -164,16 +140,18 @@ public class Cluster implements AutoCloseable
             {
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, nodeArrayConfig, nodeConfig);
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
+                if (host == null)
+                    throw new IllegalStateException("No host launched on " + globalNodeId.getHostname() + " for node '" + globalNodeId.getNodeId() + "'");
                 try
                 {
-                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.call(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, Long.toString(configuration.healthCheckTimeout())), 10, TimeUnit.SECONDS);
+                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.call(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, healthCheckTimeout), 10, TimeUnit.SECONDS);
                     NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
                 }
                 catch (Exception e)
                 {
-                    throw new Exception("Error spawning node '" + globalNodeId.getHostId() + "'", e);
+                    throw new Exception("Error spawning node '" + globalNodeId.getNodeId() + "'", e);
                 }
             }
             nodeArrays.put(nodeArrayConfig.id(), new NodeArray(nodeArrayNodes));
@@ -193,7 +171,6 @@ public class Cluster implements AutoCloseable
         hosts.clear();
         nodeArrays.clear();
         IOUtil.close(hostLauncher);
-        IOUtil.close(localHostLauncher);
         IOUtil.close(zkClient);
     }
 

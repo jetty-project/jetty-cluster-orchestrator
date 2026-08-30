@@ -27,9 +27,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
-import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.ssh.configuration.SshNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
 import org.mortbay.jetty.orchestrator.util.JvmUtil;
 import sshd.AbstractSshTest;
@@ -42,27 +42,27 @@ public class ClusterTest extends AbstractSshTest
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
-                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build())
-                    .node(new Node.Builder().withId("2").withHostname("localhost").build()))
+            .nodeArray(new LocalNodeArrayConfiguration("server-array")
+                    .node("1")
+                    .node("2"))
+            .nodeArray(new LocalNodeArrayConfiguration("client-array")
+                    .node("1")
+                    .node("2"))
             ;
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
+            .nodeArray(new LocalNodeArrayConfiguration("server-array")
+                    .node("1"))
+            .nodeArray(new LocalNodeArrayConfiguration("client-array")
+                    .node("1"))
             ;
 
         String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array").node(new Node.Builder().withId("1").withHostname(localHostname).build()))
-            .nodeArray(new SimpleNodeArrayConfiguration("client-array").node(new Node.Builder().withId("1").withHostname(localHostname).build()))
+            .nodeArray(new SshNodeArrayConfiguration("server-array").node("1", localHostname))
+            .nodeArray(new SshNodeArrayConfiguration("client-array").node("1", localHostname))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -132,10 +132,11 @@ public class ClusterTest extends AbstractSshTest
     public void testInvalidJvmExecutableInNodeArray() throws Exception
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
-                .jvm(new Jvm((f, h) -> "/does/not/exist")
-            );
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+            .nodeArray(new SshNodeArrayConfiguration("server-array")
+                    .jvm(new Jvm((f, h) -> "/does/not/exist"))
+                    .node("1", InetAddress.getLocalHost().getHostName()))
+            ;
 
         assertThrows(Exception.class, () -> new Cluster(cfg));
     }
@@ -145,8 +146,8 @@ public class ClusterTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm((f, h) -> "/does/not/exist")))
-            .nodeArray(new SimpleNodeArrayConfiguration("server-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
+            .nodeArray(new SshNodeArrayConfiguration("server-array")
+                    .node("1", InetAddress.getLocalHost().getHostName()))
             ;
 
         assertThrows(Exception.class, () -> new Cluster(cfg));

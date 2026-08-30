@@ -21,15 +21,17 @@ import java.io.OutputStream;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
+import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 
-public class LocalHostLauncher implements HostLauncher
+public class LocalHostLauncher extends AbstractHostLauncher
 {
     public static final String HOSTNAME = "localhost";
 
@@ -45,7 +47,13 @@ public class LocalHostLauncher implements HostLauncher
     }
 
     @Override
-    public String launch(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
+    protected Class<? extends NodeArrayConfiguration> configurationType()
+    {
+        return LocalNodeArrayConfiguration.class;
+    }
+
+    @Override
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
     {
         lock.lock();
         try
@@ -94,7 +102,7 @@ public class LocalHostLauncher implements HostLauncher
     }
 
     @Override
-    public void close() throws Exception
+    protected void closeHosts()
     {
         lock.lock();
         try
@@ -102,7 +110,14 @@ public class LocalHostLauncher implements HostLauncher
             if (thread != null)
             {
                 thread.interrupt();
-                thread.join();
+                try
+                {
+                    thread.join();
+                }
+                catch (InterruptedException e)
+                {
+                    Thread.currentThread().interrupt();
+                }
                 thread = null;
 
                 File rootPath = rootPathOf(nodeId.getHostId());

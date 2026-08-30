@@ -23,9 +23,9 @@ import java.nio.file.Files;
 
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.SimpleNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.ssh.configuration.SshNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
 import org.mortbay.jetty.orchestrator.util.JvmUtil;
 import sshd.AbstractSshTest;
@@ -40,8 +40,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                    .node("1", InetAddress.getLocalHost().getHostName()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -49,8 +49,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                    .node("1", InetAddress.getLocalHost().getHostName()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -62,8 +62,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                    .node("1", InetAddress.getLocalHost().getHostName()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 
@@ -100,8 +100,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                    .node(new Node.Builder().withId("1").withHostname("localhost").build()))
+            .nodeArray(new LocalNodeArrayConfiguration("my-array")
+                    .node("1"))
             ;
 
         try (Cluster cluster = new Cluster(cfg))
@@ -137,8 +137,8 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
     {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
             .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-                    .node(new Node.Builder().withId("1").withHostname(InetAddress.getLocalHost().getHostName()).build()))
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                    .node("1", InetAddress.getLocalHost().getHostName()))
             .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
             ;
 

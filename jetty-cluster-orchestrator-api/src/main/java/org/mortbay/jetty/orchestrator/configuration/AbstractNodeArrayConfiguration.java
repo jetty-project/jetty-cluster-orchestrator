@@ -15,19 +15,27 @@ package org.mortbay.jetty.orchestrator.configuration;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
-public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
+/**
+ * Holds what every node array has in common: an id, a JVM and a set of uniquely
+ * identified nodes. Launcher-specific subclasses add their own settings and expose
+ * a {@code node(...)} method taking whichever {@link Node} type they support.
+ *
+ * <p>Nodes keep their declaration order, which is what makes cluster startup
+ * reproducible from one run to the next.</p>
+ */
+public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
 {
     private final String id;
-    private final Map<String, Node> nodes = new HashMap<>();
-    private final Map<String, String> nodeSelectors = new HashMap<>();
+    private final Map<String, Node> nodes = new LinkedHashMap<>();
     private Jvm jvm;
 
-    public SimpleNodeArrayConfiguration(String id)
+    protected AbstractNodeArrayConfiguration(String id)
     {
-        this.id = id;
+        this.id = Objects.requireNonNull(id, "Node array id cannot be null");
     }
 
     @Override
@@ -37,16 +45,16 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
     }
 
     @Override
-    public Collection<Node> nodes()
+    public Collection<? extends Node> nodes()
     {
         return Collections.unmodifiableCollection(nodes.values());
     }
 
-    public SimpleNodeArrayConfiguration node(Node node)
+    protected void addNode(Node node)
     {
+        Objects.requireNonNull(node, "Node cannot be null");
         if (nodes.putIfAbsent(node.getId(), node) != null)
-            throw new IllegalArgumentException("Duplicate node ID: " + node.getId());
-        return this;
+            throw new IllegalArgumentException("Duplicate node ID in node array '" + id + "': " + node.getId());
     }
 
     @Override
@@ -55,15 +63,10 @@ public class SimpleNodeArrayConfiguration implements NodeArrayConfiguration, Jvm
         return jvm;
     }
 
-    public SimpleNodeArrayConfiguration jvm(Jvm jvm)
+    @Override
+    public AbstractNodeArrayConfiguration jvm(Jvm jvm)
     {
         this.jvm = jvm;
         return this;
     }
-
-    public Map<String, String> filters()
-    {
-        return Collections.unmodifiableMap(nodeSelectors);
-    }
-
 }

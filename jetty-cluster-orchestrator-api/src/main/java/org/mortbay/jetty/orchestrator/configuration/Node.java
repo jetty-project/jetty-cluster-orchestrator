@@ -13,107 +13,17 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class Node
+/**
+ * Identity of a node within a node array: which node it is, and which host it runs on.
+ *
+ * <p>This is all the orchestrator core needs to know about a node. Anything describing
+ * <em>how</em> a host gets created belongs to the launcher that creates it, so launchers
+ * define their own {@code Node} implementations alongside their own
+ * {@link NodeArrayConfiguration}.</p>
+ */
+public interface Node
 {
-    private final String id;
-    private final String hostname;
-    private Map<String, String> nodeSelectors;
-    private final Map<String, String> labels;
-    private final int servicePort;
+    String getId();
 
-
-    private Node(String id, String hostname, Map<String, String> nodeSelectors, Map<String, String> labels, int servicePort)
-    {
-        this.id = id;
-        this.hostname = hostname;
-        this.nodeSelectors = Map.copyOf(nodeSelectors);
-        this.labels = Map.copyOf(labels);
-        this.servicePort = servicePort;
-    }
-
-    public String getId()
-    {
-        return id;
-    }
-
-    public String getHostname()
-    {
-        return hostname;
-    }
-
-    public Map<String, String> getNodeSelectors()
-    {
-        return nodeSelectors;
-    }
-
-    public Map<String, String> getLabels() {
-        return labels;
-    }
-
-    public int getServicePort() {
-        return servicePort;
-    }
-
-    public Node withNodeSelectors(Map<String, String> nodeSelectors) {
-        this.nodeSelectors = nodeSelectors;
-        return this;
-    }
-
-    @Override
-    public String toString() {
-        return "Node{" +
-                "id='" + id + '\'' +
-                ", hostname='" + hostname + '\'' +
-                ", label='" + labels + '\'' +
-                ", nodeSelectors=" + nodeSelectors +
-                ", servicePort=" + servicePort +
-                '}';
-    }
-
-    public static final class Builder
-    {
-        private String id;
-        private String hostname;
-        private Map<String, String> nodeSelectors = new HashMap<>();
-        private Map<String, String> labels = new HashMap<>();
-        private int servicePort = -1;
-
-        public Builder withId(String id)
-        {
-            this.id = id;
-            return this;
-        }
-
-        public Builder withHostname(String hostname)
-        {
-            this.hostname = hostname;
-            return this;
-        }
-
-        public Builder withNodeSelectors(Map<String, String> nodeSelectors)
-        {
-            this.nodeSelectors = nodeSelectors;
-            return this;
-        }
-
-        public Builder withLabels(Map<String, String> labels)
-        {
-            this.labels = labels;
-            return this;
-        }
-
-        public Builder withServicePort(int port) {
-            this.servicePort = port;
-            return this;
-        }
-
-        public Node build()
-        {
-            return new Node(id, hostname, nodeSelectors, labels, servicePort);
-        }
-    }
-
+    String getHostname();
 }

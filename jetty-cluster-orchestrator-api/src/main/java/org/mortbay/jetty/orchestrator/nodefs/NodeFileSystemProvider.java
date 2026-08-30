@@ -55,13 +55,9 @@ import java.util.Comparator;
 public class NodeFileSystemProvider extends FileSystemProvider
 {
     public static final String PREFIX = "jco";
-    public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
-    
-    // Kubernetes environment property keys
-    public static final String K8S_NAMESPACE_ENV_PROPERTY = "namespace";
-    public static final String K8S_POD_NAME_ENV_PROPERTY = "podName";
-    public static final String K8S_POD_HOME_ENV_PROPERTY = "podHome";
-    
+
+    // The env map is opaque to this provider: each NodeFileSystemFactory owns the keys it reads.
+
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
     static
     {

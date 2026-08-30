@@ -28,6 +28,11 @@ import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
  */
 public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory
 {
+    /**
+     * Tells whether the remote host runs Windows, so paths use the right separator.
+     */
+    public static final String IS_WINDOWS_ENV_PROPERTY = "windows";
+
     @Override
     public boolean canHandle(Map<String, ?> env)
     {
@@ -37,7 +42,7 @@ public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory
     @Override
     public NodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
     {
-        boolean windows = (Boolean)env.get(NodeFileSystemProvider.IS_WINDOWS_ENV_PROPERTY);
+        boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
         SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
         String hostId = extractHostId(uri);
         String pathStr = extractPath(uri);

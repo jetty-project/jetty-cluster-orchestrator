@@ -45,13 +45,13 @@ KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder
 
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .hostLauncher(launcher)
-    .nodeArray(new SimpleNodeArrayConfiguration("servers")
+    .nodeArray(new K8sNodeArrayConfiguration("servers")
         .jvm(new Jvm((fs, h) -> "java", "-Xmx1g"))
-        .node(new Node("server", "server")))
-    .nodeArray(new SimpleNodeArrayConfiguration("loaders")
+        .node(new K8sNode.Builder().withId("server").withHostname("server").build()))
+    .nodeArray(new K8sNodeArrayConfiguration("loaders")
         .jvm(new Jvm((fs, h) -> "java", "-Xmx512m"))
-        .node(new Node("loader-1"))
-        .node(new Node("loader-2")));
+        .node(new K8sNode.Builder().withId("loader-1").withHostname("loader-1").build())
+        .node(new K8sNode.Builder().withId("loader-2").withHostname("loader-2").build()));
 
 try (Cluster cluster = new Cluster(cfg)) {
     NodeArray servers = cluster.nodeArray("servers");
@@ -83,8 +83,8 @@ try (Cluster cluster = new Cluster(cfg)) {
 When a node needs to be reachable via a stable DNS name (e.g., a server that other pods connect to), use `.withServicePort()` to automatically create a Kubernetes Service:
 
 ```java
-new SimpleNodeArrayConfiguration("servers")
-    .node(new Node.Builder()
+new K8sNodeArrayConfiguration("servers")
+    .node(new K8sNode.Builder()
         .withId("server-1")
         .withHostname("server")
         .withServicePort(8080)  // Creates service "server" exposing port 8080
@@ -103,15 +103,15 @@ The launcher will:
 ```java
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .hostLauncher(launcher)
-    .nodeArray(new SimpleNodeArrayConfiguration("server")
-        .node(new Node.Builder()
+    .nodeArray(new K8sNodeArrayConfiguration("server")
+        .node(new K8sNode.Builder()
             .withId("server-1")
             .withHostname("server")
             .withServicePort(8080)
             .build()))
-    .nodeArray(new SimpleNodeArrayConfiguration("clients")
-        .node(new Node("client-1"))
-        .node(new Node("client-2")));
+    .nodeArray(new K8sNodeArrayConfiguration("clients")
+        .node(new K8sNode.Builder().withId("client-1").withHostname("client-1").build())
+        .node(new K8sNode.Builder().withId("client-2").withHostname("client-2").build()));
 
 try (Cluster cluster = new Cluster(cfg)) {
     String serverUrl = "http://server." + namespace + ".svc.cluster.local:8080";
@@ -147,22 +147,26 @@ Node selectors constrain which Kubernetes nodes a pod may be scheduled on. They 
 **Array level** — applies to every node in the array:
 
 ```java
-new SimpleNodeArrayConfiguration("loaders")
-    .withNodeSelector("kubernetes.io/hostname", "k8s-node-2")
-    .node(new Node("loader-1"))
-    .node(new Node("loader-2"))
+new K8sNodeArrayConfiguration("loaders")
+    .nodeSelector("kubernetes.io/hostname", "k8s-node-2")
+    .node(new K8sNode.Builder().withId("loader-1").withHostname("loader-1").build())
+    .node(new K8sNode.Builder().withId("loader-2").withHostname("loader-2").build())
 ```
 
-**Node level** — set directly on the `Node` object (returns a new immutable instance):
+**Node level** — set on the `K8sNode` itself:
 
 ```java
-new Node("server", "server")
+new K8sNode.Builder()
+    .withId("server")
+    .withHostname("server")
     .withNodeSelector("kubernetes.io/hostname", "k8s-node-1")
     .withNodeSelector("beer", "australian")
+    .build()
 ```
 
-`Cluster` merges the two levels: array-level selectors are the base and node-level selectors are merged
-on top, with node-level values winning on key conflicts.
+`K8sNodeArrayConfiguration` merges the two levels: array-level selectors are the base and node-level
+selectors are merged on top, with node-level values winning on key conflicts. The merge produces new
+`K8sNode` instances, so the nodes you declared are left untouched.
 
 ## Builder Reference
 
@@ -171,6 +175,9 @@ on top, with node-level values winning on key conflicts.
 | `namespace(String)` | required | Kubernetes namespace to use (created if absent) |
 | `image(String)` | required | Container image for all node pods |
 | `kubernetesConfig(Path)` | required | Path to kubeconfig file |
+| `withNamespaceLabel(String, String)` | none | Label put on the namespace when it has to be created |
+| `withNamespaceLabels(Map)` | none | Same, for several labels at once |
+| `jvm(Jvm)` | cluster JVM | JVM used for the host pods themselves |
 
 ## Collecting Files After the Test
 
