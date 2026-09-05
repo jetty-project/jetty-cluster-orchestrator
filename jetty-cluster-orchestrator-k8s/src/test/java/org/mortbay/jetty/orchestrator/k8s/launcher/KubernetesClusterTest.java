@@ -18,8 +18,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import com.github.dockerjava.api.model.Bind;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -88,6 +90,21 @@ public class KubernetesClusterTest
             "no -D" + KUBECONFIG_PROPERTY + " given and Docker is not available to start a k3s cluster");
 
         k3s = new K3sContainer(DockerImageName.parse(K3S_IMAGE))
+            // K3sContainer assumes a plain Docker host: it joins the daemon's cgroup namespace
+            // and bind mounts /sys/fs/cgroup. Under docker-in-docker that gives k3s the outer
+            // machine's cgroup tree, and every pod it starts then loses its own cgroup. A
+            // private namespace behaves the same locally and inside a dind build agent.
+            .withCreateContainerCmdModifier(cmd ->
+            {
+                cmd.getHostConfig().withCgroupnsMode("private");
+                Bind[] binds = cmd.getHostConfig().getBinds();
+                if (binds != null)
+                {
+                    cmd.getHostConfig().withBinds(Arrays.stream(binds)
+                        .filter(bind -> !"/sys/fs/cgroup".equals(bind.getVolume().getPath()))
+                        .toArray(Bind[]::new));
+                }
+            })
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("k3s")));
         k3s.start();
         kubeConfig = Files.createTempFile("jco-kubeconfig", ".yaml");
