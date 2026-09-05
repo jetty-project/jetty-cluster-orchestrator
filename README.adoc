@@ -4,6 +4,88 @@ image::https://github.com/jetty-project/jetty-cluster-orchestrator/workflows/Git
 
 Jetty's `Cluster Orchestrator` is an API to ease writing tests that execute code over different JVMs, locally or across networks.
 
+== Maven Dependencies
+
+The project is structured as a multi-module Maven build with three modules:
+
+=== Core API Module (Always Required)
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-api</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+The API module provides the core orchestration functionality including:
+
+* `Cluster`, `ClusterConfiguration`, and core interfaces
+* `LocalHostLauncher` for local JVM processes 
+* Coordination tools (`Barrier`, `AtomicCounter`)
+* RPC framework and embedded ZooKeeper
+
+=== SSH Support (Optional)
+
+For remote execution over SSH, add:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-ssh</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+This module provides:
+
+* `SshRemoteHostLauncher` for SSH-based remote hosts
+* `SFTPNodeFileSystem` for remote file access over SFTP
+* Requires SSH public key authentication
+
+=== Kubernetes Support (Optional)
+
+For Kubernetes pod execution, add:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.mortbay.jetty.orchestrator</groupId>
+    <artifactId>jetty-cluster-orchestrator-k8s</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+----
+
+This module provides:
+
+* `KubernetesRemoteHostLauncher` for Kubernetes pod hosts
+* `KubernetesNodeFileSystem` for remote file access via kubectl exec
+* Requires kubeconfig with pod creation permissions
+
+== Multi-Module Build Commands
+
+[source,bash]
+----
+# Build all modules
+mvn clean install
+
+# Build specific module
+mvn clean install -pl jetty-cluster-orchestrator-api
+mvn clean install -pl jetty-cluster-orchestrator-ssh  
+mvn clean install -pl jetty-cluster-orchestrator-k8s
+
+# Test specific module
+mvn test -pl jetty-cluster-orchestrator-api
+mvn test -pl jetty-cluster-orchestrator-k8s
+
+# Run the Kubernetes integration tests. They start a throwaway k3s cluster in Docker,
+# so a running Docker daemon is all they need. Add -Dkubernetes.config.path=... to run
+# them against an existing cluster instead.
+mvn clean install -pl jetty-cluster-orchestrator-k8s
+----
+
 == Cluster Orchestrator API
 
 === A word of warning
@@ -14,7 +96,7 @@ of this library which is to ease writing multi-machine tests.
 
 === Required java version
 
-Starting with version 1.1.0, Java 11 is necessary. Version 1.0.3 is the last one compatible with Java 8.
+Starting with version 2.0.0, Java 17 is necessary. Version 1.x needs Java 11, and version 1.0.3 is the last one compatible with Java 8.
 
 === Configuring a JVM cluster
 
@@ -23,16 +105,16 @@ Creating a `ClusterConfiguration` instance is the first step to creating a clust
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")  // (1)
-        .node(new Node("1", "localhost"))                    // (2)
-        .node(new Node("2", "localhost")));
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")  // (1)
+        .node("1")                                          // (2)
+        .node("2"));
 ----
 
 . Add a `NodeArray` named `my-array`. A node array is a logical group of JVMs that are usually meant to do the same thing.
  Any number of `NodeArray` s can be added to a cluster, as long as they have unique names.
-. Add two `Node` s to the cluster. The first one is identified by the string `&quot;1&quot;` and is going to run on `localhost`,
- while the second one is identified by the string `&quot;2&quot;` and is also going to run on `localhost`. Note that all node identifiers
- must be unique.
+ The type of node array picks where its JVMs run: `LocalNodeArrayConfiguration` runs them on the local machine.
+. Add two nodes to the cluster, identified by the strings `&quot;1&quot;` and `&quot;2&quot;`. Node identifiers must be unique
+ within a node array.
 
 === Using a configured JVM cluster
 
@@ -78,25 +160,29 @@ deleted and all other resources were reclaimed.
 
 === Over the network
 
-If you want to use machines over the network, you can simply specify their names instead of `localhost` in the configuration:
+If you want to use machines over the network, swap the node array for an `SshNodeArrayConfiguration`, name the machines,
+and give the cluster an `SshRemoteHostLauncher`:
 
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "server-1"))
-        .node(new Node("2", "server-2")));
+    .hostLauncher(new SshRemoteHostLauncher())
+    .nodeArray(new SshNodeArrayConfiguration("my-array")
+        .node("1", "server-1")
+        .node("2", "server-2"));
 ----
 
 Running the above example with this configuration would create a JVM on a machine called `server-1`, another on a machine called
 `server-2` and execute the lambda on both of them, which would end up printing the exact same output as the standard output and
-error are piped from the remote machines to the local one. So by just changing the config, you can decide if the code has to
-run locally or remotely.
+error are piped from the remote machines to the local one. So by just changing the node array type and the launcher, you can
+decide if the code has to run locally or remotely.
 
 The way the JVMs are created on the remote machines is the same as in the local case: the classpath is copied, then the `java`
 command is used to create a JVM. The only difference is that this time copying and creating a process is done over SSH
 so it is assumed that the remote machines are reachable over SSH with public key auth pre-configured. The keys in `${HOME}/.ssh`
 are going to be used for that purpose.
+
+IMPORTANT: To use SSH functionality, you must include the `jetty-cluster-orchestrator-ssh` module dependency in your project.
 
 === Specifying the JVM
 
@@ -106,9 +192,9 @@ If you want to use a specific JVM over the one in your path, you can pass a `Jvm
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
     .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "localhost"))
-        .node(new Node("2", "localhost")));
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")
+        .node("1")
+        .node("2"));
 ----
 
 The configuration above is identical to the previous one, except that the `/some/path/to/jdk11/bin/java` command is going to be
@@ -119,10 +205,10 @@ Or you could be more specific by only configuring the JVM on the `NodeArray`:
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
+    .nodeArray(new LocalNodeArrayConfiguration("my-array")
         .jvm(new Jvm((fs, h) -> "/some/path/to/jdk11/bin/java", "-Xmx4g", "-Dmy.prop=SomeValue"))
-        .node(new Node("1", "localhost"))
-        .node(new Node("2", "localhost")));
+        .node("1")
+        .node("2"));
 ----
 
 In this case, only the `my-array` `NodeArray` would use the configured JVM but since it is the only configured node array,
@@ -153,9 +239,10 @@ then collect all those reports and eventually merge and transform them.
 [source,java]
 ----
 ClusterConfiguration cfg = new SimpleClusterConfiguration()             // (1)
-    .nodeArray(new SimpleNodeArrayConfiguration("my-array")
-        .node(new Node("1", "server-1"))
-        .node(new Node("2", "server-2")));
+    .hostLauncher(new SshRemoteHostLauncher())
+    .nodeArray(new SshNodeArrayConfiguration("my-array")
+        .node("1", "server-1")
+        .node("2", "server-2"));
 
 try (Cluster cluster = new Cluster(cfg))
 {
@@ -201,3 +288,112 @@ After running this test, you should have a hierarchy on the local filesystem tha
 
 A NIO `FileSystem` is created for each remote machine that transparently works across the SSH connection, or locally
 in case the node's machine is `localhost`. Please just note that the transparent remote filesystem is read-only.
+
+== Configuration Properties
+
+The Jetty Cluster Orchestrator supports several system properties to configure ZooKeeper connectivity and retry behavior.
+These properties are useful for adapting the cluster behavior to different network environments or CI/CD systems.
+
+=== ZooKeeper Connection Configuration
+
+[cols="1,1,2,1"]
+|===
+|Property |Default |Description |Example
+
+|`jco.curator.retry.baseSleepTimeMs`
+|`1000`
+|Base delay between ZooKeeper retry attempts in milliseconds
+|`-Djco.curator.retry.baseSleepTimeMs=500`
+
+|`jco.curator.retry.maxRetries`
+|`3`
+|Maximum number of retry attempts for ZooKeeper operations
+|`-Djco.curator.retry.maxRetries=5`
+
+|`jco.curator.sessionTimeoutMs`
+|`30000`
+|ZooKeeper session timeout in milliseconds
+|`-Djco.curator.sessionTimeoutMs=15000`
+
+|`jco.curator.connectionTimeoutMs`
+|`15000`
+|ZooKeeper initial connection timeout in milliseconds
+|`-Djco.curator.connectionTimeoutMs=10000`
+|===
+
+==== Configuration Examples
+
+For environments with unstable networks (e.g., CI systems with resource contention):
+
+[source,bash]
+----
+mvn test -Djco.curator.retry.maxRetries=5 -Djco.curator.retry.baseSleepTimeMs=500
+----
+
+For faster test execution in stable environments:
+
+[source,bash]
+----
+mvn test -Djco.curator.sessionTimeoutMs=10000 -Djco.curator.connectionTimeoutMs=5000
+----
+
+The retry policy uses exponential backoff, so with default settings of 3 retries and 1000ms base delay,
+the actual delays will be approximately: 1s, 2s, 4s before giving up.
+
+IMPORTANT: Setting `maxRetries` to 0 will disable retries entirely, which may cause connection failures
+in environments with temporary network hiccups during test execution.
+
+=== Node Health Check Configuration
+
+[cols="2,1,2,2"]
+|===
+|Property |Default |Description |Example
+
+|`org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure`
+|`false`
+|Make a node that missed too many health checks stop itself instead of killing its JVM
+|`-Dorg.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure=true`
+|===
+
+Every node watches the health checks the cluster sends it, and gives up when too many are missed.
+A node usually has a process of its own, so it calls `System.exit` to get rid of itself. Nodes on
+`localhost` do not: they run in the JVM that started the cluster, so exiting takes that JVM down too.
+
+Set this property to `true` when that JVM has to survive, a surefire fork for instance. The node then
+shuts itself down and the cluster reports the failure as an exception. Nodes with their own process
+still exit, which is what the health check is for.
+
+[source,bash]
+----
+mvn test -Dorg.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure=true
+----
+
+=== Kubernetes mode
+
+Nodes can also be launched as Kubernetes pods. See link:KUBERNETES.md[KUBERNETES.md] for the full API reference.
+
+IMPORTANT: To use Kubernetes functionality, you must include the `jetty-cluster-orchestrator-k8s` module dependency in your project.
+
+==== Running the Kubernetes tests
+
+The Kubernetes integration tests start a throwaway https://k3s.io[k3s] cluster in Docker through
+Testcontainers, so a running Docker daemon is the only prerequisite. They are skipped when Docker
+is unavailable.
+
+[source,bash]
+----
+mvn clean install
+----
+
+To run them against a cluster you already have instead:
+
+[source,bash]
+----
+mvn clean install \
+  -Dkubernetes.config.path=$HOME/.kube/config \
+  -Dk8s.image=eclipse-temurin:21-jre \
+  -Dk8s.namespace=foo-bar
+----
+
+`k8s.image` is the image the node pods run (it needs a JRE and `tar`) and `k3s.image` picks the k3s
+image used for the throwaway cluster.
