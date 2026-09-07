@@ -14,6 +14,7 @@
 package org.mortbay.jetty.orchestrator.k8s.launcher;
 
 import java.io.FileOutputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.k3s.K3sContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -62,6 +64,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </pre>
  * {@code k8s.image} is the image the node pods run, which needs a JRE and {@code tar}, and
  * {@code k3s.image} the one the throwaway cluster runs.
+ * <p>
+ * On a build machine that would rather not pull from Docker Hub every time, point
+ * {@code jco.k3s.registry.mirror} at a proxy and the cluster pulls through it; add
+ * {@code -Djco.k3s.registry.insecure=true} when the proxy serves a certificate that does not
+ * match the name you reach it by.
  */
 public class KubernetesClusterTest
 {
@@ -69,6 +76,8 @@ public class KubernetesClusterTest
     private static final String K8S_IMAGE = System.getProperty("k8s.image", "eclipse-temurin:21-jre");
     private static final String K8S_NAMESPACE = System.getProperty("k8s.namespace", "default");
     private static final String K3S_IMAGE = System.getProperty("k3s.image", "rancher/k3s:v1.36.4-k3s1"); // v1.31.2-k3s1
+    private static final String REGISTRY_MIRROR = System.getProperty("jco.k3s.registry.mirror");
+    private static final boolean REGISTRY_INSECURE = Boolean.getBoolean("jco.k3s.registry.insecure");
 
     private static final Logger log = LoggerFactory.getLogger(KubernetesClusterTest.class);
 
@@ -106,10 +115,37 @@ public class KubernetesClusterTest
                 }
             })
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("k3s")));
+        if (REGISTRY_MIRROR != null && !REGISTRY_MIRROR.isEmpty())
+        {
+            log.info("pulling cluster images through {}", REGISTRY_MIRROR);
+            k3s.withCopyToContainer(Transferable.of(registriesYaml(REGISTRY_MIRROR)), "/etc/rancher/k3s/registries.yaml");
+        }
         k3s.start();
         kubeConfig = Files.createTempFile("jco-kubeconfig", ".yaml");
         Files.writeString(kubeConfig, k3s.getKubeConfigYaml());
         kubeConfig.toFile().deleteOnExit();
+    }
+
+    /**
+     * A k3s registries.yaml sending Docker Hub pulls to a mirror. The node and ZooKeeper images
+     * are pulled by the cluster's own containerd, so a mirror on the Docker daemon outside never
+     * sees them, and the image names in the tests stay as they are.
+     */
+    private static String registriesYaml(String mirror)
+    {
+        StringBuilder yaml = new StringBuilder()
+            .append("mirrors:\n")
+            .append("  docker.io:\n")
+            .append("    endpoint:\n")
+            .append("      - \"").append(mirror).append("\"\n");
+        if (REGISTRY_INSECURE)
+        {
+            yaml.append("configs:\n")
+                .append("  \"").append(URI.create(mirror).getAuthority()).append("\":\n")
+                .append("    tls:\n")
+                .append("      insecure_skip_verify: true\n");
+        }
+        return yaml.toString();
     }
 
     @AfterAll
