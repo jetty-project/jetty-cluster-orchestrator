@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
+import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;
@@ -158,7 +159,7 @@ public class KubernetesClusterTest
     @Test
     void testBasicNodeExecution() throws Exception
     {
-        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder().namespace(K8S_NAMESPACE)
+        HostLauncher launcher = new KubernetesRemoteHostLauncher.Builder().namespace(K8S_NAMESPACE)
                 .image(K8S_IMAGE)
                 .kubernetesConfig(kubeConfig)
                 .build();
@@ -210,7 +211,7 @@ public class KubernetesClusterTest
     @Test
     void testNodeFileSystemAccess() throws Exception
     {
-        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+        HostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
             .namespace(K8S_NAMESPACE)
             .image(K8S_IMAGE)
             .kubernetesConfig(kubeConfig)
@@ -270,7 +271,7 @@ public class KubernetesClusterTest
     @Test
     void testMultipleNodesExecution() throws Exception
     {
-        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+        HostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
                 .namespace(K8S_NAMESPACE)
                 .image(K8S_IMAGE)
                 .kubernetesConfig(kubeConfig)
@@ -309,7 +310,7 @@ public class KubernetesClusterTest
     @Test
     void testNodeSelectors() throws Exception
     {
-        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+        HostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
             .namespace(K8S_NAMESPACE)
             .image(K8S_IMAGE)
             .kubernetesConfig(kubeConfig)
@@ -350,7 +351,7 @@ public class KubernetesClusterTest
     @Test
     void testConflictingSharedHostIsRejected() throws Exception
     {
-        KubernetesRemoteHostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
+        HostLauncher launcher = new KubernetesRemoteHostLauncher.Builder()
             .namespace(K8S_NAMESPACE)
             .image(K8S_IMAGE)
             .kubernetesConfig(kubeConfig)
