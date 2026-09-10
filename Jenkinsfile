@@ -4,31 +4,25 @@ pipeline {
   agent none
   options {
     buildDiscarder logRotator( numToKeepStr: '20' )
+    disableConcurrentBuilds(abortPrevious: true)
   }
   stages {
     stage("Parallel Stage") {
       parallel {
-        stage("Build / Test - JDK11") {
-          agent { node { label 'linux-light' } }
+        stage("Build / Test - JDK17") {
+          agent { node { label 'linux-dind' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
-            mavenBuild("jdk11", "clean install")
+            mavenBuild("jdk17", "clean install")
             script {
               if (env.BRANCH_NAME == 'main') {
-                mavenBuild("jdk11", "deploy")
+                mavenBuild("jdk17", "deploy")
               }
             }
           }
         }
-        stage("Build / Test - JDK17") {
-          agent { node { label 'linux-light' } }
-          options { timeout(time: 30, unit: 'MINUTES') }
-          steps {
-            mavenBuild("jdk17", "clean install")
-          }
-        }
-        stage("Build / Test - JDK21") {
-          agent { node { label 'linux-light' } }
+        stage("Build / Test - JDK25") {
+          agent { node { label 'linux-dind' } }
           options { timeout(time: 30, unit: 'MINUTES') }
           steps {
             mavenBuild("jdk21", "clean install")
