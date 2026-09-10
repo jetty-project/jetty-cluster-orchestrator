@@ -44,8 +44,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
  * {@link java.nio.file.Path} instead of a {@code jco:} one, and there is no local
  * {@link org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory}.
  */
-public class LocalLauncher extends AbstractHostLauncher
-{
+public class LocalLauncher extends AbstractHostLauncher {
     public static final String HOSTNAME = "localhost";
 
     private final Lock lock = new ReentrantLock();
@@ -60,145 +59,107 @@ public class LocalLauncher extends AbstractHostLauncher
     }
 
     @Override
-    protected Class<? extends NodeArrayConfiguration> configurationType()
-    {
+    protected Class<? extends NodeArrayConfiguration> configurationType() {
         return LocalNodeArrayConfiguration.class;
     }
 
     @Override
-    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
-    {
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs)
+            throws Exception {
         lock.lock();
-        try
-        {
+        try {
             GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
             if (!nodeId.equals(globalNodeId))
                 throw new IllegalArgumentException("node id is not the one of a host node");
             if (!HOSTNAME.equals(nodeId.getHostname()))
                 throw new IllegalArgumentException("local launcher can only work with 'localhost' hostname");
-            if (thread != null)
-                throw new IllegalStateException("local launcher already spawned 'localhost' thread");
+            if (thread != null) throw new IllegalStateException("local launcher already spawned 'localhost' thread");
             this.nodeId = nodeId;
 
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
-            for (String classpathEntry : classpathEntries)
-            {
+            for (String classpathEntry : classpathEntries) {
                 Path cpPath = Paths.get(classpathEntry);
-                if (Files.isDirectory(cpPath))
-                {
+                if (Files.isDirectory(cpPath)) {
                     copyDir(nodeId.getHostId(), cpPath, 1);
-                }
-                else
-                {
+                } else {
                     String filename = cpPath.getFileName().toString();
-                    try (InputStream is = Files.newInputStream(cpPath))
-                    {
+                    try (InputStream is = Files.newInputStream(cpPath)) {
                         copyFile(nodeId.getHostId(), filename, is);
                     }
                 }
             }
 
-            try
-            {
+            try {
                 this.thread = NodeProcess.spawnThread(nodeId.getHostId(), connectString, extraArgs);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             return connectString;
-        }
-        finally
-        {
+        } finally {
             lock.unlock();
         }
     }
 
     @Override
-    protected void closeHosts()
-    {
+    protected void closeHosts() {
         lock.lock();
-        try
-        {
-            if (thread != null)
-            {
+        try {
+            if (thread != null) {
                 thread.interrupt();
-                try
-                {
+                try {
                     thread.join();
-                }
-                catch (InterruptedException e)
-                {
+                } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
                 thread = null;
 
                 Path rootPath = rootPathOf(nodeId.getHostId());
                 Path parentPath = rootPath.getParent();
-                if (!skipDiskCleanup() && IOUtil.deltree(rootPath) && parentPath != null)
-                {
-                    try (DirectoryStream<Path> children = Files.newDirectoryStream(parentPath))
-                    {
-                        if (!children.iterator().hasNext())
-                            IOUtil.deltree(parentPath);
-                    }
-                    catch (IOException e)
-                    {
+                if (!skipDiskCleanup() && IOUtil.deltree(rootPath) && parentPath != null) {
+                    try (DirectoryStream<Path> children = Files.newDirectoryStream(parentPath)) {
+                        if (!children.iterator().hasNext()) IOUtil.deltree(parentPath);
+                    } catch (IOException e) {
                         // parent dir may no longer exist; nothing to clean up
                     }
                 }
                 nodeId = null;
             }
-        }
-        finally
-        {
+        } finally {
             lock.unlock();
         }
         IOUtil.close(zkServer);
     }
 
-    public static Path rootPathOf(String hostId)
-    {
+    public static Path rootPathOf(String hostId) {
         return Paths.get(System.getProperty("user.home"), "." + NodeFileSystemProvider.PREFIX, hostId);
     }
 
-    private static void copyFile(String hostId, String filename, InputStream contents) throws Exception
-    {
+    private static void copyFile(String hostId, String filename, InputStream contents) throws Exception {
         Path rootPath = rootPathOf(hostId);
         Path libPath = rootPath.resolve(NodeProcess.CLASSPATH_FOLDER_NAME);
 
         Path file = libPath.resolve(filename);
         Files.createDirectories(file.getParent());
-        try (OutputStream fos = Files.newOutputStream(file))
-        {
+        try (OutputStream fos = Files.newOutputStream(file)) {
             IOUtil.copy(contents, fos);
         }
     }
 
-    private static void copyDir(String hostId, Path cpPath, int depth) throws Exception
-    {
-        if (!Files.isDirectory(cpPath))
-            return;
+    private static void copyDir(String hostId, Path cpPath, int depth) throws Exception {
+        if (!Files.isDirectory(cpPath)) return;
 
-        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath))
-        {
-            for (Path file : files)
-            {
-                if (Files.isDirectory(file))
-                {
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath)) {
+            for (Path file : files) {
+                if (Files.isDirectory(file)) {
                     copyDir(hostId, file, depth + 1);
-                }
-                else
-                {
+                } else {
                     String filename = file.getFileName().toString();
                     Path currentPath = file;
-                    for (int i = 0; i < depth; i++)
-                    {
+                    for (int i = 0; i < depth; i++) {
                         currentPath = currentPath.getParent();
                         filename = currentPath.getFileName().toString() + "/" + filename;
                     }
-                    try (InputStream is = Files.newInputStream(file))
-                    {
+                    try (InputStream is = Files.newInputStream(file)) {
                         copyFile(hostId, filename, is);
                     }
                 }
@@ -206,8 +167,7 @@ public class LocalLauncher extends AbstractHostLauncher
         }
     }
 
-    public static boolean skipDiskCleanup()
-    {
+    public static boolean skipDiskCleanup() {
         return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipDiskCleanup");
     }
 }

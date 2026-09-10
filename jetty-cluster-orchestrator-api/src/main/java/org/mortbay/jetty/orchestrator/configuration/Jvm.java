@@ -20,24 +20,20 @@ import java.util.List;
 
 import org.mortbay.jetty.orchestrator.util.FilenameSupplier;
 
-public class Jvm implements Serializable
-{
+public class Jvm implements Serializable {
     private final FilenameSupplier executableSupplier;
     private final List<String> opts;
 
-    public Jvm(FilenameSupplier executableSupplier, String... opts)
-    {
+    public Jvm(FilenameSupplier executableSupplier, String... opts) {
         this.executableSupplier = executableSupplier;
         this.opts = Arrays.asList(opts);
     }
 
-    public String executable(FileSystem fileSystem, String hostname)
-    {
+    public String executable(FileSystem fileSystem, String hostname) {
         return executableSupplier.get(fileSystem, hostname);
     }
 
-    public List<String> getOpts()
-    {
+    public List<String> getOpts() {
         return opts;
     }
 }

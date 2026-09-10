@@ -18,8 +18,7 @@ package org.mortbay.jetty.orchestrator.configuration;
  * How a host gets created is the launcher's business, so launchers bring their own
  * {@code Node} types along with their own {@link NodeArrayConfiguration}.
  */
-public interface Node
-{
+public interface Node {
     String getId();
 
     String getHostname();

@@ -16,18 +16,15 @@ package org.mortbay.jetty.orchestrator.rpc.command;
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 
-public class KillNodeCommand implements Command
-{
+public class KillNodeCommand implements Command {
     private final NodeProcess process;
 
-    public KillNodeCommand(NodeProcess process)
-    {
+    public KillNodeCommand(NodeProcess process) {
         this.process = process;
     }
 
     @Override
-    public Object execute(ClusterTools clusterTools)
-    {
+    public Object execute(ClusterTools clusterTools) {
         process.close();
         return null;
     }

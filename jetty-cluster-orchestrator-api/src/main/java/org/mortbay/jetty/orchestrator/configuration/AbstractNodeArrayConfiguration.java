@@ -24,45 +24,38 @@ import java.util.Objects;
  * Subclasses add their own settings and a {@code node(...)} method for the {@link Node}
  * type they accept. Nodes keep their declaration order, so startup is reproducible.
  */
-public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent
-{
+public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfiguration, JvmDependent {
     private final String id;
     private final Map<String, Node> nodes = new LinkedHashMap<>();
     private Jvm jvm;
 
-    protected AbstractNodeArrayConfiguration(String id)
-    {
+    protected AbstractNodeArrayConfiguration(String id) {
         this.id = Objects.requireNonNull(id, "Node array id cannot be null");
     }
 
     @Override
-    public String id()
-    {
+    public String id() {
         return id;
     }
 
     @Override
-    public Collection<? extends Node> nodes()
-    {
+    public Collection<? extends Node> nodes() {
         return Collections.unmodifiableCollection(nodes.values());
     }
 
-    protected void addNode(Node node)
-    {
+    protected void addNode(Node node) {
         Objects.requireNonNull(node, "Node cannot be null");
         if (nodes.putIfAbsent(node.getId(), node) != null)
             throw new IllegalArgumentException("Duplicate node ID in node array '" + id + "': " + node.getId());
     }
 
     @Override
-    public Jvm jvm()
-    {
+    public Jvm jvm() {
         return jvm;
     }
 
     @Override
-    public AbstractNodeArrayConfiguration jvm(Jvm jvm)
-    {
+    public AbstractNodeArrayConfiguration jvm(Jvm jvm) {
         this.jvm = jvm;
         return this;
     }

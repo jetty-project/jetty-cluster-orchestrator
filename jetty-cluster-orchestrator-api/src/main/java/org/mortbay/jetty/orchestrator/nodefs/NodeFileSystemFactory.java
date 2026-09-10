@@ -21,15 +21,14 @@ import java.util.Map;
  * Creates the node filesystem for one kind of transport.
  * Implementation modules register theirs via ServiceLoader.
  */
-public interface NodeFileSystemFactory
-{
+public interface NodeFileSystemFactory {
     /**
      * Check if this factory can handle the given environment
      * @param env the environment properties
      * @return true if this factory can create a filesystem for this environment
      */
     boolean canHandle(Map<String, ?> env);
-    
+
     /**
      * Create a node filesystem
      * @param provider the filesystem provider
@@ -38,14 +37,14 @@ public interface NodeFileSystemFactory
      * @return the created filesystem
      * @throws IOException if the filesystem cannot be created
      */
-    AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException;
-    
+    AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env)
+            throws IOException;
+
     /**
      * Get the priority of this factory (higher priority factories are tried first)
      * @return the priority value
      */
-    default int getPriority()
-    {
+    default int getPriority() {
         return 0;
     }
 }

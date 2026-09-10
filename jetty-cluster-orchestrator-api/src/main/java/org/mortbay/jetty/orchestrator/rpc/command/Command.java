@@ -17,7 +17,6 @@ import java.io.Serializable;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
 
-public interface Command extends Serializable
-{
+public interface Command extends Serializable {
     Object execute(ClusterTools clusterTools) throws Exception;
 }

@@ -37,44 +37,37 @@ import org.apache.sshd.server.shell.ShellFactory;
 import org.apache.sshd.sftp.server.SftpSubsystem;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 
-public class TestSshServer implements AutoCloseable
-{
+public class TestSshServer implements AutoCloseable {
     private SshServer sshd;
 
-    public TestSshServer() throws Exception
-    {
+    public TestSshServer() throws Exception {
         this(System.getProperty("user.home"));
     }
 
-    public TestSshServer(String homeDir) throws Exception
-    {
+    public TestSshServer(String homeDir) throws Exception {
         KeyPair keyPair;
-        try (InputStream is = getClass().getResourceAsStream("/keystore.p12"))
-        {
+        try (InputStream is = getClass().getResourceAsStream("/keystore.p12")) {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(is, "storepwd".toCharArray());
             PublicKey publicKey = keyStore.getCertificate("mykey").getPublicKey();
-            PrivateKey privateKey = (PrivateKey)keyStore.getKey("mykey", "storepwd".toCharArray());
+            PrivateKey privateKey = (PrivateKey) keyStore.getKey("mykey", "storepwd".toCharArray());
             keyPair = new KeyPair(publicKey, privateKey);
         }
 
         init(keyPair, homeDir);
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return sshd.getPort();
     }
 
-    private void init(KeyPair keyPair, String homePath) throws Exception
-    {
+    private void init(KeyPair keyPair, String homePath) throws Exception {
         sshd = SshServer.setUpDefaultServer();
 
         // configure server keys
         sshd.setKeyPairProvider(new AbstractResourceKeyPairProvider<Object>() {
             @Override
-            public Iterable<KeyPair> loadKeys(SessionContext session)
-            {
+            public Iterable<KeyPair> loadKeys(SessionContext session) {
                 return Collections.singleton(keyPair);
             }
         });
@@ -86,15 +79,13 @@ public class TestSshServer implements AutoCloseable
         sshd.setForwardingFilter(new AcceptAllForwardingFilter());
 
         // enable SFTP
-        SftpSubsystemFactory factory = new SftpSubsystemFactory()
-        {
+        SftpSubsystemFactory factory = new SftpSubsystemFactory() {
             @Override
-            public Command createSubsystem(ChannelSession channel)
-            {
-                SftpSubsystem subsystem = new SftpSubsystem(channel, this)
-                {
+            public Command createSubsystem(ChannelSession channel) {
+                SftpSubsystem subsystem = new SftpSubsystem(channel, this) {
                     {
-                        this.defaultDir = fileSystem.getPath(homePath).toAbsolutePath().normalize();
+                        this.defaultDir =
+                                fileSystem.getPath(homePath).toAbsolutePath().normalize();
                     }
                 };
                 GenericUtils.forEach(getRegisteredListeners(), subsystem::addSftpEventListener);
@@ -105,17 +96,14 @@ public class TestSshServer implements AutoCloseable
         sshd.setFileSystemFactory(new NativeFileSystemFactory());
 
         // execute commands from home folder
-        sshd.setCommandFactory(new ProcessShellCommandFactory()
-        {
+        sshd.setCommandFactory(new ProcessShellCommandFactory() {
             @Override
-            public Command createCommand(ChannelSession channel, String command) throws IOException
-            {
-                ShellFactory factory = new ProcessShellFactory(command, CommandFactory.split(command))
-                {
+            public Command createCommand(ChannelSession channel, String command) throws IOException {
+                ShellFactory factory = new ProcessShellFactory(command, CommandFactory.split(command)) {
                     @Override
-                    protected InvertedShell createInvertedShell(ChannelSession channel)
-                    {
-                        return new HomeProcessShell(homePath, resolveEffectiveCommand(channel, getCommand(), getElements()));
+                    protected InvertedShell createInvertedShell(ChannelSession channel) {
+                        return new HomeProcessShell(
+                                homePath, resolveEffectiveCommand(channel, getCommand(), getElements()));
                     }
                 };
                 return factory.createShell(channel);
@@ -125,8 +113,7 @@ public class TestSshServer implements AutoCloseable
     }
 
     @Override
-    public void close() throws Exception
-    {
+    public void close() throws Exception {
         sshd.stop();
     }
 }

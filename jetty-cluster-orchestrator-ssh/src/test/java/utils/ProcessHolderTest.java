@@ -23,11 +23,9 @@ import org.mortbay.jetty.orchestrator.util.ProcessHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class ProcessHolderTest
-{
+public class ProcessHolderTest {
     @Test
-    public void testHolder() throws Exception
-    {
+    public void testHolder() throws Exception {
         Process process = startBlockingProcess();
         ProcessHolder processHolder = ProcessHolder.from(process);
 
@@ -40,15 +38,14 @@ public class ProcessHolderTest
         assertThat(alive, is(false));
     }
 
-    private static Process startBlockingProcess() throws IOException
-    {
-        ProcessBuilder pb = new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), MainForProcessHolder.class.getName());
+    private static Process startBlockingProcess() throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(
+                jvm(), "-classpath", System.getProperty("java.class.path"), MainForProcessHolder.class.getName());
         pb.inheritIO();
         return pb.start();
     }
 
-    private static String jvm()
-    {
+    private static String jvm() {
         Path javaHome = Paths.get(System.getProperties().getProperty("java.home"));
         boolean windows = System.getProperty("os.name").startsWith("Win");
         return javaHome.resolve("bin").resolve(windows ? "java.exe" : "java").toString();

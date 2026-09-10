@@ -22,11 +22,9 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class NodePathTest
-{
+public class NodePathTest {
     @Test
-    public void testAbsolutePaths()
-    {
+    public void testAbsolutePaths() {
         NodePath root1 = new NodePath(null, null, Collections.emptyList());
         assertThat(root1.isAbsolute(), is(true));
         assertThat(root1.toString(), is("/"));
@@ -36,8 +34,7 @@ public class NodePathTest
     }
 
     @Test
-    public void testToAbsolutePath()
-    {
+    public void testToAbsolutePath() {
         NodePath root = new NodePath(null, null, Arrays.asList("a", "b", "c"));
         assertThat(root.isAbsolute(), is(true));
         assertThat(root.toAbsolutePath().isAbsolute(), is(true));
@@ -52,8 +49,7 @@ public class NodePathTest
     }
 
     @Test
-    public void testResolve()
-    {
+    public void testResolve() {
         NodePath root = new NodePath(null, null, Arrays.asList("a", "b", "c"));
 
         NodePath child1 = root.resolve("d/e/f");
@@ -68,8 +64,7 @@ public class NodePathTest
     }
 
     @Test
-    public void testResolveResolve()
-    {
+    public void testResolveResolve() {
         NodePath root = new NodePath(null, null, Arrays.asList("a", "b", "c"));
 
         NodePath child1 = root.resolve("d/e/f");
@@ -89,8 +84,7 @@ public class NodePathTest
     }
 
     @Test
-    public void testRelativize()
-    {
+    public void testRelativize() {
         NodePath absolute1 = new NodePath(null, null, Arrays.asList("a", "b", "c"));
         NodePath absolute2 = new NodePath(null, null, Arrays.asList("a", "b", "c", "d", "e", "f"));
         NodePath relative1 = absolute1.resolve("d/e/f");

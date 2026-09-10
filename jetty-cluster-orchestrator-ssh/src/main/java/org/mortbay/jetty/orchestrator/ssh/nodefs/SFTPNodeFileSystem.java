@@ -40,8 +40,7 @@ import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.nodefs.NodePath;
 
-class SFTPNodeFileSystem extends AbstractNodeFileSystem
-{
+class SFTPNodeFileSystem extends AbstractNodeFileSystem {
     static final String PATH_SEPARATOR = "/";
     static final String WINDOWS_PATH_SEPARATOR = "\\";
 
@@ -53,292 +52,231 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    SFTPNodeFileSystem(NodeFileSystemProvider provider, SftpClient sftpClient, String hostId, List<String> cwd, boolean windows)
-    {
+    SFTPNodeFileSystem(
+            NodeFileSystemProvider provider, SftpClient sftpClient, String hostId, List<String> cwd, boolean windows) {
         this.provider = provider;
         this.sftpClient = sftpClient;
         this.hostId = hostId;
         this.windows = windows;
-        try
-        {
+        try {
             this.homePath = new NodePath(this, null, NodePath.toSegments(sftpClient.canonicalPath(".")));
             this.cwdPath = new NodePath(this, homePath, cwd);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public String getHostId()
-    {
+    public String getHostId() {
         return hostId;
     }
 
-    private Path relativeFromHomeOrAbsolute(NodePath dir)
-    {
-        try
-        {
+    private Path relativeFromHomeOrAbsolute(NodePath dir) {
+        try {
             return homePath.relativize(dir);
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             return dir.toAbsolutePath();
         }
     }
 
-    public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
-    {
+    public SeekableByteChannel newByteChannel(
+            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         byte[] data;
-        try (InputStream is = sftpClient.read(relativeFromHomeOrAbsolute(path).toString()))
-        {
+        try (InputStream is = sftpClient.read(relativeFromHomeOrAbsolute(path).toString())) {
             data = is.readAllBytes();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IOException("Unable to open byte channel for path: " + path, e);
         }
 
-        return new SeekableByteChannel()
-        {
+        return new SeekableByteChannel() {
             private long position;
 
             @Override
-            public void close()
-            {
-            }
+            public void close() {}
 
             @Override
-            public boolean isOpen()
-            {
+            public boolean isOpen() {
                 return true;
             }
 
             @Override
-            public long position()
-            {
+            public long position() {
                 return position;
             }
 
             @Override
-            public SeekableByteChannel position(long newPosition)
-            {
+            public SeekableByteChannel position(long newPosition) {
                 position = newPosition;
                 return this;
             }
 
             @Override
-            public int read(ByteBuffer dst)
-            {
-                int l = (int)Math.min(dst.remaining(), size() - position);
-                dst.put(data, (int)position, l);
+            public int read(ByteBuffer dst) {
+                int l = (int) Math.min(dst.remaining(), size() - position);
+                dst.put(data, (int) position, l);
                 position += l;
                 return l;
             }
 
             @Override
-            public long size()
-            {
+            public long size() {
                 return data.length;
             }
 
             @Override
-            public SeekableByteChannel truncate(long size)
-            {
+            public SeekableByteChannel truncate(long size) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public int write(ByteBuffer src)
-            {
+            public int write(ByteBuffer src) {
                 throw new UnsupportedOperationException();
             }
         };
     }
 
-    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException
-    {
+    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
+            throws IOException {
         List<Path> filteredPaths = new ArrayList<>();
-        try
-        {
-            for (SftpClient.DirEntry entry : sftpClient.readDir(relativeFromHomeOrAbsolute(dir).toString()))
-            {
+        try {
+            for (SftpClient.DirEntry entry :
+                    sftpClient.readDir(relativeFromHomeOrAbsolute(dir).toString())) {
                 String name = entry.getFilename();
-                if (".".equals(name) || "..".equals(name))
-                    continue;
+                if (".".equals(name) || "..".equals(name)) continue;
                 Path resolved = dir.resolve(name);
-                if (filter.accept(resolved))
-                    filteredPaths.add(resolved);
+                if (filter.accept(resolved)) filteredPaths.add(resolved);
             }
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IOException("Unable to open directory stream for path: " + dir, e);
         }
 
-        return new DirectoryStream<>()
-        {
+        return new DirectoryStream<>() {
             @Override
-            public Iterator<Path> iterator()
-            {
-                return new Iterator<>()
-                {
+            public Iterator<Path> iterator() {
+                return new Iterator<>() {
                     private final Iterator<Path> delegate = filteredPaths.iterator();
 
                     @Override
-                    public boolean hasNext()
-                    {
+                    public boolean hasNext() {
                         return delegate.hasNext();
                     }
 
                     @Override
-                    public Path next()
-                    {
+                    public Path next() {
                         return delegate.next();
                     }
 
                     @Override
-                    public void remove()
-                    {
+                    public void remove() {
                         throw new UnsupportedOperationException();
                     }
                 };
             }
 
             @Override
-            public void close()
-            {
-            }
+            public void close() {}
         };
     }
 
-    public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
-    {
+    public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException {
         String sftpPath = relativeFromHomeOrAbsolute(path).toString();
-        try
-        {
+        try {
             return sftpClient.read(sftpPath);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IOException("Unable to open input stream for path: " + path, e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
-    {
+    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
+            throws IOException {
         Objects.requireNonNull(type);
         if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
             throw new UnsupportedOperationException();
 
         String sftpPath = relativeFromHomeOrAbsolute(path).toString();
-        try
-        {
+        try {
             SftpClient.Attributes lstat = sftpClient.lstat(sftpPath);
             NodeFileAttributes nodeFileAttributes = new NodeFileAttributes(lstat);
-            return (A)nodeFileAttributes;
-        }
-        catch (IOException e)
-        {
+            return (A) nodeFileAttributes;
+        } catch (IOException e) {
             throw new IOException("Error reading attributes of path: " + path, e);
         }
     }
 
     @Override
-    public FileSystemProvider provider()
-    {
+    public FileSystemProvider provider() {
         return provider;
     }
 
     @Override
-    public void close() throws IOException
-    {
-        try
-        {
+    public void close() throws IOException {
+        try {
             sftpClient.close();
-        }
-        finally
-        {
+        } finally {
             provider.remove(hostId);
             closed = true;
         }
     }
 
     @Override
-    public boolean isOpen()
-    {
+    public boolean isOpen() {
         return !closed;
     }
 
     @Override
-    public boolean isReadOnly()
-    {
+    public boolean isReadOnly() {
         return true;
     }
 
     @Override
-    public String getSeparator()
-    {
+    public String getSeparator() {
         return windows ? WINDOWS_PATH_SEPARATOR : PATH_SEPARATOR;
     }
 
     @Override
-    public Iterable<Path> getRootDirectories()
-    {
+    public Iterable<Path> getRootDirectories() {
         return Collections.singleton(new NodePath(this, null, Collections.emptyList()));
     }
 
     @Override
-    public Iterable<FileStore> getFileStores()
-    {
+    public Iterable<FileStore> getFileStores() {
         return Collections.emptySet();
     }
 
     @Override
-    public Set<String> supportedFileAttributeViews()
-    {
+    public Set<String> supportedFileAttributeViews() {
         return Collections.emptySet();
     }
 
     @Override
-    public Path getPath(String first, String... more)
-    {
+    public Path getPath(String first, String... more) {
         boolean absolute = first.startsWith(PATH_SEPARATOR);
         List<String> segments = new ArrayList<>(NodePath.toSegments(first));
-        for (String s : more)
-            segments.addAll(NodePath.toSegments(s));
+        for (String s : more) segments.addAll(NodePath.toSegments(s));
         return getPath(absolute, segments);
     }
 
-    public Path getPath(boolean absolute, List<String> segments)
-    {
+    public Path getPath(boolean absolute, List<String> segments) {
         return cwdPath.resolve(absolute, segments);
     }
 
     @Override
-    public PathMatcher getPathMatcher(String syntaxAndPattern)
-    {
+    public PathMatcher getPathMatcher(String syntaxAndPattern) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public UserPrincipalLookupService getUserPrincipalLookupService()
-    {
+    public UserPrincipalLookupService getUserPrincipalLookupService() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public WatchService newWatchService()
-    {
+    public WatchService newWatchService() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public String toString()
-    {
-        return "SFTPNodeFileSystem{" +
-            "hostId='" + hostId + '\'' +
-            '}';
+    public String toString() {
+        return "SFTPNodeFileSystem{" + "hostId='" + hostId + '\'' + '}';
     }
 }

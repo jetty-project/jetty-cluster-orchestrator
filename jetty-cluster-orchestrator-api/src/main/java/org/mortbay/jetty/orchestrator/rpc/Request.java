@@ -17,33 +17,25 @@ import java.io.Serializable;
 
 import org.mortbay.jetty.orchestrator.rpc.command.Command;
 
-public class Request implements Serializable
-{
+public class Request implements Serializable {
     private final long id;
     private final Command command;
 
-    public Request(long id, Command command)
-    {
+    public Request(long id, Command command) {
         this.id = id;
         this.command = command;
     }
 
-    public long getId()
-    {
+    public long getId() {
         return id;
     }
 
-    public Command getCommand()
-    {
+    public Command getCommand() {
         return command;
     }
 
     @Override
-    public String toString()
-    {
-        return "Request{" +
-            "id=" + id +
-            ", command=" + command +
-            '}';
+    public String toString() {
+        return "Request{" + "id=" + id + ", command=" + command + '}';
     }
 }

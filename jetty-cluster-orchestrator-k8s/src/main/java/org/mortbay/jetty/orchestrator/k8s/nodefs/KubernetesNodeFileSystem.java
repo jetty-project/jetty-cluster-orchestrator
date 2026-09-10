@@ -50,10 +50,9 @@ import org.mortbay.jetty.orchestrator.nodefs.NodePath;
  * Registered at pod launch time so that {@code ReportUtil.download()} can
  * resolve {@code jco:} URIs without any SSH/SFTP involvement.
  */
-public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
-{
+public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     static final String PATH_SEPARATOR = "/";
-    
+
     private final NodeFileSystemProvider provider;
     private final KubernetesClient client;
     private final String namespace;
@@ -63,10 +62,14 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    KubernetesNodeFileSystem(NodeFileSystemProvider provider, KubernetesClient client,
-                             String namespace, String podName, String podHome,
-                             String hostId, List<String> cwd)
-    {
+    KubernetesNodeFileSystem(
+            NodeFileSystemProvider provider,
+            KubernetesClient client,
+            String namespace,
+            String podName,
+            String podHome,
+            String hostId,
+            List<String> cwd) {
         this.provider = provider;
         this.client = client;
         this.namespace = namespace;
@@ -77,147 +80,136 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
     }
 
     @Override
-    public String getHostId()
-    {
+    public String getHostId() {
         return hostId;
     }
 
     @Override
-    public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
-    {
+    public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException {
         String abs = absolutePathString(path);
         return client.pods().inNamespace(namespace).withName(podName).file(abs).read();
     }
 
     @Override
-    public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
-    {
+    public SeekableByteChannel newByteChannel(
+            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         byte[] data;
-        try (InputStream is = newInputStream(path))
-        {
+        try (InputStream is = newInputStream(path)) {
             data = is.readAllBytes();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IOException("Unable to open byte channel for path: " + path, e);
         }
 
-        return new SeekableByteChannel()
-        {
+        return new SeekableByteChannel() {
             private long position;
 
-            @Override public void close() {}
-            @Override public boolean isOpen() { return true; }
-            @Override public long position() { return position; }
+            @Override
+            public void close() {}
 
             @Override
-            public SeekableByteChannel position(long newPosition)
-            {
+            public boolean isOpen() {
+                return true;
+            }
+
+            @Override
+            public long position() {
+                return position;
+            }
+
+            @Override
+            public SeekableByteChannel position(long newPosition) {
                 position = newPosition;
                 return this;
             }
 
             @Override
-            public int read(ByteBuffer dst)
-            {
-                int l = (int)Math.min(dst.remaining(), size() - position);
-                dst.put(data, (int)position, l);
+            public int read(ByteBuffer dst) {
+                int l = (int) Math.min(dst.remaining(), size() - position);
+                dst.put(data, (int) position, l);
                 position += l;
                 return l;
             }
 
             @Override
-            public long size()
-            {
+            public long size() {
                 return data.length;
             }
+
             @Override
-            public SeekableByteChannel truncate(long size)
-            {
+            public SeekableByteChannel truncate(long size) {
                 throw new UnsupportedOperationException();
             }
+
             @Override
-            public int write(ByteBuffer src)
-            {
+            public int write(ByteBuffer src) {
                 throw new UnsupportedOperationException();
             }
         };
     }
 
     @Override
-    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException
-    {
+    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
+            throws IOException {
         String abs = absolutePathString(dir);
         String output;
-        try
-        {
+        try {
             output = podRunAndCollect("ls", "-1a", abs);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             throw new IOException("Unable to open directory stream for path: " + dir, e);
         }
 
         List<Path> filteredPaths = new ArrayList<>();
-        for (String name : output.split("\n"))
-        {
+        for (String name : output.split("\n")) {
             name = name.trim();
-            if (name.isEmpty() || name.equals(".") || name.equals(".."))
-                continue;
+            if (name.isEmpty() || name.equals(".") || name.equals("..")) continue;
             Path resolved = dir.resolve(name);
-            if (filter.accept(resolved))
-                filteredPaths.add(resolved);
+            if (filter.accept(resolved)) filteredPaths.add(resolved);
         }
 
-        return new DirectoryStream<>()
-        {
+        return new DirectoryStream<>() {
             @Override
-            public Iterator<Path> iterator()
-            {
-                return new Iterator<>()
-                {
+            public Iterator<Path> iterator() {
+                return new Iterator<>() {
                     private final Iterator<Path> delegate = filteredPaths.iterator();
 
                     @Override
-                    public boolean hasNext()
-                    {
+                    public boolean hasNext() {
                         return delegate.hasNext();
                     }
+
                     @Override
-                    public Path next()
-                    {
+                    public Path next() {
                         return delegate.next();
                     }
+
                     @Override
-                    public void remove()
-                    {
+                    public void remove() {
                         throw new UnsupportedOperationException();
                     }
                 };
             }
 
-            @Override public void close() {}
+            @Override
+            public void close() {}
         };
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException
-    {
+    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
+            throws IOException {
         Objects.requireNonNull(type);
         if (!type.equals(BasicFileAttributes.class) && !type.equals(KubernetesNodeFileAttributes.class))
             throw new UnsupportedOperationException("Unsupported attribute type: " + type);
 
         String abs = absolutePathString(path);
         String output;
-        try
-        {
+        try {
             // Enhanced stat format with quotes for robust parsing
             // Format: '%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'
-            output = podRunAndCollect("stat", "--format='%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'", abs).trim();
-        }
-        catch (IOException e)
-        {
+            output = podRunAndCollect("stat", "--format='%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'", abs)
+                    .trim();
+        } catch (IOException e) {
             throw new IOException("Error reading attributes of path: " + path, e);
         }
 
@@ -226,7 +218,7 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
         // Split on single quotes and extract every other element (skip empty strings between quotes)
         String[] parts = output.split("'");
         if (parts.length < 15) // Should have 16 parts: empty + 8 quoted fields + 7 separators
-            throw new IOException("Unexpected stat output format for " + abs + ": " + output);
+        throw new IOException("Unexpected stat output format for " + abs + ": " + output);
 
         // Extract quoted fields (at indices 1, 3, 5, 7, 9, 11, 13, 15)
         String fileType = parts[1];
@@ -238,8 +230,7 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
         String atimeStr = parts[13];
         String ctimeStr = parts[15];
 
-        try
-        {
+        try {
             long size = Long.parseLong(sizeStr);
             int permissions = Integer.parseInt(permissionsStr, 8); // Parse as octal
             int userId = Integer.parseInt(userIdStr);
@@ -249,126 +240,106 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
             long ctimeSeconds = Long.parseLong(ctimeStr);
 
             KubernetesNodeFileAttributes result = new KubernetesNodeFileAttributes(
-                fileType, size, permissions, userId, groupId, 
-                mtimeSeconds, atimeSeconds, ctimeSeconds);
+                    fileType, size, permissions, userId, groupId, mtimeSeconds, atimeSeconds, ctimeSeconds);
 
-            return (A)result;
-        }
-        catch (NumberFormatException e)
-        {
+            return (A) result;
+        } catch (NumberFormatException e) {
             throw new IOException("Failed to parse stat output for " + abs + ": " + output, e);
         }
     }
 
     @Override
-    public Path getPath(String first, String... more)
-    {
+    public Path getPath(String first, String... more) {
         boolean absolute = first.startsWith(PATH_SEPARATOR);
         List<String> segments = new ArrayList<>(NodePath.toSegments(first));
-        for (String s : more)
-            segments.addAll(NodePath.toSegments(s));
+        for (String s : more) segments.addAll(NodePath.toSegments(s));
         return getPath(absolute, segments);
     }
 
     @Override
-    public Path getPath(boolean absolute, List<String> segments)
-    {
+    public Path getPath(boolean absolute, List<String> segments) {
         return cwdPath.resolve(absolute, segments);
     }
 
     @Override
-    public FileSystemProvider provider()
-    {
+    public FileSystemProvider provider() {
         return provider;
     }
 
     @Override
-    public void close()
-    {
+    public void close() {
         provider.remove(hostId);
         closed = true;
     }
 
     @Override
-    public boolean isOpen()
-    {
+    public boolean isOpen() {
         return !closed;
     }
 
     @Override
-    public boolean isReadOnly()
-    {
+    public boolean isReadOnly() {
         return true;
     }
 
     @Override
-    public String getSeparator()
-    {
+    public String getSeparator() {
         return PATH_SEPARATOR;
     }
 
     @Override
-    public Iterable<Path> getRootDirectories()
-    {
+    public Iterable<Path> getRootDirectories() {
         return Collections.singleton(new NodePath(this, null, Collections.emptyList()));
     }
 
     @Override
-    public Iterable<FileStore> getFileStores()
-    {
+    public Iterable<FileStore> getFileStores() {
         return Collections.emptySet();
     }
 
     @Override
-    public Set<String> supportedFileAttributeViews()
-    {
+    public Set<String> supportedFileAttributeViews() {
         return Collections.emptySet();
     }
 
     @Override
-    public PathMatcher getPathMatcher(String syntaxAndPattern)
-    {
-        throw new UnsupportedOperationException();
-    }
-    @Override
-    public UserPrincipalLookupService getUserPrincipalLookupService()
-    {
-        throw new UnsupportedOperationException();
-    }
-    @Override
-    public WatchService newWatchService()
-    {
+    public PathMatcher getPathMatcher(String syntaxAndPattern) {
         throw new UnsupportedOperationException();
     }
 
-    private String absolutePathString(NodePath path)
-    {
+    @Override
+    public UserPrincipalLookupService getUserPrincipalLookupService() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public WatchService newWatchService() {
+        throw new UnsupportedOperationException();
+    }
+
+    private String absolutePathString(NodePath path) {
         return path.toAbsolutePath().toString();
     }
 
     /** Runs a command inside the pod and returns stdout. Uses 30-second timeout. */
-    private String podRunAndCollect(String... command) throws IOException
-    {
+    private String podRunAndCollect(String... command) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         // Uses Fabric8 pod exec API (String[] command, not a shell string — no injection risk)
-        try (ExecWatch watch = client.pods().inNamespace(namespace).withName(podName)
-            .writingOutput(out)
-            .exec(command))
-        {
+        try (ExecWatch watch = client.pods()
+                .inNamespace(namespace)
+                .withName(podName)
+                .writingOutput(out)
+                .exec(command)) {
             watch.exitCode().get(30, TimeUnit.SECONDS);
             return out.toString(StandardCharsets.UTF_8);
-        }
-        catch (Exception e)
-        {
-            if (e instanceof IOException)
-                throw (IOException)e;
+        } catch (Exception e) {
+            if (e instanceof IOException) throw (IOException) e;
             throw new IOException("Pod command failed: " + Arrays.toString(command), e);
         }
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "KubernetesNodeFileSystem{hostId='" + hostId + "', pod='" + podName + "'}";
     }
 }

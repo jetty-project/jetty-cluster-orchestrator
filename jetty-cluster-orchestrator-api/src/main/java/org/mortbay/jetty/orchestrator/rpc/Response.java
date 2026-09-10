@@ -15,41 +15,31 @@ package org.mortbay.jetty.orchestrator.rpc;
 
 import java.io.Serializable;
 
-public class Response implements Serializable
-{
+public class Response implements Serializable {
     private final long id;
     private final Object result;
     private final Throwable throwable;
 
-    public Response(long id, Object result, Throwable throwable)
-    {
+    public Response(long id, Object result, Throwable throwable) {
         this.id = id;
         this.result = result;
         this.throwable = throwable;
     }
 
-    public long getId()
-    {
+    public long getId() {
         return id;
     }
 
-    public Object getResult()
-    {
+    public Object getResult() {
         return result;
     }
 
-    public Throwable getThrowable()
-    {
+    public Throwable getThrowable() {
         return throwable;
     }
 
     @Override
-    public String toString()
-    {
-        return "Response{" +
-            "id=" + id +
-            ", result=" + result +
-            ", throwable=" + throwable +
-            '}';
+    public String toString() {
+        return "Response{" + "id=" + id + ", result=" + result + ", throwable=" + throwable + '}';
     }
 }

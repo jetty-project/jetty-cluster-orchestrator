@@ -18,32 +18,27 @@ import java.util.Objects;
 /**
  * A {@link Node} with nothing but an id and a hostname, for launchers that need no more.
  */
-public class SimpleNode implements Node
-{
+public class SimpleNode implements Node {
     private final String id;
     private final String hostname;
 
-    public SimpleNode(String id, String hostname)
-    {
+    public SimpleNode(String id, String hostname) {
         this.id = Objects.requireNonNull(id, "Node id cannot be null");
         this.hostname = Objects.requireNonNull(hostname, "Node hostname cannot be null");
     }
 
     @Override
-    public String getId()
-    {
+    public String getId() {
         return id;
     }
 
     @Override
-    public String getHostname()
-    {
+    public String getHostname() {
         return hostname;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "SimpleNode{id='" + id + "', hostname='" + hostname + "'}";
     }
 }
