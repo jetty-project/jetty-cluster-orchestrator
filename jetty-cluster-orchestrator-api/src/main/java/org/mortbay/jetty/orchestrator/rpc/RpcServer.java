@@ -27,22 +27,22 @@ import org.slf4j.LoggerFactory;
 public class RpcServer implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
-    static final String COMMAND_QUEUE_NAME = "RPC/commandQ";
+    static final String REQUEST_QUEUE_NAME = "RPC/requestQ";
     static final String RESPONSE_QUEUE_NAME = "RPC/responseQ";
 
     private final GlobalNodeId globalNodeId;
-    private final DistributedQueue commandQueue;
-    private final DistributedQueue responseQueue;
+    private final DistributedQueue<Request> requestQueue;
+    private final DistributedQueue<Response> responseQueue;
     private final ExecutorService executorService;
     private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private volatile boolean active;
     private final ClusterTools clusterTools;
-    private volatile long lastCommandTimestamp;
+    private volatile long lastRequestTimestamp;
 
     public RpcServer(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
         this.globalNodeId = globalNodeId;
-        commandQueue = zkClient.createDistributedQueue(globalNodeId, COMMAND_QUEUE_NAME);
+        requestQueue = zkClient.createDistributedQueue(globalNodeId, REQUEST_QUEUE_NAME);
         responseQueue = zkClient.createDistributedQueue(globalNodeId, RESPONSE_QUEUE_NAME);
         executorService = Executors.newCachedThreadPool(r ->
         {
@@ -53,12 +53,12 @@ public class RpcServer implements AutoCloseable
             return thread;
         });
         clusterTools = new ClusterTools(zkClient, globalNodeId);
-        lastCommandTimestamp = System.nanoTime();
+        lastRequestTimestamp = System.nanoTime();
     }
 
-    public long getLastCommandTimestamp()
+    public long getLastRequestTimestamp()
     {
-        return lastCommandTimestamp;
+        return lastRequestTimestamp;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class RpcServer implements AutoCloseable
     {
         try
         {
-            commandQueue.offer(new Request(0, new AbortCommand()));
+            requestQueue.offer(new Request(0, new AbortCommand()));
         }
         catch (Exception e)
         {
@@ -97,9 +97,8 @@ public class RpcServer implements AutoCloseable
         {
             try
             {
-                Object obj = commandQueue.take();
-                Request request = (Request)obj;
-                lastCommandTimestamp = System.nanoTime();
+                Request request = requestQueue.take();
+                lastRequestTimestamp = System.nanoTime();
                 if (LOG.isDebugEnabled())
                     LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
                 if (request.getCommand().getClass() == AbortCommand.class)
@@ -144,7 +143,7 @@ public class RpcServer implements AutoCloseable
             catch (Exception e)
             {
                 active = false;
-                throw new RuntimeException("Error reading command on node " + globalNodeId.getNodeId(), e);
+                throw new RuntimeException("Error reading request on node " + globalNodeId.getNodeId(), e);
             }
         }
     }

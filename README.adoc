@@ -300,25 +300,25 @@ These properties are useful for adapting the cluster behavior to different netwo
 |===
 |Property |Default |Description |Example
 
-|`jco.curator.retry.baseSleepTimeMs`
+|`jco.zookeeper.retry.baseSleepTimeMs`
 |`1000`
 |Base delay between ZooKeeper retry attempts in milliseconds
-|`-Djco.curator.retry.baseSleepTimeMs=500`
+|`-Djco.zookeeper.retry.baseSleepTimeMs=500`
 
-|`jco.curator.retry.maxRetries`
+|`jco.zookeeper.retry.maxRetries`
 |`3`
 |Maximum number of retry attempts for ZooKeeper operations
-|`-Djco.curator.retry.maxRetries=5`
+|`-Djco.zookeeper.retry.maxRetries=5`
 
-|`jco.curator.sessionTimeoutMs`
+|`jco.zookeeper.sessionTimeoutMs`
 |`30000`
 |ZooKeeper session timeout in milliseconds
-|`-Djco.curator.sessionTimeoutMs=15000`
+|`-Djco.zookeeper.sessionTimeoutMs=15000`
 
-|`jco.curator.connectionTimeoutMs`
+|`jco.zookeeper.connectionTimeoutMs`
 |`15000`
 |ZooKeeper initial connection timeout in milliseconds
-|`-Djco.curator.connectionTimeoutMs=10000`
+|`-Djco.zookeeper.connectionTimeoutMs=10000`
 |===
 
 ==== Configuration Examples
@@ -327,14 +327,14 @@ For environments with unstable networks (e.g., CI systems with resource contenti
 
 [source,bash]
 ----
-mvn test -Djco.curator.retry.maxRetries=5 -Djco.curator.retry.baseSleepTimeMs=500
+mvn test -Djco.zookeeper.retry.maxRetries=5 -Djco.zookeeper.retry.baseSleepTimeMs=500
 ----
 
 For faster test execution in stable environments:
 
 [source,bash]
 ----
-mvn test -Djco.curator.sessionTimeoutMs=10000 -Djco.curator.connectionTimeoutMs=5000
+mvn test -Djco.zookeeper.sessionTimeoutMs=10000 -Djco.zookeeper.connectionTimeoutMs=5000
 ----
 
 The retry policy uses exponential backoff, so with default settings of 3 retries and 1000ms base delay,

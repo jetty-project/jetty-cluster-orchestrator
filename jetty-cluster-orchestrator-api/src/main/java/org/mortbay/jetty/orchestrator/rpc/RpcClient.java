@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,10 +34,9 @@ public class RpcClient implements AutoCloseable
 {
     private static final Logger LOG = LoggerFactory.getLogger(RpcClient.class);
 
-    private final DistributedQueue commandQueue;
-    private final DistributedQueue responseQueue;
+    private final DistributedQueue<Request> requestQueue;
+    private final DistributedQueue<Response> responseQueue;
     private final ExecutorService executorService;
-    private final AtomicInteger threadIdGenerator = new AtomicInteger();
     private final ConcurrentMap<Long, CompletableFuture<Object>> calls = new ConcurrentHashMap<>();
     private final AtomicLong requestIdGenerator = new AtomicLong();
     private final GlobalNodeId globalNodeId;
@@ -44,19 +44,25 @@ public class RpcClient implements AutoCloseable
     public RpcClient(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
     {
         this.globalNodeId = globalNodeId;
-        commandQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.COMMAND_QUEUE_NAME);
+        requestQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.REQUEST_QUEUE_NAME);
         responseQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.RESPONSE_QUEUE_NAME);
-        executorService = Executors.newSingleThreadExecutor(r ->
+        executorService = Executors.newSingleThreadExecutor(new ThreadFactory()
         {
-            Thread t = new Thread(r);
-            t.setName("jco-" + threadIdGenerator.getAndIncrement());
-            return t;
+            private final AtomicInteger threadIdGenerator = new AtomicInteger();
+
+            @Override
+            public Thread newThread(Runnable r)
+            {
+                Thread t = new Thread(r);
+                t.setName("jco-" + threadIdGenerator.getAndIncrement());
+                return t;
+            }
         });
         executorService.submit(() ->
         {
             while (true)
             {
-                Response resp = (Response)responseQueue.take();
+                Response resp = responseQueue.take();
                 if (LOG.isDebugEnabled())
                     LOG.debug("{} got response {}", globalNodeId.getNodeId(), resp);
                 CompletableFuture<Object> future = calls.remove(resp.getId());
@@ -78,19 +84,13 @@ public class RpcClient implements AutoCloseable
         Request request = new Request(requestId, command);
         if (LOG.isDebugEnabled())
             LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
-        commandQueue.offer(request);
+        requestQueue.offer(request);
         return completableFuture;
     }
 
     public Object call(Command command, long timeout, TimeUnit unit) throws Exception
     {
         return callAsync(command).get(timeout, unit);
-    }
-
-    public Object call(Command command) throws Exception
-    {
-        CompletableFuture<Object> future = callAsync(command);
-        return future.get();
     }
 
     private boolean isClosed()

@@ -49,7 +49,7 @@ public class ClusterTools
         return zkClient.createAtomicCounter(globalNodeId, name, initialValue);
     }
 
-    public DistributedQueue distributedQueue(String name)
+    public <T> DistributedQueue<T> distributedQueue(String name)
     {
         return zkClient.createDistributedQueue(globalNodeId, name);
     }

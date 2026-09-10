@@ -249,9 +249,9 @@
               <k8s.image>${k8s.image}</k8s.image>
               <k8s.namespace>${k8s.namespace}</k8s.namespace>
               <kubernetes.config.path>${kubernetes.config.path}</kubernetes.config.path>
-              <jco.curator.sessionTimeoutMs>15000</jco.curator.sessionTimeoutMs>
-              <jco.curator.connectionTimeoutMs>10000</jco.curator.connectionTimeoutMs>
-              <jco.curator.retry.maxRetries>1</jco.curator.retry.maxRetries>
+              <jco.zookeeper.sessionTimeoutMs>15000</jco.zookeeper.sessionTimeoutMs>
+              <jco.zookeeper.connectionTimeoutMs>10000</jco.zookeeper.connectionTimeoutMs>
+              <jco.zookeeper.retry.maxRetries>1</jco.zookeeper.retry.maxRetries>
               <jco.spawn.timeoutMs>180000</jco.spawn.timeoutMs>
               <!-- Nodes on localhost run inside the test JVM, so a missed health check must not exit it. -->
               <org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure>true</org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure>
@@ -287,34 +287,9 @@
         <version>2.0.19</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.curator</groupId>
-        <artifactId>curator-framework</artifactId>
-        <version>5.9.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.curator</groupId>
-        <artifactId>curator-test</artifactId>
-        <version>5.9.0</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-commons</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>3.9.5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.curator</groupId>
-        <artifactId>curator-recipes</artifactId>
-        <version>5.9.0</version>
       </dependency>
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
