@@ -28,15 +28,17 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.StreamSupport;
 
-import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.auth.password.PasswordIdentityProvider;
+import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
-import org.mortbay.jetty.orchestrator.ssh.nodefs.SFTPNodeFileSystem;
 import sshd.TestSshServer;
 import utils.Closer;
 
@@ -68,14 +70,16 @@ public class SFTPNodeFileSystemTest
         new File("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+        sshClient.start();
+        ClientSession session = closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
+        session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
+        session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
         SFTPNodeFileSystem fileSystem = closer.register((SFTPNodeFileSystem)FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
@@ -91,14 +95,16 @@ public class SFTPNodeFileSystemTest
         new File("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+        sshClient.start();
+        ClientSession session = closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
+        session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
+        session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."));
@@ -114,14 +120,16 @@ public class SFTPNodeFileSystemTest
         new File("target/testAbsolutePath").mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testAbsolutePath"));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+        sshClient.start();
+        ClientSession session = closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
+        session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
+        session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         DirectoryStream<Path> directoryStream = Files.newDirectoryStream(fileSystem.getPath("/"));
@@ -141,14 +149,16 @@ public class SFTPNodeFileSystemTest
         javaFile.setExecutable(true);
 
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+        sshClient.start();
+        ClientSession session = closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
+        session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
+        session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         Jvm jvm = new Jvm((fs, h) ->
@@ -178,14 +188,16 @@ public class SFTPNodeFileSystemTest
         folder.mkdirs();
 
         TestSshServer testSshServer = closer.register(new TestSshServer(home.getPath()));
-        SSHClient sshClient = closer.register(new SSHClient());
-        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        sshClient.connect("localhost", testSshServer.getPort());
-        sshClient.authPassword("username", new char[0]);
+        SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
+        sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+        sshClient.start();
+        ClientSession session = closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
+        session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
+        session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(SFTPClient.class.getName(), sshClient.newStatefulSFTPClient());
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
         FileSystem fileSystem = closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         assertThrows(NoFileException.class, () -> new Jvm((fs, h) ->

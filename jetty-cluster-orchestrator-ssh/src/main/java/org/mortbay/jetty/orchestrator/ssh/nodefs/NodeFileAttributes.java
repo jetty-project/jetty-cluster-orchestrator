@@ -15,21 +15,19 @@ package org.mortbay.jetty.orchestrator.ssh.nodefs;
 
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.util.concurrent.TimeUnit;
 
-import net.schmizz.sshj.sftp.FileAttributes;
-import net.schmizz.sshj.sftp.FileMode;
+import org.apache.sshd.sftp.client.SftpClient;
 
 class NodeFileAttributes implements BasicFileAttributes
 {
-    private final FileAttributes lstat;
+    private final SftpClient.Attributes lstat;
 
-    NodeFileAttributes(FileAttributes lstat)
+    NodeFileAttributes(SftpClient.Attributes lstat)
     {
         this.lstat = lstat;
     }
 
-    public FileAttributes getLstat()
+    public SftpClient.Attributes getLstat()
     {
         return lstat;
     }
@@ -37,13 +35,13 @@ class NodeFileAttributes implements BasicFileAttributes
     @Override
     public FileTime lastModifiedTime()
     {
-        return FileTime.from(lstat.getMtime(), TimeUnit.MILLISECONDS);
+        return lstat.getModifyTime();
     }
 
     @Override
     public FileTime lastAccessTime()
     {
-        return FileTime.from(lstat.getAtime(), TimeUnit.MILLISECONDS);
+        return lstat.getAccessTime();
     }
 
     @Override
@@ -55,25 +53,25 @@ class NodeFileAttributes implements BasicFileAttributes
     @Override
     public boolean isRegularFile()
     {
-        return lstat.getType() == FileMode.Type.REGULAR;
+        return lstat.isRegularFile();
     }
 
     @Override
     public boolean isDirectory()
     {
-        return lstat.getType() == FileMode.Type.DIRECTORY;
+        return lstat.isDirectory();
     }
 
     @Override
     public boolean isSymbolicLink()
     {
-        return lstat.getType() == FileMode.Type.SYMLINK;
+        return lstat.isSymbolicLink();
     }
 
     @Override
     public boolean isOther()
     {
-        return !isDirectory() && !isRegularFile() && !isSymbolicLink();
+        return lstat.isOther();
     }
 
     @Override

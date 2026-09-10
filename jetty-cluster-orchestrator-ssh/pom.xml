@@ -22,8 +22,8 @@
     
     <!-- SSH implementation dependency -->
     <dependency>
-      <groupId>com.hierynomus</groupId>
-      <artifactId>sshj</artifactId>
+      <groupId>org.apache.sshd</groupId>
+      <artifactId>sshd-sftp</artifactId>
     </dependency>
 
     <!-- Test dependencies -->
@@ -40,11 +40,6 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.sshd</groupId>
-      <artifactId>sshd-sftp</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

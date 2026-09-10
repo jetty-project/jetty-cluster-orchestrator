@@ -13,7 +13,6 @@
 
 package org.mortbay.jetty.orchestrator.ssh.nodefs;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -36,31 +35,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import net.schmizz.sshj.sftp.FileAttributes;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
-import net.schmizz.sshj.sftp.SFTPClient;
+import org.apache.sshd.sftp.client.SftpClient;
 import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.nodefs.NodePath;
-import org.mortbay.jetty.orchestrator.util.IOUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class SFTPNodeFileSystem extends AbstractNodeFileSystem
 {
-    private static final Logger LOG = LoggerFactory.getLogger(SFTPNodeFileSystem.class);
     static final String PATH_SEPARATOR = "/";
     static final String WINDOWS_PATH_SEPARATOR = "\\";
 
     private final NodeFileSystemProvider provider;
-    private final SFTPClient sftpClient;
+    private final SftpClient sftpClient;
     private final String hostId;
     private final boolean windows;
     private final NodePath homePath;
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    SFTPNodeFileSystem(NodeFileSystemProvider provider, SFTPClient sftpClient, String hostId, List<String> cwd, boolean windows)
+    SFTPNodeFileSystem(NodeFileSystemProvider provider, SftpClient sftpClient, String hostId, List<String> cwd, boolean windows)
     {
         this.provider = provider;
         this.sftpClient = sftpClient;
@@ -68,7 +61,7 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
         this.windows = windows;
         try
         {
-            this.homePath = new NodePath(this, null, NodePath.toSegments(sftpClient.canonicalize(".")));
+            this.homePath = new NodePath(this, null, NodePath.toSegments(sftpClient.canonicalPath(".")));
             this.cwdPath = new NodePath(this, homePath, cwd);
         }
         catch (IOException e)
@@ -97,11 +90,9 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
     public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException
     {
         byte[] data;
-        try
+        try (InputStream is = sftpClient.read(relativeFromHomeOrAbsolute(path).toString()))
         {
-            InMemoryFile inMemoryFile = new InMemoryFile();
-            sftpClient.get(relativeFromHomeOrAbsolute(path).toString(), inMemoryFile);
-            data = inMemoryFile.getOutputStream().toByteArray();
+            data = is.readAllBytes();
         }
         catch (IOException e)
         {
@@ -170,10 +161,12 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
         List<Path> filteredPaths = new ArrayList<>();
         try
         {
-            List<RemoteResourceInfo> content = sftpClient.ls(relativeFromHomeOrAbsolute(dir).toString());
-            for (RemoteResourceInfo remoteResourceInfo : content)
+            for (SftpClient.DirEntry entry : sftpClient.readDir(relativeFromHomeOrAbsolute(dir).toString()))
             {
-                Path resolved = dir.resolve(remoteResourceInfo.getName());
+                String name = entry.getFilename();
+                if (".".equals(name) || "..".equals(name))
+                    continue;
+                Path resolved = dir.resolve(name);
                 if (filter.accept(resolved))
                     filteredPaths.add(resolved);
             }
@@ -183,12 +176,12 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
             throw new IOException("Unable to open directory stream for path: " + dir, e);
         }
 
-        return new DirectoryStream<Path>()
+        return new DirectoryStream<>()
         {
             @Override
             public Iterator<Path> iterator()
             {
-                return new Iterator<Path>()
+                return new Iterator<>()
                 {
                     private final Iterator<Path> delegate = filteredPaths.iterator();
 
@@ -211,6 +204,7 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
                     }
                 };
             }
+
             @Override
             public void close()
             {
@@ -221,45 +215,13 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
     public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException
     {
         String sftpPath = relativeFromHomeOrAbsolute(path).toString();
-        long fileSize;
         try
         {
-            fileSize = sftpClient.lstat(sftpPath).getSize();
+            return sftpClient.read(sftpPath);
         }
         catch (IOException e)
         {
             throw new IOException("Unable to open input stream for path: " + path, e);
-        }
-        if (fileSize > 1024 * 1024)
-        {
-            // use piping if file to download is > 1MB
-            PipingFile pipingFile = new PipingFile();
-            Thread t = new Thread(() ->
-            {
-                try
-                {
-                    sftpClient.get(sftpPath, pipingFile);
-                }
-                catch (IOException e)
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Error copying " + sftpPath + " over sftp", e);
-                }
-                finally
-                {
-                    IOUtil.close(pipingFile.getOutputStream());
-                }
-            });
-            t.setDaemon(true);
-            t.start();
-            return pipingFile.getInputStream();
-        }
-        else
-        {
-            InMemoryFile inMemoryFile = new InMemoryFile();
-            sftpClient.get(sftpPath, inMemoryFile);
-            byte[] data = inMemoryFile.getOutputStream().toByteArray();
-            return new ByteArrayInputStream(data);
         }
     }
 
@@ -273,7 +235,7 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem
         String sftpPath = relativeFromHomeOrAbsolute(path).toString();
         try
         {
-            FileAttributes lstat = sftpClient.lstat(sftpPath);
+            SftpClient.Attributes lstat = sftpClient.lstat(sftpPath);
             NodeFileAttributes nodeFileAttributes = new NodeFileAttributes(lstat);
             return (A)nodeFileAttributes;
         }
