@@ -86,6 +86,29 @@ mvn test -pl jetty-cluster-orchestrator-k8s
 mvn clean install -pl jetty-cluster-orchestrator-k8s
 ----
 
+== Code Formatting
+
+Formatting is enforced by https://github.com/diffplug/spotless[spotless]. A normal build checks it and
+fails if something is off, so reformat before you push:
+
+[source,bash]
+----
+mvn -Pmay-spotless-apply validate
+----
+
+Spotless owns the Java formatting (Apache Maven style via `palantirJavaFormat`), the import order,
+the license headers, and the ordering of the `pom.xml` files. If you need it to leave a block alone,
+fence it with `// spotless:off` and `// spotless:on`.
+
+The formatting was introduced in one mechanical commit, listed in `.git-blame-ignore-revs`. GitHub skips
+it in the blame view automatically; to get the same locally, run once per clone:
+
+[source,bash]
+----
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+git config blame.markIgnoredLines true
+----
+
 == Cluster Orchestrator API
 
 === A word of warning
