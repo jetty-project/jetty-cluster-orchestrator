@@ -15,12 +15,12 @@ package org.mortbay.jetty.orchestrator.ssh.launcher;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -194,14 +194,14 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             {
                 for (String classpathEntry : classpathEntries)
                 {
-                    File cpFile = new File(classpathEntry);
-                    String cpFileName = cpFile.getName();
+                    Path cpPath = Paths.get(classpathEntry);
+                    String cpFileName = cpPath.getFileName().toString();
                     if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR"))
                         remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
-                    if (cpFile.isDirectory())
-                        copyDir(sftpClient, nodeId.getHostId(), cpFile, 1);
+                    if (Files.isDirectory(cpPath))
+                        copyDir(sftpClient, nodeId.getHostId(), cpPath, 1);
                     else
-                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpFile);
+                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpPath);
                 }
             }
             remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
@@ -288,13 +288,13 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
-    private static void copyFile(SftpClient sftpClient, String hostId, String filename, File localFile) throws IOException
+    private static void copyFile(SftpClient sftpClient, String hostId, String filename, Path localPath) throws IOException
     {
         String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
         String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
 
         mkdirs(sftpClient, parentFilename);
-        try (InputStream is = new FileInputStream(localFile); OutputStream os = sftpClient.write(destFilename))
+        try (InputStream is = Files.newInputStream(localPath); OutputStream os = sftpClient.write(destFilename))
         {
             IOUtil.copy(is, os);
         }
@@ -323,28 +323,30 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         }
     }
 
-    private static void copyDir(SftpClient sftpClient, String hostId, File cpFile, int depth) throws IOException
+    private static void copyDir(SftpClient sftpClient, String hostId, Path cpPath, int depth) throws IOException
     {
-        File[] files = cpFile.listFiles();
-        if (files == null)
+        if (!Files.isDirectory(cpPath))
             return;
 
-        for (File file : files)
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath))
         {
-            if (file.isDirectory())
+            for (Path file : files)
             {
-                copyDir(sftpClient, hostId, file, depth + 1);
-            }
-            else
-            {
-                String filename = file.getName();
-                File currentFile = file;
-                for (int i = 0; i < depth; i++)
+                if (Files.isDirectory(file))
                 {
-                    currentFile = currentFile.getParentFile();
-                    filename = currentFile.getName() + "/" + filename;
+                    copyDir(sftpClient, hostId, file, depth + 1);
                 }
-                copyFile(sftpClient, hostId, filename, file);
+                else
+                {
+                    String filename = file.getFileName().toString();
+                    Path currentPath = file;
+                    for (int i = 0; i < depth; i++)
+                    {
+                        currentPath = currentPath.getParent();
+                        filename = currentPath.getFileName().toString() + "/" + filename;
+                    }
+                    copyFile(sftpClient, hostId, filename, file);
+                }
             }
         }
     }

@@ -56,7 +56,7 @@ public class NodeArray
         if (node.globalNodeId.isLocal())
         {
             // The files are on this machine, so read them directly instead of over jco:.
-            return LocalLauncher.rootPathOf(node.globalNodeId.getNodeId()).toPath();
+            return LocalLauncher.rootPathOf(node.globalNodeId.getNodeId());
         }
         else
         {

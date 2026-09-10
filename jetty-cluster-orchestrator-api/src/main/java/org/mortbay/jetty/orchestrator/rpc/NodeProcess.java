@@ -16,12 +16,17 @@ package org.mortbay.jetty.orchestrator.rpc;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
@@ -163,15 +168,15 @@ public class NodeProcess implements Serializable, AutoCloseable
 
     public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname, String connectString, String... extraArgs) throws IOException
     {
-        File nodeRootPath = defaultRootPath(nodeId);
+        Path nodeRootPath = defaultRootPath(nodeId);
         IOUtil.deltree(nodeRootPath);
-        nodeRootPath.mkdirs();
+        Files.createDirectories(nodeRootPath);
 
         List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString, extraArgs);
         // Inherited IO bypasses the System.setOut/setErr mechanism, so use piping for stdout/stderr such as
         // System.setOut/setErr can redirect the output of the process.
         Process process = new ProcessBuilder(cmdLine)
-            .directory(nodeRootPath)
+            .directory(nodeRootPath.toFile())
             .redirectInput(ProcessBuilder.Redirect.INHERIT)
             .redirectError(ProcessBuilder.Redirect.PIPE)
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
@@ -194,10 +199,10 @@ public class NodeProcess implements Serializable, AutoCloseable
         return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipExitOnHealthCheckFailure");
     }
 
-    public static Thread spawnThread(String nodeId, String connectString, String... extraArgs)
+    public static Thread spawnThread(String nodeId, String connectString, String... extraArgs) throws IOException
     {
-        File nodeRootPath = defaultRootPath(nodeId);
-        nodeRootPath.mkdirs();
+        Path nodeRootPath = defaultRootPath(nodeId);
+        Files.createDirectories(nodeRootPath);
 
         Thread t = new Thread(() ->
         {
@@ -218,18 +223,18 @@ public class NodeProcess implements Serializable, AutoCloseable
         return t;
     }
 
-    private static File defaultRootPath(String hostId)
+    private static Path defaultRootPath(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
+        return Paths.get(System.getProperty("user.home"), "." + NodeFileSystemProvider.PREFIX, hostId);
     }
 
-    private static File defaultLibPath(String hostId)
+    private static Path defaultLibPath(String hostId)
     {
-        File rootPath = defaultRootPath(hostId);
-        return new File(rootPath, CLASSPATH_FOLDER_NAME);
+        Path rootPath = defaultRootPath(hostId);
+        return rootPath.resolve(CLASSPATH_FOLDER_NAME);
     }
 
-    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, File libPath, String nodeId, String hostname, String connectString, String... extraArgs)
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, Path libPath, String nodeId, String hostname, String connectString, String... extraArgs) throws IOException
     {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
@@ -248,20 +253,22 @@ public class NodeProcess implements Serializable, AutoCloseable
         return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
-    private static String buildClassPath(File libPath)
+    private static String buildClassPath(Path libPath) throws IOException
     {
         StringBuilder sb = new StringBuilder();
-        File[] entries = libPath.listFiles();
-        if (entries != null)
+        if (Files.isDirectory(libPath))
         {
-            for (File entry : entries)
+            try (DirectoryStream<Path> entries = Files.newDirectoryStream(libPath))
             {
-                String path = entry.getPath();
-                if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
-                    sb.append(path).append(File.pathSeparatorChar);
+                for (Path entry : entries)
+                {
+                    String path = entry.toString();
+                    if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
+                        sb.append(path).append(File.pathSeparator);
+                }
             }
         }
-        sb.append(libPath.getPath()).append(File.separatorChar).append("*");
+        sb.append(libPath).append(libPath.getFileSystem().getSeparator()).append("*");
         return sb.toString();
     }
 }

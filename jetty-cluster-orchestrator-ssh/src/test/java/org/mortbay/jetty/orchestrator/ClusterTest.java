@@ -13,13 +13,13 @@
 
 package org.mortbay.jetty.orchestrator;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -93,12 +93,12 @@ public class ClusterTest extends AbstractSshTest
                 int pos = tools.barrier("barrier", participantCount).await();
                 System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
 
-                File f = new File("data.txt");
-                try (FileOutputStream fos = new FileOutputStream(f))
+                Path f = Paths.get("data.txt");
+                try (OutputStream fos = Files.newOutputStream(f))
                 {
                     fos.write(("client arrived #" + pos + "\n").getBytes(StandardCharsets.UTF_8));
                 }
-                System.out.println("wrote file " + f.getAbsolutePath());
+                System.out.println("wrote file " + f.toAbsolutePath());
             });
 
             ClusterTools tools = cluster.tools();

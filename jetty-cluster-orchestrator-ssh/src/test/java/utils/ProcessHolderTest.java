@@ -13,8 +13,9 @@
 
 package utils;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.util.ProcessHolder;
@@ -48,9 +49,8 @@ public class ProcessHolderTest
 
     private static String jvm()
     {
-        if (System.getProperty("os.name").startsWith("Win"))
-            return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java.exe";
-        else
-            return System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        Path javaHome = Paths.get(System.getProperties().getProperty("java.home"));
+        boolean windows = System.getProperty("os.name").startsWith("Win");
+        return javaHome.resolve("bin").resolve(windows ? "java.exe" : "java").toString();
     }
 }

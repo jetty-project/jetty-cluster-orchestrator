@@ -15,17 +15,17 @@ package org.mortbay.jetty.orchestrator.k8s.launcher;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -49,15 +49,15 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.JvmDependent;
+import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNodeArrayConfiguration;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
-import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.k8s.nodefs.KubernetesNodeFileSystemFactory;
+import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -432,14 +432,14 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
             for (String classpathEntry : classpathEntries)
             {
-                File cpFile = new File(classpathEntry);
-                String cpFileName = cpFile.getName();
+                Path cpPath = Paths.get(classpathEntry);
+                String cpFileName = cpPath.getFileName().toString();
                 if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR"))
                     remoteClasspathEntries.add(classpathDir + "/" + cpFileName);
-                if (cpFile.isDirectory())
-                    copyDirToPod(client, namespace, podName, classpathDir, cpFile, 1);
+                if (Files.isDirectory(cpPath))
+                    copyDirToPod(client, namespace, podName, classpathDir, cpPath, 1);
                 else
-                    copyFileToPod(client, namespace, podName, classpathDir, cpFileName, cpFile);
+                    copyFileToPod(client, namespace, podName, classpathDir, cpFileName, cpPath);
             }
             remoteClasspathEntries.add(classpathDir + "/*");
 
@@ -572,39 +572,41 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
-    private static void copyFileToPod(KubernetesClient client, String namespace, String podName, String destDir, String filename, File localFile) throws Exception
+    private static void copyFileToPod(KubernetesClient client, String namespace, String podName, String destDir, String filename, Path localPath) throws Exception
     {
         String destPath = destDir + "/" + filename;
         String parentDir = destPath.substring(0, destPath.lastIndexOf('/'));
         runAndWait(client, namespace, podName, "mkdir", "-p", parentDir);
-        try (InputStream is = new FileInputStream(localFile))
+        try (InputStream is = Files.newInputStream(localPath))
         {
             client.pods().inNamespace(namespace).withName(podName).file(destPath).upload(is);
         }
     }
 
-    private static void copyDirToPod(KubernetesClient client, String namespace, String podName, String destDir, File cpFile, int depth) throws Exception
+    private static void copyDirToPod(KubernetesClient client, String namespace, String podName, String destDir, Path cpPath, int depth) throws Exception
     {
-        File[] files = cpFile.listFiles();
-        if (files == null)
+        if (!Files.isDirectory(cpPath))
             return;
 
-        for (File file : files)
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath))
         {
-            if (file.isDirectory())
+            for (Path file : files)
             {
-                copyDirToPod(client, namespace, podName, destDir, file, depth + 1);
-            }
-            else
-            {
-                String filename = file.getName();
-                File currentFile = file;
-                for (int i = 0; i < depth; i++)
+                if (Files.isDirectory(file))
                 {
-                    currentFile = currentFile.getParentFile();
-                    filename = currentFile.getName() + "/" + filename;
+                    copyDirToPod(client, namespace, podName, destDir, file, depth + 1);
                 }
-                copyFileToPod(client, namespace, podName, destDir, filename, file);
+                else
+                {
+                    String filename = file.getFileName().toString();
+                    Path currentPath = file;
+                    for (int i = 0; i < depth; i++)
+                    {
+                        currentPath = currentPath.getParent();
+                        filename = currentPath.getFileName().toString() + "/" + filename;
+                    }
+                    copyFileToPod(client, namespace, podName, destDir, filename, file);
+                }
             }
         }
     }

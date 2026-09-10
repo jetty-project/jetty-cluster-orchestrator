@@ -13,10 +13,11 @@
 
 package org.mortbay.jetty.orchestrator.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
@@ -67,19 +68,31 @@ public class IOUtil
 
     public static boolean deltree(Path folder)
     {
-        return deltree(folder.toFile());
-    }
-
-    public static boolean deltree(File folder)
-    {
-        File[] files = folder.listFiles();
-        if (files != null)
+        if (Files.isDirectory(folder))
         {
-            for (File file : files)
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(folder))
             {
-                deltree(file);
+                for (Path child : children)
+                {
+                    deltree(child);
+                }
+            }
+            catch (IOException e)
+            {
+                if (LOG.isDebugEnabled())
+                    LOG.debug("error listing {}", folder, e);
             }
         }
-        return folder.delete();
+        try
+        {
+            Files.delete(folder);
+            return true;
+        }
+        catch (IOException e)
+        {
+            if (LOG.isDebugEnabled())
+                LOG.debug("error deleting {}", folder, e);
+            return false;
+        }
     }
 }
