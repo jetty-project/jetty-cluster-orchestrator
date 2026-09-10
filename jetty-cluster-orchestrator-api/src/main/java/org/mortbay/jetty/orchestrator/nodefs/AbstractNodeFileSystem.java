@@ -16,7 +16,6 @@ package org.mortbay.jetty.orchestrator.nodefs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.AccessMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.LinkOption;
@@ -28,15 +27,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Base interface for node-backed NIO FileSystems (SSH/SFTP and Kubernetes).
+ * Base class for node-backed NIO FileSystems (SSH/SFTP and Kubernetes).
  * Provides the extra methods that {@link NodePath} and {@link NodeFileSystemProvider} need
  * beyond the standard {@link FileSystem} API.
+ * <p>
+ * Subclasses return the node's own separator from {@link FileSystem#getSeparator()}:
+ * {@code \} on Windows, {@code /} elsewhere.
  */
-public abstract class NodeFileSystem extends FileSystem
+public abstract class AbstractNodeFileSystem extends FileSystem
 {
     abstract public String getHostId();
-
-    abstract public boolean isWindows();
 
     abstract public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
 
@@ -47,15 +47,4 @@ public abstract class NodeFileSystem extends FileSystem
     abstract public  <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException;
 
     abstract public Path getPath(boolean absolute, List<String> segments);
-    
-    /**
-     * Check access to the given path for the specified modes.
-     * Default implementation uses basic file existence check.
-     * Subclasses should override for more sophisticated permission checking.
-     */
-    void checkAccess(NodePath path, AccessMode... modes) throws IOException
-    {
-        // Default implementation - just check if file exists
-        readAttributes(path, BasicFileAttributes.class);
-    }
 }

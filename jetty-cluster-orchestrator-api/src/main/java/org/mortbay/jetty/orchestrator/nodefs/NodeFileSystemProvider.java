@@ -66,7 +66,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
         ACCESS_MODES_MASKS.put(AccessMode.READ, 0444); // Yes, octal.
     }
 
-    private final Map<String, NodeFileSystem> fileSystems = new HashMap<>();
+    private final Map<String, AbstractNodeFileSystem> fileSystems = new HashMap<>();
 
     public NodeFileSystemProvider()
     {
@@ -106,7 +106,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
                 @Override
                 public BasicFileAttributes readAttributes() throws IOException
                 {
-                    return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, BasicFileAttributes.class, options);
+                    return ((AbstractNodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, BasicFileAttributes.class, options);
                 }
 
                 @Override
@@ -137,7 +137,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
             if (fileSystems.containsKey(hostId))
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
 
-            NodeFileSystem fileSystem = null;
+            AbstractNodeFileSystem fileSystem = null;
             
             // Discover and try all available filesystem factories
             ServiceLoader<NodeFileSystemFactory> loader = ServiceLoader.load(NodeFileSystemFactory.class);
@@ -181,7 +181,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
         synchronized (fileSystems)
         {
             String hostId = extractHostId(uri);
-            NodeFileSystem fileSystem = fileSystems.get(hostId);
+            AbstractNodeFileSystem fileSystem = fileSystems.get(hostId);
             if (fileSystem == null)
                 throw new FileSystemNotFoundException(uri.toString());
             return fileSystem;
@@ -220,7 +220,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
         synchronized (fileSystems)
         {
             String hostId = extractHostId(uri);
-            NodeFileSystem fileSystem = fileSystems.get(hostId);
+            AbstractNodeFileSystem fileSystem = fileSystems.get(hostId);
             if (fileSystem == null)
                 throw new FileSystemNotFoundException(uri.toString());
             return fileSystem.getPath(false, extractPath(uri));
@@ -256,7 +256,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         if (!(path instanceof NodePath))
             throw new ProviderMismatchException();
-        return ((NodeFileSystem)path.getFileSystem()).newInputStream((NodePath)path, options);
+        return ((AbstractNodeFileSystem)path.getFileSystem()).newInputStream((NodePath)path, options);
     }
 
     @Override
@@ -264,7 +264,7 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         if (!(path instanceof NodePath))
             throw new ProviderMismatchException();
-        return ((NodeFileSystem)path.getFileSystem()).newByteChannel((NodePath)path, options, attrs);
+        return ((AbstractNodeFileSystem)path.getFileSystem()).newByteChannel((NodePath)path, options, attrs);
     }
 
     @Override
@@ -272,13 +272,13 @@ public class NodeFileSystemProvider extends FileSystemProvider
     {
         if (!(dir instanceof NodePath))
             throw new ProviderMismatchException();
-        return ((NodeFileSystem)dir.getFileSystem()).newDirectoryStream((NodePath)dir, filter);
+        return ((AbstractNodeFileSystem)dir.getFileSystem()).newDirectoryStream((NodePath)dir, filter);
     }
 
     @Override
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException
     {
-        return ((NodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, type, options);
+        return ((AbstractNodeFileSystem)path.getFileSystem()).readAttributes((NodePath)path, type, options);
     }
 
     @Override
@@ -296,9 +296,10 @@ public class NodeFileSystemProvider extends FileSystemProvider
     @Override
     public void checkAccess(Path path, AccessMode... modes) throws IOException
     {
+        // Nothing here is writable, so reading the attributes is the whole check:
+        // a missing file throws, which is what Files.exists() looks for.
         NodePath nodePath = toNodePath(path);
-        NodeFileSystem nodeFileSystem = (NodeFileSystem) nodePath.getFileSystem();
-        nodeFileSystem.checkAccess(nodePath, modes);
+        ((AbstractNodeFileSystem)nodePath.getFileSystem()).readAttributes(nodePath, BasicFileAttributes.class);
     }
     
     private NodePath toNodePath(Path path)

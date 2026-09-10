@@ -39,17 +39,18 @@ import java.util.Set;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.SFTPClient;
-import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystem;
+import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.nodefs.NodePath;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class SFTPNodeFileSystem extends NodeFileSystem
+class SFTPNodeFileSystem extends AbstractNodeFileSystem
 {
     private static final Logger LOG = LoggerFactory.getLogger(SFTPNodeFileSystem.class);
     static final String PATH_SEPARATOR = "/";
+    static final String WINDOWS_PATH_SEPARATOR = "\\";
 
     private final NodeFileSystemProvider provider;
     private final SFTPClient sftpClient;
@@ -74,11 +75,6 @@ class SFTPNodeFileSystem extends NodeFileSystem
         {
             throw new RuntimeException(e);
         }
-    }
-
-    public boolean isWindows()
-    {
-        return windows;
     }
 
     public String getHostId()
@@ -322,7 +318,7 @@ class SFTPNodeFileSystem extends NodeFileSystem
     @Override
     public String getSeparator()
     {
-        return PATH_SEPARATOR;
+        return windows ? WINDOWS_PATH_SEPARATOR : PATH_SEPARATOR;
     }
 
     @Override
@@ -379,7 +375,7 @@ class SFTPNodeFileSystem extends NodeFileSystem
     @Override
     public String toString()
     {
-        return "NodeFileSystem{" +
+        return "SFTPNodeFileSystem{" +
             "hostId='" + hostId + '\'' +
             '}';
     }

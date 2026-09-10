@@ -19,12 +19,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystem;
+import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 
 /**
- * Factory for creating Kubernetes-based NodeFileSystem instances.
+ * Creates node filesystems backed by a Kubernetes pod.
  */
 public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory
 {
@@ -42,7 +42,7 @@ public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory
     }
 
     @Override
-    public NodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
+    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
     {
         KubernetesClient k8sClient = (KubernetesClient)env.get(KubernetesClient.class.getName());
         String ns = (String)env.get(NAMESPACE_ENV_PROPERTY);

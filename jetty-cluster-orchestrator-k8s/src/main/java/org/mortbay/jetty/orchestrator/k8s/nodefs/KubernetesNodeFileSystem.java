@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystem;
+import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.nodefs.NodePath;
 
@@ -50,7 +50,7 @@ import org.mortbay.jetty.orchestrator.nodefs.NodePath;
  * Registered at pod launch time so that {@code ReportUtil.download()} can
  * resolve {@code jco:} URIs without any SSH/SFTP involvement.
  */
-public class KubernetesNodeFileSystem extends NodeFileSystem
+public class KubernetesNodeFileSystem extends AbstractNodeFileSystem
 {
     static final String PATH_SEPARATOR = "/";
     
@@ -80,12 +80,6 @@ public class KubernetesNodeFileSystem extends NodeFileSystem
     public String getHostId()
     {
         return hostId;
-    }
-
-    @Override
-    public boolean isWindows()
-    {
-        return false;
     }
 
     @Override

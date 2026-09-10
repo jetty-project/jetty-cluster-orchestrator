@@ -18,9 +18,8 @@ import java.net.URI;
 import java.util.Map;
 
 /**
- * Factory interface for creating NodeFileSystem instances.
- * Implementation modules should provide implementations of this interface
- * and register them via ServiceLoader.
+ * Creates the node filesystem for one kind of transport.
+ * Implementation modules register theirs via ServiceLoader.
  */
 public interface NodeFileSystemFactory
 {
@@ -32,14 +31,14 @@ public interface NodeFileSystemFactory
     boolean canHandle(Map<String, ?> env);
     
     /**
-     * Create a NodeFileSystem instance
+     * Create a node filesystem
      * @param provider the filesystem provider
      * @param uri the filesystem URI
      * @param env the environment properties
      * @return the created filesystem
      * @throws IOException if the filesystem cannot be created
      */
-    NodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException;
+    AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException;
     
     /**
      * Get the priority of this factory (higher priority factories are tried first)

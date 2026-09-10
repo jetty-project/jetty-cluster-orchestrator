@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class NodePath implements Path
 {
-    private final NodeFileSystem fileSystem;
+    private final AbstractNodeFileSystem fileSystem;
     private final NodePath basePath;
     private final List<String> pathSegments;
     private static final String PATH_SEPARATOR = "/";
 
-    public NodePath(NodeFileSystem fileSystem, NodePath basePath, List<String> pathSegments)
+    public NodePath(AbstractNodeFileSystem fileSystem, NodePath basePath, List<String> pathSegments)
     {
         this.fileSystem = fileSystem;
         this.basePath = basePath;
@@ -97,8 +97,8 @@ public class NodePath implements Path
     @Override
     public NodePath resolve(String other)
     {
-        String separator = getFileSystem() != null ? getFileSystem().getSeparator() : "/";
-        boolean absolute = other.startsWith(separator);
+        // Paths always travel with '/' separators, which is what toSegments() splits on.
+        boolean absolute = other.startsWith(PATH_SEPARATOR);
         return resolve(absolute, toSegments(other));
     }
 
@@ -304,8 +304,8 @@ public class NodePath implements Path
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        boolean windows = fileSystem != null && fileSystem.isWindows();
-        char separator = windows ? '\\' : '/';
+        String separator = fileSystem != null ? fileSystem.getSeparator() : PATH_SEPARATOR;
+        boolean windows = "\\".equals(separator);
         if (isAbsolute() && !windows)
             sb.append(separator);
         for (int i = 0; i < pathSegments.size(); i++)

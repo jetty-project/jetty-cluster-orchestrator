@@ -31,6 +31,16 @@ import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
 
+/**
+ * Runs the host node as a thread in this JVM rather than a separate process.
+ * The worker nodes are still forked JVMs, and {@link NodeProcess#spawn} reads their classpath
+ * from {@code ~/.jco/<hostId>/.classpath}, so the classpath is copied there all the same.
+ * <p>
+ * Node files stay on this machine, so
+ * {@link org.mortbay.jetty.orchestrator.NodeArray#rootPathOf(String)} returns a plain
+ * {@link java.nio.file.Path} instead of a {@code jco:} one, and there is no local
+ * {@link org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory}.
+ */
 public class LocalHostLauncher extends AbstractHostLauncher
 {
     public static final String HOSTNAME = "localhost";

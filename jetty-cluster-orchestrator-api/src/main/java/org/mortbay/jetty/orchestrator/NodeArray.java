@@ -55,6 +55,7 @@ public class NodeArray
             throw new IllegalArgumentException("No such node with ID " + id);
         if (node.globalNodeId.isLocal())
         {
+            // The files are on this machine, so read them directly instead of over jco:.
             return LocalHostLauncher.rootPathOf(node.globalNodeId.getNodeId()).toPath();
         }
         else

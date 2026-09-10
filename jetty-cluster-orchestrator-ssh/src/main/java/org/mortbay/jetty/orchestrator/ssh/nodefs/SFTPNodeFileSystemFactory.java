@@ -19,12 +19,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import net.schmizz.sshj.sftp.SFTPClient;
-import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystem;
+import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 
 /**
- * Factory for creating SFTP-based NodeFileSystem instances.
+ * Creates node filesystems backed by SFTP.
  */
 public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory
 {
@@ -40,7 +40,7 @@ public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory
     }
 
     @Override
-    public NodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
+    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
     {
         boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
         SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
