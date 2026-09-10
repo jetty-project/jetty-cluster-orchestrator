@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
-import org.mortbay.jetty.orchestrator.util.CuratorUtil;
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 import org.mortbay.jetty.orchestrator.util.ProcessHolder;
 import org.mortbay.jetty.orchestrator.util.StreamCopier;
@@ -113,7 +112,7 @@ public class NodeProcess implements Serializable, AutoCloseable
                     return;
                 }
 
-                long delta = System.nanoTime() - rpcServer.getLastCommandTimestamp();
+                long delta = System.nanoTime() - rpcServer.getLastRequestTimestamp();
                 if (delta > TimeUnit.MILLISECONDS.toNanos(finalHealthCheckTimeout))
                 {
                     LOG.error("Node [{}] missed too many health checks, assuming the cluster is dead", nodeId);

@@ -13,8 +13,8 @@
 
 package org.mortbay.jetty.orchestrator.tools;
 
-public interface DistributedQueue
+public interface DistributedQueue<T>
 {
-    void offer(Object o) throws Exception;
-    Object take() throws Exception;
+    void offer(T o) throws Exception;
+    T take() throws Exception;
 }
