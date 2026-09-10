@@ -77,8 +77,7 @@ import org.slf4j.LoggerFactory;
  * {@link NodeProcess} is started there against it. Launched pods are remembered so close can
  * delete them.
  */
-public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent
-{
+public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent {
     private static final Logger LOG = LoggerFactory.getLogger(KubernetesRemoteHostLauncher.class);
     private static final String ZK_IMAGE = System.getProperty("zookeeper.image.name", "zookeeper:3.9");
 
@@ -94,7 +93,9 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
     private final String headlessServiceName = "jco-nodes-" + launcherId;
     private boolean headlessServiceCreated = false;
 
-    KubernetesRemoteHostLauncher(String namespace, String image, Path kubernetesConfig, Map<String, String> namespaceLabels) throws IOException {
+    KubernetesRemoteHostLauncher(
+            String namespace, String image, Path kubernetesConfig, Map<String, String> namespaceLabels)
+            throws IOException {
         this.namespace = namespace;
         this.image = image;
         // Parse the file as a kubeconfig. withConfig(InputStream) does not: it ignores what is in
@@ -103,7 +104,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         Config config = Config.fromKubeconfig(Files.readString(kubernetesConfig));
         this.client = new KubernetesClientBuilder().withConfig(config).build();
         Namespace ns = this.client.namespaces().withName(namespace).get(); // validate namespace exists
-        if(ns == null) {
+        if (ns == null) {
             LOG.debug("specified namespace '{}' does not exist; creating it", namespace);
             ns = new NamespaceBuilder()
                     .withNewMetadata()
@@ -124,101 +125,88 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         private Path kubernetesConfig;
         private final Map<String, String> namespaceLabels = new HashMap<>();
 
-        public Builder namespace(String namespace)
-        {
+        public Builder namespace(String namespace) {
             this.namespace = namespace;
             return this;
         }
 
-        public Builder image(String image)
-        {
+        public Builder image(String image) {
             this.image = image;
             return this;
         }
-        
-        public Builder withNamespaceLabel(String key, String value)
-        {
+
+        public Builder withNamespaceLabel(String key, String value) {
             this.namespaceLabels.put(key, value);
             return this;
         }
-        
-        public Builder withNamespaceLabels(Map<String, String> labels)
-        {
+
+        public Builder withNamespaceLabels(Map<String, String> labels) {
             this.namespaceLabels.putAll(labels);
             return this;
         }
 
-        public Builder kubernetesConfig(Path kubernetesConfig)
-        {
+        public Builder kubernetesConfig(Path kubernetesConfig) {
             this.kubernetesConfig = kubernetesConfig;
             return this;
         }
 
         public KubernetesRemoteHostLauncher build() throws IOException {
 
-            return new KubernetesRemoteHostLauncher(Objects.requireNonNull(namespace, "Namespace cannot be null"),
+            return new KubernetesRemoteHostLauncher(
+                    Objects.requireNonNull(namespace, "Namespace cannot be null"),
                     Objects.requireNonNull(image, "Image cannot be null"),
                     Objects.requireNonNull(kubernetesConfig, "Kubernetes config path cannot be null"),
                     new HashMap<>(namespaceLabels));
         }
     }
 
-
     @Override
-    public Jvm jvm()
-    {
+    public Jvm jvm() {
         return jvm;
     }
 
     @Override
-    public KubernetesRemoteHostLauncher jvm(Jvm jvm)
-    {
+    public KubernetesRemoteHostLauncher jvm(Jvm jvm) {
         this.jvm = jvm;
         return this;
     }
 
-    private void ensureHeadlessService()
-    {
-        if (headlessServiceCreated)
-            return;
+    private void ensureHeadlessService() {
+        if (headlessServiceCreated) return;
         Service svc = new ServiceBuilder()
-            .withNewMetadata()
+                .withNewMetadata()
                 .withName(headlessServiceName)
                 .withNamespace(namespace)
-            .endMetadata()
-            .withNewSpec()
+                .endMetadata()
+                .withNewSpec()
                 .withClusterIP("None")
-            .endSpec()
-            .build();
+                .endSpec()
+                .build();
         try {
             client.services().inNamespace(namespace).resource(svc).create();
-        } catch (KubernetesClientException e)
-        {
-            if(e.getCode() == 429)
-            {
+        } catch (KubernetesClientException e) {
+            if (e.getCode() == 429) {
                 LOG.debug("Headless service {} already exists, continuing", headlessServiceName);
             }
         }
         headlessServiceCreated = true;
     }
 
-    private String podHostnameFor(GlobalNodeId nodeId)
-    {
+    private String podHostnameFor(GlobalNodeId nodeId) {
         String hostname = nodeId.getHostname();
         // If hostname is a full DNS name, use only the first label — this matches what podDnsNameFor() computes.
         int dotIdx = hostname.indexOf('.');
         String label = (dotIdx >= 0) ? hostname.substring(0, dotIdx) : sanitizePodName(hostname);
         // Enforce the 63-char Kubernetes DNS label limit
         if (label.length() > 63)
-            throw new IllegalArgumentException("Hostname '" + hostname + "' sanitizes to '" + label + 
-                "' which exceeds Kubernetes DNS label limit of 63 characters. " +
-                "Use shorter hostnames to avoid potential name collisions.");
+            throw new IllegalArgumentException("Hostname '" + hostname + "' sanitizes to '" + label
+                    + "' which exceeds Kubernetes DNS label limit of 63 characters. "
+                    + "Use shorter hostnames to avoid potential name collisions.");
         return label;
     }
 
     @Override
-    public String initialize() throws Exception
-    {
+    public String initialize() throws Exception {
         LOG.debug("launching ZooKeeper pod for cluster coordination");
 
         zkPodName = "jco-zk-" + launcherId;
@@ -226,48 +214,50 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
 
         // Create ZK pod with label for service selector
         Pod zkPod = new PodBuilder()
-            .withNewMetadata()
+                .withNewMetadata()
                 .withName(zkPodName)
                 .withNamespace(namespace)
                 .withLabels(Map.of("app", zkPodName))
-            .endMetadata()
-            .withNewSpec()
+                .endMetadata()
+                .withNewSpec()
                 .withRestartPolicy("Never")
                 .addNewContainer()
-                    .withName("zookeeper")
-                    .withImage(ZK_IMAGE)
-                    .addNewPort().withContainerPort(2181).endPort()
+                .withName("zookeeper")
+                .withImage(ZK_IMAGE)
+                .addNewPort()
+                .withContainerPort(2181)
+                .endPort()
                 .endContainer()
-            .endSpec()
-            .build();
+                .endSpec()
+                .build();
         client.pods().inNamespace(namespace).resource(zkPod).create();
 
         // Create ClusterIP service
         Service zkService = new ServiceBuilder()
-            .withNewMetadata()
+                .withNewMetadata()
                 .withName(zkServiceName)
                 .withNamespace(namespace)
-            .endMetadata()
-            .withNewSpec()
+                .endMetadata()
+                .withNewSpec()
                 .withSelector(Map.of("app", zkPodName))
                 .addNewPort()
-                    .withPort(2181)
+                .withPort(2181)
                 .endPort()
-            .endSpec()
-            .build();
+                .endSpec()
+                .build();
         client.services().inNamespace(namespace).resource(zkService).create();
 
         // Wait for ZK pod to be ready - 2 minutes allows time for image pulling and container startup
         client.pods().inNamespace(namespace).withName(zkPodName).waitUntilReady(2, TimeUnit.MINUTES);
 
         // Open local port-forward to ZK pod
-        this.zkPortForward = client.pods().inNamespace(namespace).withName(zkPodName).portForward(2181);
+        this.zkPortForward =
+                client.pods().inNamespace(namespace).withName(zkPodName).portForward(2181);
         return this.zkPortForward.getLocalAddress().getHostAddress() + ":" + this.zkPortForward.getLocalPort();
     }
 
     @Override
-    protected Class<? extends NodeArrayConfiguration> configurationType()
-    {
+    protected Class<? extends NodeArrayConfiguration> configurationType() {
         return K8sNodeArrayConfiguration.class;
     }
 
@@ -275,57 +265,52 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
      * Nodes sharing a host share a pod, so they must not ask for different ones.
      */
     @Override
-    protected void checkSharedHost(Node first, Node second)
-    {
-        K8sNode a = (K8sNode)first;
-        K8sNode b = (K8sNode)second;
+    protected void checkSharedHost(Node first, Node second) {
+        K8sNode a = (K8sNode) first;
+        K8sNode b = (K8sNode) second;
         if (a.getServicePort() != b.getServicePort())
-            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
-                " but ask for different service ports: " + a.getServicePort() + " and " + b.getServicePort());
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host "
+                    + a.getHostname() + " but ask for different service ports: " + a.getServicePort() + " and "
+                    + b.getServicePort());
         if (!a.getNodeSelectors().equals(b.getNodeSelectors()))
-            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
-                " but ask for different node selectors: " + a.getNodeSelectors() + " and " + b.getNodeSelectors());
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host "
+                    + a.getHostname() + " but ask for different node selectors: " + a.getNodeSelectors() + " and "
+                    + b.getNodeSelectors());
         if (!a.getLabels().equals(b.getLabels()))
-            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host " + a.getHostname() +
-                " but ask for different labels: " + a.getLabels() + " and " + b.getLabels());
+            throw new IllegalArgumentException("Nodes '" + a.getId() + "' and '" + b.getId() + "' share host "
+                    + a.getHostname() + " but ask for different labels: " + a.getLabels() + " and " + b.getLabels());
     }
 
     @Override
-    protected void closeHosts()
-    {
+    protected void closeHosts() {
         pods.values().forEach(IOUtil::close);
         pods.clear();
         IOUtil.close(zkPortForward);
-        if (zkPodName != null && client != null)
-        {
-            try
-            {
-                client.pods().inNamespace(namespace).withName(zkPodName).withGracePeriod(0).delete();
-            }
-            catch (Exception e)
-            {
+        if (zkPodName != null && client != null) {
+            try {
+                client.pods()
+                        .inNamespace(namespace)
+                        .withName(zkPodName)
+                        .withGracePeriod(0)
+                        .delete();
+            } catch (Exception e) {
                 LOG.debug("error deleting ZK pod {}", zkPodName, e);
             }
         }
-        if (zkServiceName != null && client != null)
-        {
-            try
-            {
+        if (zkServiceName != null && client != null) {
+            try {
                 client.services().inNamespace(namespace).withName(zkServiceName).delete();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 LOG.debug("error deleting ZK service {}", zkServiceName, e);
             }
         }
-        if (headlessServiceCreated && client != null)
-        {
-            try
-            {
-                client.services().inNamespace(namespace).withName(headlessServiceName).delete();
-            }
-            catch (Exception e)
-            {
+        if (headlessServiceCreated && client != null) {
+            try {
+                client.services()
+                        .inNamespace(namespace)
+                        .withName(headlessServiceName)
+                        .delete();
+            } catch (Exception e) {
                 LOG.debug("error deleting headless service {}", headlessServiceName, e);
             }
         }
@@ -334,19 +319,17 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
     }
 
     @Override
-    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception
-    {
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs)
+            throws Exception {
         long start = System.nanoTime();
-        K8sNode k8sNode = (K8sNode)node;
+        K8sNode k8sNode = (K8sNode) node;
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
         LOG.debug("start launch of k8s pod for node: {}", node);
-        if (!nodeId.equals(globalNodeId))
-            throw new IllegalArgumentException("node id is not the one of a host node");
+        if (!nodeId.equals(globalNodeId)) throw new IllegalArgumentException("node id is not the one of a host node");
 
         String podName = sanitizePodName(nodeId.getHostId());
         ExecWatch execWatch = null;
-        try
-        {
+        try {
             String remoteConnectString = zkServiceName + ":2181";
 
             ensureHeadlessService();
@@ -361,23 +344,23 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             podLabels.putAll(k8sNode.getLabels());
 
             Pod pod = new PodBuilder()
-                .withNewMetadata()
+                    .withNewMetadata()
                     .withName(podName)
                     .withNamespace(namespace)
                     .withLabels(podLabels)
-                .endMetadata()
-                .withNewSpec()
+                    .endMetadata()
+                    .withNewSpec()
                     .withRestartPolicy("Never")
                     .withHostname(podHostname)
                     .withSubdomain(headlessServiceName)
                     .withNodeSelector(nodeSelectors.isEmpty() ? null : nodeSelectors)
                     .addNewContainer()
-                        .withName("node")
-                        .withImage(image)
-                        .withCommand("sleep", "infinity")
+                    .withName("node")
+                    .withImage(image)
+                    .withCommand("sleep", "infinity")
                     .endContainer()
-                .endSpec()
-                .build();
+                    .endSpec()
+                    .build();
             client.pods().inNamespace(namespace).resource(pod).create();
 
             // Wait for pod to be ready - 2 minutes allows time for image pulling and container startup
@@ -386,7 +369,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             Service nodeService = null;
 
             // we need to create a service mapping port
-            if(k8sNode.getServicePort()>0) {
+            if (k8sNode.getServicePort() > 0) {
                 nodeService = new ServiceBuilder()
                         .withNewMetadata()
                         .withName(node.getHostname())
@@ -407,13 +390,17 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
                 // This prevents "Connection refused" errors when pods try to connect
                 waitForServiceEndpoints(node.getHostname(), 30);
 
-                LOG.info("Created service {} for node {} on port {}", nodeId.getHostname(), node.getId(), k8sNode.getServicePort());
+                LOG.info(
+                        "Created service {} for node {} on port {}",
+                        nodeId.getHostname(),
+                        node.getId(),
+                        k8sNode.getServicePort());
             }
-
 
             LOG.info("pod {} is ready, launching node process for host {}", podName, nodeId.getHostname());
 
-            String homeOutput = runAndCollect(client, namespace, podName, "sh", "-c", "echo $HOME").trim();
+            String homeOutput = runAndCollect(client, namespace, podName, "sh", "-c", "echo $HOME")
+                    .trim();
             String podHome = homeOutput.isEmpty() ? "/root" : homeOutput;
 
             // Register NIO filesystem so ReportUtil.download() can walk the pod via jco: URIs.
@@ -425,31 +412,37 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             fsEnv.put(KubernetesNodeFileSystemFactory.POD_HOME_ENV_PROPERTY, podHome);
             FileSystems.newFileSystem(fsUri, fsEnv);
 
-            String classpathDir = podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/" + NodeProcess.CLASSPATH_FOLDER_NAME;
+            String classpathDir = podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getHostId() + "/"
+                    + NodeProcess.CLASSPATH_FOLDER_NAME;
             runAndWait(client, namespace, podName, "mkdir", "-p", classpathDir);
 
             List<String> remoteClasspathEntries = new ArrayList<>();
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
-            for (String classpathEntry : classpathEntries)
-            {
+            for (String classpathEntry : classpathEntries) {
                 Path cpPath = Paths.get(classpathEntry);
                 String cpFileName = cpPath.getFileName().toString();
                 if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR"))
                     remoteClasspathEntries.add(classpathDir + "/" + cpFileName);
-                if (Files.isDirectory(cpPath))
-                    copyDirToPod(client, namespace, podName, classpathDir, cpPath, 1);
-                else
-                    copyFileToPod(client, namespace, podName, classpathDir, cpFileName, cpPath);
+                if (Files.isDirectory(cpPath)) copyDirToPod(client, namespace, podName, classpathDir, cpPath, 1);
+                else copyFileToPod(client, namespace, podName, classpathDir, cpFileName, cpPath);
             }
             remoteClasspathEntries.add(classpathDir + "/*");
 
             Jvm effectiveJvm = (jvm != null) ? jvm : new Jvm((fs, h) -> "java");
-            List<String> cmdLine = buildCommandLine(effectiveJvm, remoteClasspathEntries, nodeId.getHostId(), nodeId.getHostname(), remoteConnectString, extraArgs);
+            List<String> cmdLine = buildCommandLine(
+                    effectiveJvm,
+                    remoteClasspathEntries,
+                    nodeId.getHostId(),
+                    nodeId.getHostname(),
+                    remoteConnectString,
+                    extraArgs);
 
-            execWatch = client.pods().inNamespace(namespace).withName(podName)
-                .redirectingOutput()
-                .redirectingError()
-                .exec(cmdLine.toArray(new String[0]));
+            execWatch = client.pods()
+                    .inNamespace(namespace)
+                    .withName(podName)
+                    .redirectingOutput()
+                    .redirectingError()
+                    .exec(cmdLine.toArray(new String[0]));
 
             new StreamCopier(execWatch.getOutput(), System.out, true).spawnDaemon(nodeId.getHostname() + "-stdout");
             new StreamCopier(execWatch.getError(), System.err, true).spawnDaemon(nodeId.getHostname() + "-stderr");
@@ -458,24 +451,20 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             pods.put(nodeId.getHostname(), holder);
             LOG.debug("start node {} with remoteConnectString {}", node, remoteConnectString);
             return remoteConnectString;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             pods.remove(nodeId.getHostname());
             IOUtil.close(execWatch);
-            try
-            {
+            try {
                 client.pods().inNamespace(namespace).withName(podName).delete();
-            }
-            catch (Exception deleteEx)
-            {
+            } catch (Exception deleteEx) {
                 LOG.debug("error deleting pod {} during error cleanup", podName, deleteEx);
             }
             throw new Exception("Error launching pod for host '" + nodeId.getHostname() + "'", e);
-        }
-        finally
-        {
-            LOG.debug("time to start pod for host {}: {}ms", nodeId.getHostname(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+        } finally {
+            LOG.debug(
+                    "time to start pod for host {}: {}ms",
+                    nodeId.getHostname(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
         }
     }
 
@@ -488,8 +477,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
      * @throws Exception if the service endpoints don't become ready within the timeout,
      *                   or if there's an error accessing the Kubernetes API
      */
-    private void waitForServiceEndpoints(String serviceName, int timeoutSeconds) throws Exception
-    {
+    private void waitForServiceEndpoints(String serviceName, int timeoutSeconds) throws Exception {
         long startTime = System.nanoTime();
         long timeoutNanos = TimeUnit.SECONDS.toNanos(timeoutSeconds);
         int attempt = 0;
@@ -497,53 +485,50 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
 
         LOG.debug("Waiting for service '{}' endpoints (timeout: {}s)", serviceName, timeoutSeconds);
 
-        while (true)
-        {
+        while (true) {
             attempt++;
             long elapsed = System.nanoTime() - startTime;
 
-            if (elapsed > timeoutNanos)
-            {
+            if (elapsed > timeoutNanos) {
                 throw new Exception(String.format(
-                    "Timeout waiting for service '%s' endpoints after %d seconds. " +
-                    "DNS propagation may be delayed or service has no matching pods.",
-                    serviceName, timeoutSeconds));
+                        "Timeout waiting for service '%s' endpoints after %d seconds. "
+                                + "DNS propagation may be delayed or service has no matching pods.",
+                        serviceName, timeoutSeconds));
             }
 
-            try
-            {
+            try {
                 var endpoints = client.endpoints()
-                    .inNamespace(namespace)
-                    .withName(serviceName)
-                    .get();
+                        .inNamespace(namespace)
+                        .withName(serviceName)
+                        .get();
 
-                if (endpoints != null &&
-                    endpoints.getSubsets() != null &&
-                    !endpoints.getSubsets().isEmpty())
-                {
+                if (endpoints != null
+                        && endpoints.getSubsets() != null
+                        && !endpoints.getSubsets().isEmpty()) {
                     boolean hasAddresses = endpoints.getSubsets().stream()
-                        .anyMatch(subset -> subset.getAddresses() != null &&
-                                           !subset.getAddresses().isEmpty());
+                            .anyMatch(subset -> subset.getAddresses() != null
+                                    && !subset.getAddresses().isEmpty());
 
-                    if (hasAddresses)
-                    {
+                    if (hasAddresses) {
                         long totalMillis = TimeUnit.NANOSECONDS.toMillis(elapsed);
-                        LOG.info("Service '{}' endpoints ready after {} attempts ({}ms)",
-                            serviceName, attempt, totalMillis);
+                        LOG.info(
+                                "Service '{}' endpoints ready after {} attempts ({}ms)",
+                                serviceName,
+                                attempt,
+                                totalMillis);
                         return;
                     }
                 }
 
-                if (attempt % 10 == 0)
-                {
-                    LOG.debug("Service '{}' endpoints not ready (attempt {}, elapsed: {}s)",
-                        serviceName, attempt, TimeUnit.NANOSECONDS.toSeconds(elapsed));
+                if (attempt % 10 == 0) {
+                    LOG.debug(
+                            "Service '{}' endpoints not ready (attempt {}, elapsed: {}s)",
+                            serviceName,
+                            attempt,
+                            TimeUnit.NANOSECONDS.toSeconds(elapsed));
                 }
-            }
-            catch (KubernetesClientException e)
-            {
-                if (attempt == 1)
-                {
+            } catch (KubernetesClientException e) {
+                if (attempt == 1) {
                     LOG.debug("Service '{}' not accessible yet: {}", serviceName, e.getMessage());
                 }
             }
@@ -553,8 +538,13 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         }
     }
 
-    private static List<String> buildCommandLine(Jvm jvm, List<String> classpathEntries, String nodeId, String hostname, String connectString, String... extraArgs)
-    {
+    private static List<String> buildCommandLine(
+            Jvm jvm,
+            List<String> classpathEntries,
+            String nodeId,
+            String hostname,
+            String connectString,
+            String... extraArgs) {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(null, hostname));
         cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
@@ -567,41 +557,38 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         return cmdLine;
     }
 
-    private static List<String> filterOutEmptyStrings(List<String> opts)
-    {
+    private static List<String> filterOutEmptyStrings(List<String> opts) {
         return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
     }
 
-    private static void copyFileToPod(KubernetesClient client, String namespace, String podName, String destDir, String filename, Path localPath) throws Exception
-    {
+    private static void copyFileToPod(
+            KubernetesClient client, String namespace, String podName, String destDir, String filename, Path localPath)
+            throws Exception {
         String destPath = destDir + "/" + filename;
         String parentDir = destPath.substring(0, destPath.lastIndexOf('/'));
         runAndWait(client, namespace, podName, "mkdir", "-p", parentDir);
-        try (InputStream is = Files.newInputStream(localPath))
-        {
-            client.pods().inNamespace(namespace).withName(podName).file(destPath).upload(is);
+        try (InputStream is = Files.newInputStream(localPath)) {
+            client.pods()
+                    .inNamespace(namespace)
+                    .withName(podName)
+                    .file(destPath)
+                    .upload(is);
         }
     }
 
-    private static void copyDirToPod(KubernetesClient client, String namespace, String podName, String destDir, Path cpPath, int depth) throws Exception
-    {
-        if (!Files.isDirectory(cpPath))
-            return;
+    private static void copyDirToPod(
+            KubernetesClient client, String namespace, String podName, String destDir, Path cpPath, int depth)
+            throws Exception {
+        if (!Files.isDirectory(cpPath)) return;
 
-        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath))
-        {
-            for (Path file : files)
-            {
-                if (Files.isDirectory(file))
-                {
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath)) {
+            for (Path file : files) {
+                if (Files.isDirectory(file)) {
                     copyDirToPod(client, namespace, podName, destDir, file, depth + 1);
-                }
-                else
-                {
+                } else {
                     String filename = file.getFileName().toString();
                     Path currentPath = file;
-                    for (int i = 0; i < depth; i++)
-                    {
+                    for (int i = 0; i < depth; i++) {
                         currentPath = currentPath.getParent();
                         filename = currentPath.getFileName().toString() + "/" + filename;
                     }
@@ -611,44 +598,44 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         }
     }
 
-    private static String runAndCollect(KubernetesClient client, String namespace, String podName, String... command) throws Exception
-    {
+    private static String runAndCollect(KubernetesClient client, String namespace, String podName, String... command)
+            throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (ExecWatch watch = client.pods().inNamespace(namespace).withName(podName)
+        try (ExecWatch watch = client.pods()
+                .inNamespace(namespace)
+                .withName(podName)
                 .writingOutput(out)
-                .exec(command))
-        {
+                .exec(command)) {
             watch.exitCode().get(30, TimeUnit.SECONDS);
         }
         return out.toString(StandardCharsets.UTF_8);
     }
 
-    private static void runAndWait(KubernetesClient client, String namespace, String podName, String... command) throws Exception
-    {
+    private static void runAndWait(KubernetesClient client, String namespace, String podName, String... command)
+            throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        try (ExecWatch watch = client.pods().inNamespace(namespace).withName(podName)
+        try (ExecWatch watch = client.pods()
+                .inNamespace(namespace)
+                .withName(podName)
                 .writingOutput(out)
                 .writingError(err)
-                .exec(command))
-        {
+                .exec(command)) {
             Integer exitCode = watch.exitCode().get(30, TimeUnit.SECONDS);
             if (exitCode != null && exitCode != 0)
-                throw new IOException("Command " + Arrays.toString(command) + " failed with exit code " + exitCode + ": " + err.toString(StandardCharsets.UTF_8));
+                throw new IOException("Command " + Arrays.toString(command) + " failed with exit code " + exitCode
+                        + ": " + err.toString(StandardCharsets.UTF_8));
         }
     }
 
-    public static String sanitizePodName(String hostId)
-    {
+    public static String sanitizePodName(String hostId) {
         return hostId.toLowerCase(Locale.ROOT)
-            .replaceAll("[^a-z0-9-]", "-")
-            .replaceAll("-+", "-")
-            .replaceAll("^-|-$", "");
+                .replaceAll("[^a-z0-9-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
-
-    private static class PodHolder implements AutoCloseable
-    {
+    private static class PodHolder implements AutoCloseable {
 
         private final GlobalNodeId nodeId;
         private final String podName;
@@ -658,8 +645,14 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         private final String namespace;
         private final Service nodeService;
 
-        private PodHolder(GlobalNodeId nodeId, String podName, ExecWatch execWatch, String podHome, KubernetesClient client, String namespace, Service nodeService)
-        {
+        private PodHolder(
+                GlobalNodeId nodeId,
+                String podName,
+                ExecWatch execWatch,
+                String podHome,
+                KubernetesClient client,
+                String namespace,
+                Service nodeService) {
             this.nodeId = nodeId;
             this.podName = podName;
             this.execWatch = execWatch;
@@ -670,53 +663,48 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
         }
 
         @Override
-        public void close()
-        {
-            if (nodeId != null)
-            {
-                try
-                {
+        public void close() {
+            if (nodeId != null) {
+                try {
                     URI fsUri = URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId());
                     FileSystems.getFileSystem(fsUri).close();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     LOG.debug("error closing filesystem for pod {}", podName, e);
                 }
             }
             IOUtil.close(execWatch);
-            if (!LocalLauncher.skipDiskCleanup() && podName != null && podHome != null)
-            {
-                try
-                {
-                    runAndWait(client, namespace, podName, "rm", "-rf",
-                        podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
-                }
-                catch (Exception e)
-                {
+            if (!LocalLauncher.skipDiskCleanup() && podName != null && podHome != null) {
+                try {
+                    runAndWait(
+                            client,
+                            namespace,
+                            podName,
+                            "rm",
+                            "-rf",
+                            podHome + "/." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
+                } catch (Exception e) {
                     LOG.debug("error deleting temp files in pod {}", podName, e);
                 }
             }
-            if (podName != null)
-            {
-                try
-                {
+            if (podName != null) {
+                try {
                     client.pods().inNamespace(namespace).withName(podName).delete();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     LOG.debug("error deleting pod {}", podName, e);
                 }
             }
-            if(nodeService != null)
-            {
-                try
-                {
-                    client.services().inNamespace(namespace).withName(nodeService.getMetadata().getName()).delete();
-                } 
-                catch (Exception e)
-                {
-                    LOG.debug("error deleting service {} for node {}", nodeService.getMetadata().getName(), nodeId.getHostname(), e);
+            if (nodeService != null) {
+                try {
+                    client.services()
+                            .inNamespace(namespace)
+                            .withName(nodeService.getMetadata().getName())
+                            .delete();
+                } catch (Exception e) {
+                    LOG.debug(
+                            "error deleting service {} for node {}",
+                            nodeService.getMetadata().getName(),
+                            nodeId.getHostname(),
+                            e);
                 }
             }
         }

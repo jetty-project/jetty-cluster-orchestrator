@@ -24,10 +24,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
-import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -40,8 +41,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cluster implements AutoCloseable
-{
+public class Cluster implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(Cluster.class);
 
     private final String id;
@@ -53,39 +53,32 @@ public class Cluster implements AutoCloseable
     private ZooKeeperClient zkClient;
     private ClusterTools clusterTools;
 
-    public Cluster(ClusterConfiguration configuration) throws Exception
-    {
+    public Cluster(ClusterConfiguration configuration) throws Exception {
         this(generateId(), configuration);
     }
 
-    private static String generateId()
-    {
+    private static String generateId() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         String className = stackTrace[3].getClassName();
         String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
         return simpleClassName + "_" + stackTrace[3].getMethodName();
     }
 
-    public Cluster(String id, ClusterConfiguration configuration) throws Exception
-    {
+    public Cluster(String id, ClusterConfiguration configuration) throws Exception {
         this.id = id;
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
         if (this.hostLauncher == null)
             throw new IllegalStateException("No configured host launcher to start the nodes of cluster " + id);
-        try
-        {
+        try {
             init();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             close();
             throw e;
         }
     }
 
-    private void init() throws Exception
-    {
+    private void init() throws Exception {
         String connectString = hostLauncher.initialize();
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalLauncher.HOSTNAME));
@@ -94,63 +87,67 @@ public class Cluster implements AutoCloseable
         // reuses the ones shared between arrays, so all we get back is hostname -> connect string.
         String healthCheckTimeout = Long.toString(configuration.healthCheckTimeout());
         List<Future<Map<String, String>>> futures = new ArrayList<>();
-        ExecutorService launchPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        try
-        {
-            for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
-            {
-                futures.add(launchPool.submit(() -> hostLauncher.launch(id, nodeArrayConfig, connectString, healthCheckTimeout)));
+        ExecutorService launchPool =
+                Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        try {
+            for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays()) {
+                futures.add(launchPool.submit(
+                        () -> hostLauncher.launch(id, nodeArrayConfig, connectString, healthCheckTimeout)));
             }
-        }
-        finally
-        {
+        } finally {
             launchPool.shutdown();
         }
-        for (Future<Map<String, String>> future : futures)
-        {
-            for (Map.Entry<String, String> entry : future.get().entrySet())
-            {
+        for (Future<Map<String, String>> future : futures) {
+            for (Map.Entry<String, String> entry : future.get().entrySet()) {
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, entry.getKey());
                 // A host shared by several node arrays is reported once per array.
                 if (!hosts.containsKey(globalNodeId))
-                    hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), entry.getValue()));
+                    hosts.put(
+                            globalNodeId,
+                            new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), entry.getValue()));
             }
         }
 
         // start heath check timer
         long healthCheckDelay = configuration.healthCheckDelay();
-        hostsCheckerTimer.schedule(new TimerTask() {
-            @Override
-            public void run()
-            {
-                for (Host host : hosts.values())
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Checking health of host {}", host);
-                    host.check();
-                }
-            }
-        }, healthCheckDelay, healthCheckDelay);
+        hostsCheckerTimer.schedule(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        for (Host host : hosts.values()) {
+                            if (LOG.isDebugEnabled()) LOG.debug("Checking health of host {}", host);
+                            host.check();
+                        }
+                    }
+                },
+                healthCheckDelay,
+                healthCheckDelay);
 
         // start all worker nodes
-        for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays())
-        {
+        for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays()) {
             Map<String, NodeArray.Node> nodeArrayNodes = new HashMap<>();
-            for (Node nodeConfig : nodeArrayConfig.nodes())
-            {
+            for (Node nodeConfig : nodeArrayConfig.nodes()) {
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, nodeArrayConfig, nodeConfig);
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
                 if (host == null)
-                    throw new IllegalStateException("No host launched on " + globalNodeId.getHostname() + " for node '" + globalNodeId.getNodeId() + "'");
-                try
-                {
-                    NodeProcess remoteProcess = (NodeProcess)host.rpcClient.call(new SpawnNodeCommand(nodeArrayConfig.jvm(), globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(), host.remoteConnectString, healthCheckTimeout), 10, TimeUnit.SECONDS);
-                    NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
+                    throw new IllegalStateException("No host launched on " + globalNodeId.getHostname() + " for node '"
+                            + globalNodeId.getNodeId() + "'");
+                try {
+                    NodeProcess remoteProcess = (NodeProcess) host.rpcClient.call(
+                            new SpawnNodeCommand(
+                                    nodeArrayConfig.jvm(),
+                                    globalNodeId.getHostname(),
+                                    globalNodeId.getHostId(),
+                                    globalNodeId.getNodeId(),
+                                    host.remoteConnectString,
+                                    healthCheckTimeout),
+                            10,
+                            TimeUnit.SECONDS);
+                    NodeArray.Node node =
+                            new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new Exception("Error spawning node '" + globalNodeId.getNodeId() + "'", e);
                 }
             }
@@ -158,14 +155,12 @@ public class Cluster implements AutoCloseable
         }
     }
 
-    public ClusterTools tools()
-    {
+    public ClusterTools tools() {
         return clusterTools;
     }
 
     @Override
-    public void close()
-    {
+    public void close() {
         hostsCheckerTimer.cancel();
         hosts.values().forEach(IOUtil::close);
         hosts.clear();
@@ -174,74 +169,61 @@ public class Cluster implements AutoCloseable
         IOUtil.close(zkClient);
     }
 
-    public NodeArray nodeArray(String id)
-    {
+    public NodeArray nodeArray(String id) {
         return nodeArrays.get(id);
     }
 
-    private static class Host implements AutoCloseable
-    {
+    private static class Host implements AutoCloseable {
         private final GlobalNodeId globalNodeId;
         private final RpcClient rpcClient;
         private final String remoteConnectString;
         private final List<NodeArray.Node> nodes = new CopyOnWriteArrayList<>();
 
-        private Host(GlobalNodeId globalNodeId, RpcClient rpcClient, String remoteConnectString)
-        {
+        private Host(GlobalNodeId globalNodeId, RpcClient rpcClient, String remoteConnectString) {
             this.globalNodeId = globalNodeId;
             this.rpcClient = rpcClient;
             this.remoteConnectString = remoteConnectString;
         }
 
-        private void check()
-        {
+        private void check() {
             List<String> unsaneHostIds = new ArrayList<>();
             Exception failure = null;
-            for (NodeArray.Node node : nodes)
-            {
+            for (NodeArray.Node node : nodes) {
                 NodeProcess nodeProcess = node.getNodeProcess();
-                try
-                {
-                    if (LOG.isDebugEnabled())
-                       LOG.debug("client checking node {}", node);
+                try {
+                    if (LOG.isDebugEnabled()) LOG.debug("client checking node {}", node);
                     // Ask the host node to check the spawned node.
                     rpcClient.call(new CheckNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
                     // Ask the spawned node to check itself. Must happen to create
                     // a heartbeat for the health checks.
                     node.selfCheck();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     if (LOG.isDebugEnabled())
                         LOG.debug("Host {} failed check of {}", globalNodeId.getHostId(), nodeProcess, e);
-                    unsaneHostIds.add(String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
-                    if (failure == null)
-                        failure = e;
-                    else
-                        failure.addSuppressed(e);
+                    unsaneHostIds.add(
+                            String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
+                    if (failure == null) failure = e;
+                    else failure.addSuppressed(e);
                 }
             }
-            if (!unsaneHostIds.isEmpty())
-            {
-                LOG.error("Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}", unsaneHostIds.size(), String.join("\n", unsaneHostIds), failure);
+            if (!unsaneHostIds.isEmpty()) {
+                LOG.error(
+                        "Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}",
+                        unsaneHostIds.size(),
+                        String.join("\n", unsaneHostIds),
+                        failure);
                 close();
             }
         }
 
         @Override
-        public void close()
-        {
-            for (NodeArray.Node node : nodes)
-            {
+        public void close() {
+            for (NodeArray.Node node : nodes) {
                 NodeProcess nodeProcess = node.getNodeProcess();
-                try
-                {
+                try {
                     rpcClient.call(new KillNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
-                }
-                catch (Exception e)
-                {
-                    if (LOG.isDebugEnabled())
-                        LOG.debug("Error closing {}", nodeProcess, e);
+                } catch (Exception e) {
+                    if (LOG.isDebugEnabled()) LOG.debug("Error closing {}", nodeProcess, e);
                 }
             }
             IOUtil.close(rpcClient);
@@ -250,13 +232,11 @@ public class Cluster implements AutoCloseable
         }
 
         @Override
-        public String toString()
-        {
-            return "Host{" +
-                "globalNodeId='" + globalNodeId + '\'' +
-                "remoteConnectString='" + remoteConnectString + '\'' +
-                ", nodes=" + nodes +
-                '}';
+        public String toString() {
+            return "Host{" + "globalNodeId='"
+                    + globalNodeId + '\'' + "remoteConnectString='"
+                    + remoteConnectString + '\'' + ", nodes="
+                    + nodes + '}';
         }
     }
 }

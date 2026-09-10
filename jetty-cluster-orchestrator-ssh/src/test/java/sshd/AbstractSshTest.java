@@ -16,19 +16,16 @@ package sshd;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public abstract class AbstractSshTest
-{
+public abstract class AbstractSshTest {
     protected static TestSshServer sshd;
 
     @BeforeAll
-    public static void setUp() throws Exception
-    {
+    public static void setUp() throws Exception {
         sshd = new TestSshServer();
     }
 
     @AfterAll
-    public static void tearDown() throws Exception
-    {
+    public static void tearDown() throws Exception {
         sshd.close();
     }
 }

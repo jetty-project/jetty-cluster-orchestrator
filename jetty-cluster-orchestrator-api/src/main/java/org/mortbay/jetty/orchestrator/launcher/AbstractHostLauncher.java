@@ -31,8 +31,7 @@ import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
  * host. Nodes that share a hostname share one host, even across node arrays; an array's hosts
  * start in parallel; and nothing is launched twice.
  */
-public abstract class AbstractHostLauncher implements HostLauncher
-{
+public abstract class AbstractHostLauncher implements HostLauncher {
     private final Map<String, HostLaunch> launchedHosts = new ConcurrentHashMap<>();
     private final ExecutorService launchPool = Executors.newCachedThreadPool(new LauncherThreadFactory());
 
@@ -45,7 +44,8 @@ public abstract class AbstractHostLauncher implements HostLauncher
     /**
      * Starts one host JVM and returns the connect string it uses to reach ZooKeeper.
      */
-    protected abstract String launchHost(GlobalNodeId hostId, Node node, String connectString, String... extraArgs) throws Exception;
+    protected abstract String launchHost(GlobalNodeId hostId, Node node, String connectString, String... extraArgs)
+            throws Exception;
 
     /**
      * Releases whatever {@link #launchHost} created. Called by {@link #close()}.
@@ -56,50 +56,42 @@ public abstract class AbstractHostLauncher implements HostLauncher
      * Checks that two nodes sharing a hostname can share a host. The default accepts any pair;
      * launchers with per-node host settings override it to reject conflicting ones.
      */
-    protected void checkSharedHost(Node first, Node second)
-    {
-    }
+    protected void checkSharedHost(Node first, Node second) {}
 
     @Override
-    public final Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs) throws Exception
-    {
+    public final Map<String, String> launch(
+            String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs)
+            throws Exception {
         Class<? extends NodeArrayConfiguration> expected = configurationType();
         if (!expected.isInstance(nodeArray))
-            throw new IllegalArgumentException("Node array '" + nodeArray.id() + "' is a " + nodeArray.getClass().getName() +
-                " but " + getClass().getSimpleName() + " needs a " + expected.getName());
+            throw new IllegalArgumentException("Node array '" + nodeArray.id() + "' is a "
+                    + nodeArray.getClass().getName() + " but " + getClass().getSimpleName() + " needs a "
+                    + expected.getName());
 
         // Nodes naming the same host all run on one host JVM.
         Map<String, Node> hostNodes = new LinkedHashMap<>();
-        for (Node node : nodeArray.nodes())
-        {
+        for (Node node : nodeArray.nodes()) {
             Node alreadyOnThatHost = hostNodes.putIfAbsent(node.getHostname(), node);
-            if (alreadyOnThatHost != null)
-                checkSharedHost(alreadyOnThatHost, node);
+            if (alreadyOnThatHost != null) checkSharedHost(alreadyOnThatHost, node);
         }
 
         Map<String, CompletableFuture<String>> pending = new LinkedHashMap<>();
-        for (Map.Entry<String, Node> entry : hostNodes.entrySet())
-        {
+        for (Map.Entry<String, Node> entry : hostNodes.entrySet()) {
             String hostname = entry.getKey();
             Node node = entry.getValue();
             HostLaunch ours = new HostLaunch(node);
             HostLaunch previous = launchedHosts.putIfAbsent(hostname, ours);
-            if (previous != null)
-            {
+            if (previous != null) {
                 // Another node array got here first, so wait for the host it is starting.
                 checkSharedHost(previous.node, node);
                 pending.put(hostname, previous.connectString);
                 continue;
             }
             GlobalNodeId hostId = new GlobalNodeId(clusterId, hostname);
-            launchPool.submit(() ->
-            {
-                try
-                {
+            launchPool.submit(() -> {
+                try {
                     ours.connectString.complete(launchHost(hostId, node, connectString, extraArgs));
-                }
-                catch (Throwable t)
-                {
+                } catch (Throwable t) {
                     // Forget the failed host, so a later attempt is not stuck waiting on it.
                     launchedHosts.remove(hostname, ours);
                     ours.connectString.completeExceptionally(t);
@@ -110,59 +102,45 @@ public abstract class AbstractHostLauncher implements HostLauncher
 
         Map<String, String> remoteConnectStrings = new LinkedHashMap<>();
         Exception failure = null;
-        for (Map.Entry<String, CompletableFuture<String>> entry : pending.entrySet())
-        {
-            try
-            {
+        for (Map.Entry<String, CompletableFuture<String>> entry : pending.entrySet()) {
+            try {
                 remoteConnectStrings.put(entry.getKey(), entry.getValue().get());
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Throwable cause = e instanceof ExecutionException && e.getCause() != null ? e.getCause() : e;
-                Exception error = new Exception("Error launching host '" + entry.getKey() + "' of node array '" + nodeArray.id() + "'", cause);
-                if (failure == null)
-                    failure = error;
-                else
-                    failure.addSuppressed(error);
+                Exception error = new Exception(
+                        "Error launching host '" + entry.getKey() + "' of node array '" + nodeArray.id() + "'", cause);
+                if (failure == null) failure = error;
+                else failure.addSuppressed(error);
             }
         }
-        if (failure != null)
-            throw failure;
+        if (failure != null) throw failure;
         return remoteConnectStrings;
     }
 
     @Override
-    public final void close()
-    {
+    public final void close() {
         launchPool.shutdownNow();
-        try
-        {
+        try {
             closeHosts();
-        }
-        finally
-        {
+        } finally {
             launchedHosts.clear();
         }
     }
 
-    private static final class HostLaunch
-    {
+    private static final class HostLaunch {
         private final Node node;
         private final CompletableFuture<String> connectString = new CompletableFuture<>();
 
-        private HostLaunch(Node node)
-        {
+        private HostLaunch(Node node) {
             this.node = node;
         }
     }
 
-    private static final class LauncherThreadFactory implements java.util.concurrent.ThreadFactory
-    {
+    private static final class LauncherThreadFactory implements java.util.concurrent.ThreadFactory {
         private final AtomicInteger counter = new AtomicInteger();
 
         @Override
-        public Thread newThread(Runnable r)
-        {
+        public Thread newThread(Runnable r) {
             Thread thread = new Thread(r, "jco-launcher-" + counter.incrementAndGet());
             thread.setDaemon(true);
             return thread;

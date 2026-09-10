@@ -17,11 +17,14 @@ import java.util.Collection;
 
 import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 
-public interface ClusterConfiguration
-{
+public interface ClusterConfiguration {
     Jvm jvm();
+
     Collection<NodeArrayConfiguration> nodeArrays();
+
     HostLauncher hostLauncher();
+
     long healthCheckTimeout();
+
     long healthCheckDelay();
 }

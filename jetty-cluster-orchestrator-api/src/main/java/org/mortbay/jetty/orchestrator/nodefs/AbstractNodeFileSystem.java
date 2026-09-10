@@ -34,17 +34,19 @@ import java.util.Set;
  * Subclasses return the node's own separator from {@link FileSystem#getSeparator()}:
  * {@code \} on Windows, {@code /} elsewhere.
  */
-public abstract class AbstractNodeFileSystem extends FileSystem
-{
-    abstract public String getHostId();
+public abstract class AbstractNodeFileSystem extends FileSystem {
+    public abstract String getHostId();
 
-    abstract public InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
+    public abstract InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
 
-    abstract public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException;
+    public abstract SeekableByteChannel newByteChannel(
+            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException;
 
-    abstract public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException;
+    public abstract DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
+            throws IOException;
 
-    abstract public  <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException;
+    public abstract <A extends BasicFileAttributes> A readAttributes(
+            NodePath path, Class<A> type, LinkOption... options) throws IOException;
 
-    abstract public Path getPath(boolean absolute, List<String> segments);
+    public abstract Path getPath(boolean absolute, List<String> segments);
 }

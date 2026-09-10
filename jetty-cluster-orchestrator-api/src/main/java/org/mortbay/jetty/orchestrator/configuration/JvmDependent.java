@@ -13,8 +13,8 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-public interface JvmDependent
-{
+public interface JvmDependent {
     Jvm jvm();
+
     JvmDependent jvm(Jvm jvm);
 }

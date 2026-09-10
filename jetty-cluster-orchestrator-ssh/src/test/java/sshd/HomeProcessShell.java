@@ -37,8 +37,7 @@ import org.apache.sshd.server.shell.InvertedShell;
 import org.apache.sshd.server.shell.TtyFilterInputStream;
 import org.apache.sshd.server.shell.TtyFilterOutputStream;
 
-class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
-{
+class HomeProcessShell extends AbstractLoggingBean implements InvertedShell {
     private final String homePath;
     private final List<String> command;
     private String cmdValue;
@@ -52,8 +51,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
     public HomeProcessShell(String homePath, Collection<String> command) {
         this.homePath = homePath;
         // we copy the original list so as not to change it
-        this.command = new ArrayList<>(
-            ValidateUtils.checkNotNullAndNotEmpty(command, "No process shell command(s)"));
+        this.command = new ArrayList<>(ValidateUtils.checkNotNullAndNotEmpty(command, "No process shell command(s)"));
         this.cmdValue = GenericUtils.join(command, ' ');
     }
 
@@ -74,8 +72,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
     }
 
     @Override
-    public void start(ChannelSession channel, Environment env) throws IOException
-    {
+    public void start(ChannelSession channel, Environment env) throws IOException {
         this.channelSession = channel;
 
         Map<String, String> varsMap = resolveShellEnvironment(env.getEnv());
@@ -94,14 +91,18 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
                 Map<String, String> procEnv = builder.environment();
                 procEnv.putAll(varsMap);
             } catch (Exception e) {
-                warn("start({}) - Failed ({}) to set environment for command={}: {}",
-                    channel, e.getClass().getSimpleName(), cmdValue, e.getMessage(), e);
+                warn(
+                        "start({}) - Failed ({}) to set environment for command={}: {}",
+                        channel,
+                        e.getClass().getSimpleName(),
+                        cmdValue,
+                        e.getMessage(),
+                        e);
             }
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("start({}): command='{}', env={}",
-                channel, builder.command(), builder.environment());
+            log.debug("start({}): command='{}', env={}", channel, builder.command(), builder.environment());
         }
 
         builder.directory(Paths.get(homePath).toFile());
@@ -173,8 +174,13 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell
 
         IOException e = IoUtils.closeQuietly(getInputStream(), getOutputStream(), getErrorStream());
         if (e != null) {
-            debug("destroy({}) {} while destroy streams of '{}': {}",
-                channel, e.getClass().getSimpleName(), this, e.getMessage(), e);
+            debug(
+                    "destroy({}) {} while destroy streams of '{}': {}",
+                    channel,
+                    e.getClass().getSimpleName(),
+                    this,
+                    e.getMessage(),
+                    e);
         }
     }
 

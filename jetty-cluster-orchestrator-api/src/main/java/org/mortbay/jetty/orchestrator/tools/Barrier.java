@@ -15,8 +15,8 @@ package org.mortbay.jetty.orchestrator.tools;
 
 import java.util.concurrent.TimeUnit;
 
-public interface Barrier
-{
+public interface Barrier {
     int await() throws Exception;
+
     int await(long timeout, TimeUnit unit) throws Exception;
 }

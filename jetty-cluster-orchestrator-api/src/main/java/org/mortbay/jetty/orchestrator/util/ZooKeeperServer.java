@@ -22,32 +22,28 @@ import java.util.Properties;
 
 import org.apache.zookeeper.server.embedded.ZooKeeperServerEmbedded;
 
-public class ZooKeeperServer implements Closeable
-{
+public class ZooKeeperServer implements Closeable {
     private final ZooKeeperServerEmbedded zk;
     private final String connectString;
     private final Path baseDir;
 
-    public ZooKeeperServer() throws Exception
-    {
+    public ZooKeeperServer() throws Exception {
         baseDir = createFreshBaseDir();
         zk = new ZooKeeperServerEmbedded.ZookKeeperServerEmbeddedBuilder()
-            .baseDir(baseDir)
-            .configuration(createConfiguration())
-            .build();
+                .baseDir(baseDir)
+                .configuration(createConfiguration())
+                .build();
         zk.start();
         connectString = zk.getConnectionString();
     }
 
-    private static Properties createConfiguration()
-    {
+    private static Properties createConfiguration() {
         Properties configuration = new Properties();
         configuration.put("clientPort", "0");
         return configuration;
     }
 
-    private Path createFreshBaseDir() throws IOException
-    {
+    private Path createFreshBaseDir() throws IOException {
         long pid = ProcessHandle.current().pid();
         Path baseDir = Paths.get(System.getProperty("java.io.tmpdir")).resolve("jco-zk-" + pid);
         IOUtil.deltree(baseDir);
@@ -55,20 +51,15 @@ public class ZooKeeperServer implements Closeable
         return baseDir;
     }
 
-    public String getConnectString()
-    {
+    public String getConnectString() {
         return connectString;
     }
 
     @Override
-    public void close() throws IOException
-    {
-        try
-        {
+    public void close() throws IOException {
+        try {
             zk.close();
-        }
-        finally
-        {
+        } finally {
             IOUtil.deltree(baseDir);
         }
     }

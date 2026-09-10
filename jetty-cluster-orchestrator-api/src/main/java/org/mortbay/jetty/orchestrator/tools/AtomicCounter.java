@@ -13,12 +13,16 @@
 
 package org.mortbay.jetty.orchestrator.tools;
 
-public interface AtomicCounter
-{
+public interface AtomicCounter {
     long incrementAndGet();
+
     long decrementAndGet();
+
     long getAndIncrement();
+
     long getAndDecrement();
+
     long get();
+
     void set(long value);
 }

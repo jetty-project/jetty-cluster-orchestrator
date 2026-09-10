@@ -13,13 +13,7 @@
   <description>Kubernetes implementation for the Jetty Cluster Orchestrator</description>
 
   <dependencies>
-    <!-- API module dependency -->
-    <dependency>
-      <groupId>org.mortbay.jetty.orchestrator</groupId>
-      <artifactId>jetty-cluster-orchestrator-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    
+
     <!-- Kubernetes implementation dependency -->
     <dependency>
       <groupId>io.fabric8</groupId>
@@ -33,17 +27,11 @@
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
     </dependency>
-
-    <!-- Test dependencies -->
+    <!-- API module dependency -->
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest</artifactId>
-      <scope>test</scope>
+      <groupId>org.mortbay.jetty.orchestrator</groupId>
+      <artifactId>jetty-cluster-orchestrator-api</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -53,6 +41,18 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-server-mock</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

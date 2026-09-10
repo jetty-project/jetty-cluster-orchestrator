@@ -24,8 +24,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RpcServer implements AutoCloseable
-{
+public class RpcServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
     static final String REQUEST_QUEUE_NAME = "RPC/requestQ";
     static final String RESPONSE_QUEUE_NAME = "RPC/responseQ";
@@ -39,13 +38,11 @@ public class RpcServer implements AutoCloseable
     private final ClusterTools clusterTools;
     private volatile long lastRequestTimestamp;
 
-    public RpcServer(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
-    {
+    public RpcServer(ZooKeeperClient zkClient, GlobalNodeId globalNodeId) {
         this.globalNodeId = globalNodeId;
         requestQueue = zkClient.createDistributedQueue(globalNodeId, REQUEST_QUEUE_NAME);
         responseQueue = zkClient.createDistributedQueue(globalNodeId, RESPONSE_QUEUE_NAME);
-        executorService = Executors.newCachedThreadPool(r ->
-        {
+        executorService = Executors.newCachedThreadPool(r -> {
             Thread thread = new Thread(r);
             String nodeId = globalNodeId.getNodeId();
             String shortId = nodeId.substring(nodeId.indexOf('/') + 1);
@@ -56,103 +53,73 @@ public class RpcServer implements AutoCloseable
         lastRequestTimestamp = System.nanoTime();
     }
 
-    public long getLastRequestTimestamp()
-    {
+    public long getLastRequestTimestamp() {
         return lastRequestTimestamp;
     }
 
     @Override
-    public void close() throws Exception
-    {
-        if (active)
-            abort();
-        for (int i = 0; i < 1000; i++)
-        {
-            if (active)
-                Thread.sleep(5);
-            else
-                break;
+    public void close() throws Exception {
+        if (active) abort();
+        for (int i = 0; i < 1000; i++) {
+            if (active) Thread.sleep(5);
+            else break;
         }
         executorService.shutdownNow();
     }
 
-    private void abort()
-    {
-        try
-        {
+    private void abort() {
+        try {
             requestQueue.offer(new Request(0, new AbortCommand()));
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             // does not matter, ZK is shutting down if this happens
-            if (LOG.isDebugEnabled())
-                LOG.debug("", e);
+            if (LOG.isDebugEnabled()) LOG.debug("", e);
         }
     }
 
-    public void run()
-    {
+    public void run() {
         active = true;
-        while (active)
-        {
-            try
-            {
+        while (active) {
+            try {
                 Request request = requestQueue.take();
                 lastRequestTimestamp = System.nanoTime();
-                if (LOG.isDebugEnabled())
-                    LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
-                if (request.getCommand().getClass() == AbortCommand.class)
-                {
+                if (LOG.isDebugEnabled()) LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
+                if (request.getCommand().getClass() == AbortCommand.class) {
                     active = false;
                     return;
                 }
 
-                executorService.submit(() ->
-                {
+                executorService.submit(() -> {
                     Object result = null;
                     Throwable throwable = null;
                     long requestId = -1;
-                    try
-                    {
+                    try {
                         requestId = request.getId();
                         result = request.getCommand().execute(clusterTools);
-                    }
-                    catch (Throwable x)
-                    {
+                    } catch (Throwable x) {
                         throwable = x;
                     }
 
-                    try
-                    {
+                    try {
                         Response response = new Response(requestId, result, throwable);
                         responseQueue.offer(response);
-                    }
-                    catch (Exception e)
-                    {
+                    } catch (Exception e) {
                         // does not matter, ZK is shutting down if this happens
-                        if (LOG.isDebugEnabled())
-                            LOG.debug("", e);
+                        if (LOG.isDebugEnabled()) LOG.debug("", e);
                     }
                 });
-            }
-            catch (InterruptedException e)
-            {
+            } catch (InterruptedException e) {
                 active = false;
                 return;
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 active = false;
                 throw new RuntimeException("Error reading request on node " + globalNodeId.getNodeId(), e);
             }
         }
     }
 
-    private static class AbortCommand implements Command
-    {
+    private static class AbortCommand implements Command {
         @Override
-        public Object execute(ClusterTools clusterTools)
-        {
+        public Object execute(ClusterTools clusterTools) {
             return null;
         }
     }

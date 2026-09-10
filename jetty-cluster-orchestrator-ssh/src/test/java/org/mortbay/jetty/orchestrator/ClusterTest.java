@@ -36,66 +36,57 @@ import sshd.AbstractSshTest;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ClusterTest extends AbstractSshTest
-{
-    public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception
-    {
+public class ClusterTest extends AbstractSshTest {
+    public static Stream<ClusterConfiguration> clusterConfigurations() throws Exception {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-            .jvm(JvmUtil.currentJvm())
-            .nodeArray(new LocalNodeArrayConfiguration("server-array")
-                    .node("1")
-                    .node("2"))
-            .nodeArray(new LocalNodeArrayConfiguration("client-array")
-                    .node("1")
-                    .node("2"))
-            ;
+                .jvm(JvmUtil.currentJvm())
+                .nodeArray(new LocalNodeArrayConfiguration("server-array")
+                        .node("1")
+                        .node("2"))
+                .nodeArray(new LocalNodeArrayConfiguration("client-array")
+                        .node("1")
+                        .node("2"));
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
-            .jvm(JvmUtil.currentJvm())
-            .nodeArray(new LocalNodeArrayConfiguration("server-array")
-                    .node("1"))
-            .nodeArray(new LocalNodeArrayConfiguration("client-array")
-                    .node("1"))
-            ;
+                .jvm(JvmUtil.currentJvm())
+                .nodeArray(new LocalNodeArrayConfiguration("server-array").node("1"))
+                .nodeArray(new LocalNodeArrayConfiguration("client-array").node("1"));
 
         String localHostname = InetAddress.getLocalHost().getHostName();
         ClusterConfiguration cfg3 = new SimpleClusterConfiguration()
-            .jvm(JvmUtil.currentJvm())
-            .nodeArray(new SshNodeArrayConfiguration("server-array").node("1", localHostname))
-            .nodeArray(new SshNodeArrayConfiguration("client-array").node("1", localHostname))
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
-            ;
+                .jvm(JvmUtil.currentJvm())
+                .nodeArray(new SshNodeArrayConfiguration("server-array").node("1", localHostname))
+                .nodeArray(new SshNodeArrayConfiguration("client-array").node("1", localHostname))
+                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         return Stream.of(cfg1, cfg2, cfg3);
     }
 
     @ParameterizedTest
     @MethodSource("clusterConfigurations")
-    public void testCluster(ClusterConfiguration cfg) throws Exception
-    {
-        try (Cluster cluster = new Cluster(cfg))
-        {
-            final int participantCount = cfg.nodeArrays().stream().mapToInt(cc -> cc.nodes().size()).sum() + 1;
+    public void testCluster(ClusterConfiguration cfg) throws Exception {
+        try (Cluster cluster = new Cluster(cfg)) {
+            final int participantCount =
+                    cfg.nodeArrays().stream().mapToInt(cc -> cc.nodes().size()).sum() + 1;
             NodeArray serverArray = cluster.nodeArray("server-array");
             NodeArray clientArray = cluster.nodeArray("client-array");
 
-            NodeArrayFuture sf = serverArray.executeOnAll(tools ->
-            {
+            NodeArrayFuture sf = serverArray.executeOnAll(tools -> {
                 long counter = tools.atomicCounter("counter", 0L).incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
                 int pos = tools.barrier("barrier", participantCount).await();
-                System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
+                System.out.println("servers: hello, world! from java " + javaVersion + " counter = " + counter
+                        + " arrival = " + pos);
             });
-            NodeArrayFuture cf = clientArray.executeOnAll(tools ->
-            {
+            NodeArrayFuture cf = clientArray.executeOnAll(tools -> {
                 long counter = tools.atomicCounter("counter", 0L).incrementAndGet();
                 String javaVersion = System.getProperty("java.version");
                 int pos = tools.barrier("barrier", participantCount).await();
-                System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter + " arrival = " + pos);
+                System.out.println("clients: hello, world! from java " + javaVersion + " counter = " + counter
+                        + " arrival = " + pos);
 
                 Path f = Paths.get("data.txt");
-                try (OutputStream fos = Files.newOutputStream(f))
-                {
+                try (OutputStream fos = Files.newOutputStream(f)) {
                     fos.write(("client arrived #" + pos + "\n").getBytes(StandardCharsets.UTF_8));
                 }
                 System.out.println("wrote file " + f.toAbsolutePath());
@@ -109,17 +100,13 @@ public class ClusterTest extends AbstractSshTest
             sf.get();
             cf.get();
 
-            for (String id : clientArray.ids())
-            {
+            for (String id : clientArray.ids()) {
                 Path dataPath = clientArray.rootPathOf(id).resolve("data.txt");
                 System.out.println("=== data.txt contents of node " + id + " ===");
-                try (InputStream is = Files.newInputStream(dataPath))
-                {
-                    while (true)
-                    {
+                try (InputStream is = Files.newInputStream(dataPath)) {
+                    while (true) {
                         int b = is.read();
-                        if (b == -1)
-                            break;
+                        if (b == -1) break;
                         System.out.print((char) b);
                     }
                 }
@@ -129,26 +116,23 @@ public class ClusterTest extends AbstractSshTest
     }
 
     @Test
-    public void testInvalidJvmExecutableInNodeArray() throws Exception
-    {
+    public void testInvalidJvmExecutableInNodeArray() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
-            .nodeArray(new SshNodeArrayConfiguration("server-array")
-                    .jvm(new Jvm((f, h) -> "/does/not/exist"))
-                    .node("1", InetAddress.getLocalHost().getHostName()))
-            ;
+                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()))
+                .nodeArray(new SshNodeArrayConfiguration("server-array")
+                        .jvm(new Jvm((f, h) -> "/does/not/exist"))
+                        .node("1", InetAddress.getLocalHost().getHostName()));
 
         assertThrows(Exception.class, () -> new Cluster(cfg));
     }
 
     @Test
-    public void testInvalidJvmExecutableInLauncher() throws Exception
-    {
+    public void testInvalidJvmExecutableInLauncher() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()).jvm(new Jvm((f, h) -> "/does/not/exist")))
-            .nodeArray(new SshNodeArrayConfiguration("server-array")
-                    .node("1", InetAddress.getLocalHost().getHostName()))
-            ;
+                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort())
+                        .jvm(new Jvm((f, h) -> "/does/not/exist")))
+                .nodeArray(new SshNodeArrayConfiguration("server-array")
+                        .node("1", InetAddress.getLocalHost().getHostName()));
 
         assertThrows(Exception.class, () -> new Cluster(cfg));
     }

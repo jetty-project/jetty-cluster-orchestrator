@@ -13,10 +13,8 @@
 
 package utils;
 
-public class MainForProcessHolder
-{
-    public static void main(String[] args) throws Exception
-    {
+public class MainForProcessHolder {
+    public static void main(String[] args) throws Exception {
         Thread.sleep(60_000);
         System.exit(-1);
     }

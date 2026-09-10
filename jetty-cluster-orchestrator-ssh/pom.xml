@@ -13,23 +13,21 @@
   <description>SSH/SFTP implementation for the Jetty Cluster Orchestrator</description>
 
   <dependencies>
+
+    <!-- SSH implementation dependency -->
+    <dependency>
+      <groupId>org.apache.sshd</groupId>
+      <artifactId>sshd-sftp</artifactId>
+    </dependency>
     <!-- API module dependency -->
     <dependency>
       <groupId>org.mortbay.jetty.orchestrator</groupId>
       <artifactId>jetty-cluster-orchestrator-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    
-    <!-- SSH implementation dependency -->
     <dependency>
-      <groupId>org.apache.sshd</groupId>
-      <artifactId>sshd-sftp</artifactId>
-    </dependency>
-
-    <!-- Test dependencies -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -37,9 +35,11 @@
       <artifactId>hamcrest</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

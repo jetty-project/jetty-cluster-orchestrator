@@ -15,10 +15,8 @@ package org.mortbay.jetty.orchestrator.util;
 
 import java.io.Serializable;
 import java.nio.file.FileSystem;
-import java.util.function.Supplier;
 
 @FunctionalInterface
-public interface FilenameSupplier extends Serializable
-{
+public interface FilenameSupplier extends Serializable {
     String get(FileSystem fileSystem, String hostname);
 }

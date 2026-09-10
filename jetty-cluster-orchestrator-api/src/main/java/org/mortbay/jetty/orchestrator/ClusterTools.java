@@ -22,40 +22,33 @@ import org.mortbay.jetty.orchestrator.tools.Barrier;
 import org.mortbay.jetty.orchestrator.tools.DistributedQueue;
 import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 
-public class ClusterTools
-{
+public class ClusterTools {
     private final ZooKeeperClient zkClient;
     private final GlobalNodeId globalNodeId;
     private final ConcurrentMap<String, Object> localEnvironment = new ConcurrentHashMap<>();
 
-    public ClusterTools(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
-    {
+    public ClusterTools(ZooKeeperClient zkClient, GlobalNodeId globalNodeId) {
         this.zkClient = zkClient;
         this.globalNodeId = globalNodeId;
     }
 
-    public GlobalNodeId getGlobalNodeId()
-    {
+    public GlobalNodeId getGlobalNodeId() {
         return globalNodeId;
     }
 
-    public Barrier barrier(String name, int count)
-    {
+    public Barrier barrier(String name, int count) {
         return zkClient.createBarrier(globalNodeId, name, count);
     }
 
-    public AtomicCounter atomicCounter(String name, long initialValue)
-    {
+    public AtomicCounter atomicCounter(String name, long initialValue) {
         return zkClient.createAtomicCounter(globalNodeId, name, initialValue);
     }
 
-    public <T> DistributedQueue<T> distributedQueue(String name)
-    {
+    public <T> DistributedQueue<T> distributedQueue(String name) {
         return zkClient.createDistributedQueue(globalNodeId, name);
     }
 
-    public ConcurrentMap<String, Object> localEnvironment()
-    {
+    public ConcurrentMap<String, Object> localEnvironment() {
         return localEnvironment;
     }
 }

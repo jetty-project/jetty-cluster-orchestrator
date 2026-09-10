@@ -22,8 +22,7 @@ import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
  * A launcher gets a whole node array, not a single node, so it can read the settings its own
  * {@link NodeArrayConfiguration} carries. {@link AbstractHostLauncher} handles the common part.
  */
-public interface HostLauncher extends AutoCloseable
-{
+public interface HostLauncher extends AutoCloseable {
     /**
      * Returns the ZooKeeper connect string the cluster controller should use.
      */
@@ -35,7 +34,9 @@ public interface HostLauncher extends AutoCloseable
      *
      * @return for each hostname of the array, the connect string JVMs there use to reach ZooKeeper
      */
-    Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs) throws Exception;
+    Map<String, String> launch(
+            String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs)
+            throws Exception;
 
     @Override
     void close();

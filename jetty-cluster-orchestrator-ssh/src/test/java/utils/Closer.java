@@ -18,21 +18,17 @@ import java.util.List;
 
 import org.mortbay.jetty.orchestrator.util.IOUtil;
 
-public class Closer implements AutoCloseable
-{
+public class Closer implements AutoCloseable {
     private final List<AutoCloseable> closeables = new ArrayList<>();
 
-    public <T extends AutoCloseable> T register(T t)
-    {
+    public <T extends AutoCloseable> T register(T t) {
         closeables.add(t);
         return t;
     }
 
     @Override
-    public void close()
-    {
-        for (int i = closeables.size() - 1; i >= 0 ; i--)
-        {
+    public void close() {
+        for (int i = closeables.size() - 1; i >= 0; i--) {
             IOUtil.close(closeables.get(i));
         }
     }

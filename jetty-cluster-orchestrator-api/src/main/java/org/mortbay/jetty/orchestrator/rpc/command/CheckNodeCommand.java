@@ -16,20 +16,16 @@ package org.mortbay.jetty.orchestrator.rpc.command;
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 
-public class CheckNodeCommand implements Command
-{
+public class CheckNodeCommand implements Command {
     private final NodeProcess process;
 
-    public CheckNodeCommand(NodeProcess process)
-    {
+    public CheckNodeCommand(NodeProcess process) {
         this.process = process;
     }
 
     @Override
-    public Object execute(ClusterTools clusterTools) throws Exception
-    {
-        if (!process.isAlive())
-            throw new IllegalStateException("Process died unexpectedly: " + process);
+    public Object execute(ClusterTools clusterTools) throws Exception {
+        if (!process.isAlive()) throw new IllegalStateException("Process died unexpectedly: " + process);
         return null;
     }
 }

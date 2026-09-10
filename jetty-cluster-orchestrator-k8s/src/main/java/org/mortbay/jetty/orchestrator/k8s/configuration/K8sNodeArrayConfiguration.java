@@ -29,19 +29,17 @@ import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
  * Node array running as Kubernetes pods.
  * Node selectors set here apply to every node, and a node setting the same key wins.
  */
-public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration
-{
+public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
     private final Map<String, String> nodeSelectors = new LinkedHashMap<>();
 
-    public K8sNodeArrayConfiguration(String id)
-    {
+    public K8sNodeArrayConfiguration(String id) {
         super(id);
     }
 
-    public K8sNodeArrayConfiguration node(K8sNode node)
-    {
+    public K8sNodeArrayConfiguration node(K8sNode node) {
         if (LocalLauncher.HOSTNAME.equals(node.getHostname()))
-            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
+            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME
+                    + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
         addNode(node);
         return this;
     }
@@ -49,29 +47,24 @@ public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration
     /**
      * Adds a node selector applying to every node of this array.
      */
-    public K8sNodeArrayConfiguration nodeSelector(String key, String value)
-    {
+    public K8sNodeArrayConfiguration nodeSelector(String key, String value) {
         nodeSelectors.put(key, value);
         return this;
     }
 
-    public K8sNodeArrayConfiguration nodeSelectors(Map<String, String> nodeSelectors)
-    {
+    public K8sNodeArrayConfiguration nodeSelectors(Map<String, String> nodeSelectors) {
         this.nodeSelectors.putAll(nodeSelectors);
         return this;
     }
 
     @Override
-    public Collection<? extends Node> nodes()
-    {
+    public Collection<? extends Node> nodes() {
         Collection<? extends Node> nodes = super.nodes();
-        if (nodeSelectors.isEmpty())
-            return nodes;
+        if (nodeSelectors.isEmpty()) return nodes;
 
         List<K8sNode> merged = new ArrayList<>(nodes.size());
-        for (Node node : nodes)
-        {
-            K8sNode k8sNode = (K8sNode)node;
+        for (Node node : nodes) {
+            K8sNode k8sNode = (K8sNode) node;
             Map<String, String> selectors = new LinkedHashMap<>(nodeSelectors);
             selectors.putAll(k8sNode.getNodeSelectors());
             merged.add(k8sNode.withNodeSelectors(selectors));
@@ -80,8 +73,7 @@ public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration
     }
 
     @Override
-    public K8sNodeArrayConfiguration jvm(Jvm jvm)
-    {
+    public K8sNodeArrayConfiguration jvm(Jvm jvm) {
         super.jvm(jvm);
         return this;
     }

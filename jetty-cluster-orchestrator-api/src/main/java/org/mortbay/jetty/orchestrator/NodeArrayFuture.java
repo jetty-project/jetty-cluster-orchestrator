@@ -24,68 +24,51 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-public class NodeArrayFuture
-{
+public class NodeArrayFuture {
     private final Map<String, CompletableFuture<Object>> futures;
 
-    NodeArrayFuture(Map<String, CompletableFuture<Object>> futures)
-    {
+    NodeArrayFuture(Map<String, CompletableFuture<Object>> futures) {
         this.futures = futures;
     }
 
-    public void cancel(boolean mayInterruptIfRunning)
-    {
+    public void cancel(boolean mayInterruptIfRunning) {
         futures.forEach((id, f) -> f.cancel(mayInterruptIfRunning));
     }
 
-    public void get(long timeout, TimeUnit unit) throws ExecutionException, TimeoutException
-    {
+    public void get(long timeout, TimeUnit unit) throws ExecutionException, TimeoutException {
         boolean noTimeout = timeout == Long.MIN_VALUE && unit == null;
         long timeoutLeft = unit != null ? unit.toNanos(timeout) : -1L;
 
         TimeoutException timeoutException = null;
         List<Throwable> exceptions = new ArrayList<>();
-        for (CompletableFuture<Object> future : futures.values())
-        {
+        for (CompletableFuture<Object> future : futures.values()) {
             long begin = System.nanoTime();
-            try
-            {
-                if (noTimeout)
-                    future.get();
-                else
-                    future.get(timeoutLeft, TimeUnit.NANOSECONDS);
-            }
-            catch (TimeoutException e)
-            {
-                if (timeoutException == null)
-                    timeoutException = e;
-                else
-                    exceptions.add(e);
-            }
-            catch (ExecutionException e)
-            {
+            try {
+                if (noTimeout) future.get();
+                else future.get(timeoutLeft, TimeUnit.NANOSECONDS);
+            } catch (TimeoutException e) {
+                if (timeoutException == null) timeoutException = e;
+                else exceptions.add(e);
+            } catch (ExecutionException e) {
                 exceptions.add(e.getCause());
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 exceptions.add(e);
             }
             long delta = System.nanoTime() - begin;
             timeoutLeft = Math.max(timeoutLeft - delta, 0L);
         }
 
-        if (timeoutException != null)
-        {
+        if (timeoutException != null) {
             exceptions.forEach(timeoutException::addSuppressed);
             throw timeoutException;
         }
 
-        if (!exceptions.isEmpty())
-        {
+        if (!exceptions.isEmpty()) {
             Throwable rootException = exceptions.get(0);
-            ExecutionException executionException = (rootException instanceof ExecutionException) ? (ExecutionException)rootException : new ExecutionException(rootException);
-            for (int i = 1; i < exceptions.size(); i++)
-            {
+            ExecutionException executionException = (rootException instanceof ExecutionException)
+                    ? (ExecutionException) rootException
+                    : new ExecutionException(rootException);
+            for (int i = 1; i < exceptions.size(); i++) {
                 Throwable t = exceptions.get(i);
                 executionException.addSuppressed(t);
             }
@@ -93,52 +76,43 @@ public class NodeArrayFuture
         }
     }
 
-    public void get() throws ExecutionException
-    {
-        try
-        {
+    public void get() throws ExecutionException {
+        try {
             get(Long.MIN_VALUE, null);
-        }
-        catch (TimeoutException e)
-        {
+        } catch (TimeoutException e) {
             throw new ExecutionException(e);
         }
     }
 
-    public Set<String> getAllNodeIds()
-    {
+    public Set<String> getAllNodeIds() {
         return futures.keySet();
     }
 
-    public Set<String> getDoneNodeIds()
-    {
+    public Set<String> getDoneNodeIds() {
         return futures.entrySet().stream()
-            .filter(e -> e.getValue().isDone())
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toSet());
+                .filter(e -> e.getValue().isDone())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
-    public Set<String> getNotDoneNodeIds()
-    {
+    public Set<String> getNotDoneNodeIds() {
         return futures.entrySet().stream()
-            .filter(e -> !e.getValue().isDone())
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toSet());
+                .filter(e -> !e.getValue().isDone())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
-    public boolean isAllDone()
-    {
+    public boolean isAllDone() {
         return futures.values().stream()
-            .map(Future::isDone)
-            .reduce((b1, b2) -> b1 && b2)
-            .orElse(true);
+                .map(Future::isDone)
+                .reduce((b1, b2) -> b1 && b2)
+                .orElse(true);
     }
 
-    public boolean isAnyDone()
-    {
+    public boolean isAnyDone() {
         return futures.values().stream()
-            .map(Future::isDone)
-            .reduce((b1, b2) -> b1 || b2)
-            .orElse(true);
+                .map(Future::isDone)
+                .reduce((b1, b2) -> b1 || b2)
+                .orElse(true);
     }
 }
