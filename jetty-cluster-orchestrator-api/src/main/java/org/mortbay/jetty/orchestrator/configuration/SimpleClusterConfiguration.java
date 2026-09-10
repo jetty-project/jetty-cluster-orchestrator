@@ -13,7 +13,8 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,7 +28,7 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private long healthCheckTimeout = 30_000L;
     private long healthCheckDelay = 5000L;
-    private HostLauncher hostLauncher = new LocalHostLauncher();
+    private HostLauncher hostLauncher = new LocalLauncher();
 
     public SimpleClusterConfiguration()
     {

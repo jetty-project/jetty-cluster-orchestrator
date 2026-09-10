@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.Cluster;
 import org.mortbay.jetty.orchestrator.NodeArray;
 import org.mortbay.jetty.orchestrator.NodeArrayFuture;
-import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
 import org.mortbay.jetty.orchestrator.configuration.SimpleClusterConfiguration;

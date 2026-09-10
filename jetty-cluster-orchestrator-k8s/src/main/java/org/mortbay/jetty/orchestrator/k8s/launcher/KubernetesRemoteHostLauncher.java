@@ -49,13 +49,13 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.JvmDependent;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNode;
 import org.mortbay.jetty.orchestrator.k8s.configuration.K8sNodeArrayConfiguration;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.k8s.nodefs.KubernetesNodeFileSystemFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
@@ -683,7 +683,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
                 }
             }
             IOUtil.close(execWatch);
-            if (!LocalHostLauncher.skipDiskCleanup() && podName != null && podHome != null)
+            if (!LocalLauncher.skipDiskCleanup() && podName != null && podHome != null)
             {
                 try
                 {

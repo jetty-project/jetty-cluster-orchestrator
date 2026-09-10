@@ -15,6 +15,8 @@ package org.mortbay.jetty.orchestrator.configuration;
 
 import java.util.Collection;
 
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
+
 public interface ClusterConfiguration
 {
     Jvm jvm();

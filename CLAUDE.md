@@ -35,7 +35,7 @@ Jetty Cluster Orchestrator is a Java 17+ library for writing multi-JVM tests. It
 
 The project is organized as a multi-module Maven build:
 
-- **`jetty-cluster-orchestrator-api`**: Core orchestration logic, interfaces, RPC framework, `LocalHostLauncher`, coordination tools
+- **`jetty-cluster-orchestrator-api`**: Core orchestration logic, interfaces, RPC framework, `LocalLauncher`, coordination tools
 - **`jetty-cluster-orchestrator-ssh`**: SSH/SFTP implementation (`SshRemoteHostLauncher`, `SFTPNodeFileSystem`) 
 - **`jetty-cluster-orchestrator-k8s`**: Kubernetes implementation (`KubernetesRemoteHostLauncher`, `KubernetesNodeFileSystem`)
 
@@ -50,7 +50,7 @@ The core flow: `Cluster` asks its `HostLauncher` for a ZooKeeper connect string,
 
 Key layers:
 - **Configuration** (`configuration/`): `ClusterConfiguration` -> `NodeArrayConfiguration` -> `Node`. Fluent builder API. `Node` is an identity-only interface (`getId()`/`getHostname()`); each launcher ships its own `NodeArrayConfiguration` and, when it needs one, its own `Node` type:
-  - `LocalNodeArrayConfiguration` + `LocalHostLauncher` (in-process, api module)
+  - `LocalNodeArrayConfiguration` + `LocalLauncher` (in-process, api module)
   - `SshNodeArrayConfiguration` + `SshRemoteHostLauncher` (SSH/SFTP, ssh module)
   - `K8sNodeArrayConfiguration` + `K8sNode` + `KubernetesRemoteHostLauncher` (fabric8 kubernetes-client, k8s module)
   `AbstractHostLauncher` (api module) holds what every launcher needs: the node-array type check, host dedup by hostname, the parallel launch of an array's hosts, and reuse of a host shared by several arrays.
@@ -78,7 +78,7 @@ Key layers:
 
 ## Gotchas
 
-- **A cluster has exactly one launcher**: there is no `localhost` bypass. Whatever `hostLauncher()` returns launches every node, and it only accepts its own `NodeArrayConfiguration` type. `SimpleClusterConfiguration` defaults to `LocalHostLauncher`.
+- **A cluster has exactly one launcher**: there is no `localhost` bypass. Whatever `hostLauncher()` returns launches every node, and it only accepts its own `NodeArrayConfiguration` type. `SimpleClusterConfiguration` defaults to `LocalLauncher`.
 - **Host dedup lives in `AbstractHostLauncher`, not `Cluster`**: nodes sharing a hostname share a host JVM, in the same node array or not. `launchedHosts` maps a hostname to a `CompletableFuture`, so arrays racing for the same host all wait on the one launch. Override `checkSharedHost()` to reject nodes that share a host but want different ones.
 - **`SimpleClusterConfiguration.jvm()` must come before `nodeArray()`/`hostLauncher()`**: `ensureJvmSet()` runs at registration and the cluster JVM starts non-null, so a later `.jvm()` never reaches them. Set the JVM on the node array itself if the order is awkward.
 - **K8s `spec.hostname` ≤63 chars**: `nodeId.getHostId()` is a composite cluster-scoped string (89+ chars) — never use it as `spec.hostname`. Use the first DNS label of `nodeId.getHostname()` instead (via `podHostnameFor()`), or Kubernetes rejects the pod with 422.

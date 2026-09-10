@@ -41,11 +41,11 @@ import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalSourceFile;
-import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.JvmDependent;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.ssh.nodefs.SFTPNodeFileSystemFactory;
@@ -327,7 +327,7 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         public void close()
         {
             IOUtil.close(fileSystem);
-            if (!LocalHostLauncher.skipDiskCleanup())
+            if (!LocalLauncher.skipDiskCleanup())
             {
                 try (SFTPClient sftpClient = sshClient.newStatefulSFTPClient())
                 {

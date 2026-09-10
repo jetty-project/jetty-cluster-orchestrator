@@ -11,7 +11,7 @@
 // ========================================================================
 //
 
-package org.mortbay.jetty.orchestrator.configuration;
+package org.mortbay.jetty.orchestrator.launcher;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,12 +22,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mortbay.jetty.orchestrator.configuration.Node;
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 
 /**
- * Does what every {@link HostLauncher} has to do, leaving subclasses to describe how one host
- * is started. Nodes sharing a hostname get one host between them, even across node arrays,
- * the hosts of an array start in parallel, and nothing is launched twice.
+ * Handles the parts common to every {@link HostLauncher}, leaving subclasses to start a single
+ * host. Nodes that share a hostname share one host, even across node arrays; an array's hosts
+ * start in parallel; and nothing is launched twice.
  */
 public abstract class AbstractHostLauncher implements HostLauncher
 {

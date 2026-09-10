@@ -16,7 +16,7 @@ package org.mortbay.jetty.orchestrator.ssh.configuration;
 import org.mortbay.jetty.orchestrator.configuration.AbstractNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNode;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
 
 /**
@@ -40,8 +40,8 @@ public class SshNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 
     public SshNodeArrayConfiguration node(String id, String hostname)
     {
-        if (LocalHostLauncher.HOSTNAME.equals(hostname))
-            throw new IllegalArgumentException("'" + LocalHostLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
+        if (LocalLauncher.HOSTNAME.equals(hostname))
+            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
         addNode(new SimpleNode(id, hostname));
         return this;
     }

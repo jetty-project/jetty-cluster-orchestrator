@@ -15,7 +15,7 @@ package org.mortbay.jetty.orchestrator.rpc;
 
 import java.util.Objects;
 
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 
@@ -33,7 +33,7 @@ public class GlobalNodeId
         this.hostname = node.getHostname();
         this.hostId = this.clusterId + "/" + sanitize(hostname);
         this.nodeId = hostId + "/" + sanitize(nodeArrayConfiguration.id()) + "/" + sanitize(node.getId());
-        this.local = hostname.equals(LocalHostLauncher.HOSTNAME);
+        this.local = hostname.equals(LocalLauncher.HOSTNAME);
     }
 
     public GlobalNodeId(String clusterId, String hostname)
@@ -42,7 +42,7 @@ public class GlobalNodeId
         this.hostname = hostname;
         this.hostId = this.clusterId + "/" + sanitize(hostname);
         this.nodeId = hostId;
-        this.local = hostname.equals(LocalHostLauncher.HOSTNAME);
+        this.local = hostname.equals(LocalLauncher.HOSTNAME);
     }
 
     public GlobalNodeId(String nodeId)
@@ -63,7 +63,7 @@ public class GlobalNodeId
             this.nodeId = nodeId;
             this.hostname = parts[1];
         }
-        this.local = parts[1].equals(LocalHostLauncher.HOSTNAME);
+        this.local = parts[1].equals(LocalLauncher.HOSTNAME);
     }
 
     private static String sanitize(String id)

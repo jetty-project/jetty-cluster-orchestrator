@@ -23,7 +23,7 @@ import java.util.Map;
 import org.mortbay.jetty.orchestrator.configuration.AbstractNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.Node;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 
 /**
  * Node array running as Kubernetes pods.
@@ -40,8 +40,8 @@ public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 
     public K8sNodeArrayConfiguration node(K8sNode node)
     {
-        if (LocalHostLauncher.HOSTNAME.equals(node.getHostname()))
-            throw new IllegalArgumentException("'" + LocalHostLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
+        if (LocalLauncher.HOSTNAME.equals(node.getHostname()))
+            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
         addNode(node);
         return this;
     }

@@ -16,10 +16,10 @@ package org.mortbay.jetty.orchestrator.localhost.configuration;
 import org.mortbay.jetty.orchestrator.configuration.AbstractNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.configuration.SimpleNode;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 
 /**
- * Node array run by {@link LocalHostLauncher} on the local machine.
+ * Node array run by {@link LocalLauncher} on the local machine.
  * Every node is on the same host, so a node only needs an id.
  */
 public class LocalNodeArrayConfiguration extends AbstractNodeArrayConfiguration
@@ -31,7 +31,7 @@ public class LocalNodeArrayConfiguration extends AbstractNodeArrayConfiguration
 
     public LocalNodeArrayConfiguration node(String id)
     {
-        addNode(new SimpleNode(id, LocalHostLauncher.HOSTNAME));
+        addNode(new SimpleNode(id, LocalLauncher.HOSTNAME));
         return this;
     }
 

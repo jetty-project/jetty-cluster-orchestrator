@@ -15,6 +15,8 @@ package org.mortbay.jetty.orchestrator.configuration;
 
 import java.util.Collection;
 
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
+
 /**
  * A named group of nodes sharing a JVM.
  * Every {@link HostLauncher} has its own implementation, so its settings stay out of here.

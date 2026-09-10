@@ -22,7 +22,7 @@ The project is structured as a multi-module Maven build with three modules:
 The API module provides the core orchestration functionality including:
 
 * `Cluster`, `ClusterConfiguration`, and core interfaces
-* `LocalHostLauncher` for local JVM processes 
+* `LocalLauncher` for local JVM processes 
 * Coordination tools (`Barrier`, `AtomicCounter`)
 * RPC framework and embedded ZooKeeper
 

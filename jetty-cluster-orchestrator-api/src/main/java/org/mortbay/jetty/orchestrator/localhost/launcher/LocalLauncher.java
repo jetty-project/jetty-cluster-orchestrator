@@ -21,7 +21,7 @@ import java.io.OutputStream;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.mortbay.jetty.orchestrator.configuration.AbstractHostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
@@ -41,7 +41,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
  * {@link java.nio.file.Path} instead of a {@code jco:} one, and there is no local
  * {@link org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory}.
  */
-public class LocalHostLauncher extends AbstractHostLauncher
+public class LocalLauncher extends AbstractHostLauncher
 {
     public static final String HOSTNAME = "localhost";
 

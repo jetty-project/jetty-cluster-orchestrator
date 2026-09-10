@@ -11,20 +11,21 @@
 // ========================================================================
 //
 
-package org.mortbay.jetty.orchestrator.configuration;
+package org.mortbay.jetty.orchestrator.launcher;
 
 import java.util.Map;
 
+import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+
 /**
  * Creates the host JVMs a cluster runs on.
- * A launcher is handed a whole node array rather than one node, so it can read the settings
- * its own {@link NodeArrayConfiguration} carries. {@link AbstractHostLauncher} does the
- * common work for you.
+ * A launcher gets a whole node array, not a single node, so it can read the settings its own
+ * {@link NodeArrayConfiguration} carries. {@link AbstractHostLauncher} handles the common part.
  */
 public interface HostLauncher extends AutoCloseable
 {
     /**
-     * Returns a ZooKeeper connect string for the cluster controller to use.
+     * Returns the ZooKeeper connect string the cluster controller should use.
      */
     String initialize() throws Exception;
 

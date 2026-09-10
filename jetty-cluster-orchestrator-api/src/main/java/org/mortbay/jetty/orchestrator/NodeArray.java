@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
@@ -56,7 +56,7 @@ public class NodeArray
         if (node.globalNodeId.isLocal())
         {
             // The files are on this machine, so read them directly instead of over jco:.
-            return LocalHostLauncher.rootPathOf(node.globalNodeId.getNodeId()).toPath();
+            return LocalLauncher.rootPathOf(node.globalNodeId.getNodeId()).toPath();
         }
         else
         {

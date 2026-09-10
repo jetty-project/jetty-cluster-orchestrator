@@ -25,10 +25,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
-import org.mortbay.jetty.orchestrator.configuration.HostLauncher;
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalHostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 import org.mortbay.jetty.orchestrator.rpc.RpcClient;
@@ -88,7 +88,7 @@ public class Cluster implements AutoCloseable
     {
         String connectString = hostLauncher.initialize();
         zkClient = new ZooKeeperClient(connectString);
-        clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalHostLauncher.HOSTNAME));
+        clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalLauncher.HOSTNAME));
 
         // Start the hosts of every node array. The launcher works out which hosts are needed and
         // reuses the ones shared between arrays, so all we get back is hostname -> connect string.
