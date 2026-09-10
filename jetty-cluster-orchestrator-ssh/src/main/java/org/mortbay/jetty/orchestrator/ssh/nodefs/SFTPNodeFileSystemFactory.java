@@ -18,7 +18,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import net.schmizz.sshj.sftp.SFTPClient;
+import org.apache.sshd.sftp.client.SftpClient;
 import org.mortbay.jetty.orchestrator.nodefs.AbstractNodeFileSystem;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemFactory;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
@@ -36,14 +36,14 @@ public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory
     @Override
     public boolean canHandle(Map<String, ?> env)
     {
-        return env.containsKey(SFTPClient.class.getName());
+        return env.containsKey(SftpClient.class.getName());
     }
 
     @Override
     public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException
     {
         boolean windows = (Boolean)env.get(IS_WINDOWS_ENV_PROPERTY);
-        SFTPClient sftpClient = (SFTPClient)env.get(SFTPClient.class.getName());
+        SftpClient sftpClient = (SftpClient)env.get(SftpClient.class.getName());
         String hostId = extractHostId(uri);
         String pathStr = extractPath(uri);
         List<String> path = pathStr.isEmpty() ? Collections.emptyList() : java.util.Arrays.asList(pathStr.split("/"));
