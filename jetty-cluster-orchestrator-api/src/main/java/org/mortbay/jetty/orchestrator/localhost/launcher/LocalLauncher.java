@@ -14,16 +14,19 @@
 package org.mortbay.jetty.orchestrator.localhost.launcher;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.launcher.AbstractHostLauncher;
 import org.mortbay.jetty.orchestrator.localhost.configuration.LocalNodeArrayConfiguration;
 import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
 import org.mortbay.jetty.orchestrator.rpc.GlobalNodeId;
@@ -80,15 +83,15 @@ public class LocalLauncher extends AbstractHostLauncher
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
             for (String classpathEntry : classpathEntries)
             {
-                File cpFile = new File(classpathEntry);
-                if (cpFile.isDirectory())
+                Path cpPath = Paths.get(classpathEntry);
+                if (Files.isDirectory(cpPath))
                 {
-                    copyDir(nodeId.getHostId(), cpFile, 1);
+                    copyDir(nodeId.getHostId(), cpPath, 1);
                 }
                 else
                 {
-                    String filename = cpFile.getName();
-                    try (InputStream is = new FileInputStream(cpFile))
+                    String filename = cpPath.getFileName().toString();
+                    try (InputStream is = Files.newInputStream(cpPath))
                     {
                         copyFile(nodeId.getHostId(), filename, is);
                     }
@@ -130,13 +133,19 @@ public class LocalLauncher extends AbstractHostLauncher
                 }
                 thread = null;
 
-                File rootPath = rootPathOf(nodeId.getHostId());
-                File parentPath = rootPath.getParentFile();
+                Path rootPath = rootPathOf(nodeId.getHostId());
+                Path parentPath = rootPath.getParent();
                 if (!skipDiskCleanup() && IOUtil.deltree(rootPath) && parentPath != null)
                 {
-                    String[] files = parentPath.list();
-                    if (files != null && files.length == 0)
-                        IOUtil.deltree(parentPath);
+                    try (DirectoryStream<Path> children = Files.newDirectoryStream(parentPath))
+                    {
+                        if (!children.iterator().hasNext())
+                            IOUtil.deltree(parentPath);
+                    }
+                    catch (IOException e)
+                    {
+                        // parent dir may no longer exist; nothing to clean up
+                    }
                 }
                 nodeId = null;
             }
@@ -148,49 +157,50 @@ public class LocalLauncher extends AbstractHostLauncher
         IOUtil.close(zkServer);
     }
 
-    public static File rootPathOf(String hostId)
+    public static Path rootPathOf(String hostId)
     {
-        return new File(System.getProperty("user.home") + "/." + NodeFileSystemProvider.PREFIX + "/" + hostId);
+        return Paths.get(System.getProperty("user.home"), "." + NodeFileSystemProvider.PREFIX, hostId);
     }
 
     private static void copyFile(String hostId, String filename, InputStream contents) throws Exception
     {
-        File rootPath = rootPathOf(hostId);
-        File libPath = new File(rootPath, NodeProcess.CLASSPATH_FOLDER_NAME);
+        Path rootPath = rootPathOf(hostId);
+        Path libPath = rootPath.resolve(NodeProcess.CLASSPATH_FOLDER_NAME);
 
-        File file = new File(libPath, filename);
-        file.getParentFile().mkdirs();
-        try (OutputStream fos = new FileOutputStream(file))
+        Path file = libPath.resolve(filename);
+        Files.createDirectories(file.getParent());
+        try (OutputStream fos = Files.newOutputStream(file))
         {
             IOUtil.copy(contents, fos);
         }
     }
 
-    private static void copyDir(String hostId, File cpFile, int depth) throws Exception
+    private static void copyDir(String hostId, Path cpPath, int depth) throws Exception
     {
-        File[] files = cpFile.listFiles();
-        if (files == null)
+        if (!Files.isDirectory(cpPath))
             return;
 
-        for (File file : files)
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath))
         {
-            if (file.isDirectory())
+            for (Path file : files)
             {
-                copyDir(hostId, file, depth + 1);
-            }
-            else
-            {
-
-                String filename = file.getName();
-                File currentFile = file;
-                for (int i = 0; i < depth; i++)
+                if (Files.isDirectory(file))
                 {
-                    currentFile = currentFile.getParentFile();
-                    filename = currentFile.getName() + "/" + filename;
+                    copyDir(hostId, file, depth + 1);
                 }
-                try (InputStream is = new FileInputStream(file))
+                else
                 {
-                    copyFile(hostId, filename, is);
+                    String filename = file.getFileName().toString();
+                    Path currentPath = file;
+                    for (int i = 0; i < depth; i++)
+                    {
+                        currentPath = currentPath.getParent();
+                        filename = currentPath.getFileName().toString() + "/" + filename;
+                    }
+                    try (InputStream is = Files.newInputStream(file))
+                    {
+                        copyFile(hostId, filename, is);
+                    }
                 }
             }
         }

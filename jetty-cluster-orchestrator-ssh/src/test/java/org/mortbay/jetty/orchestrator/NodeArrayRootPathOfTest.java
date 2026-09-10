@@ -14,12 +14,12 @@
 package org.mortbay.jetty.orchestrator;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.jupiter.api.Test;
 import org.mortbay.jetty.orchestrator.configuration.ClusterConfiguration;
@@ -75,7 +75,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
             {
                 byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
                 long totalCount = 0L;
-                try (OutputStream bigOs = new BufferedOutputStream(new FileOutputStream("big.txt"), 1024 * 1024))
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024))
                 {
                     while (totalCount < 16 * 1024)
                     {
@@ -86,12 +86,12 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
                 tools.atomicCounter("fileSize", totalCount);
             }).get();
 
-            File targetFile = new File("target/big.txt");
-            try (OutputStream os = new FileOutputStream(targetFile))
+            Path targetFile = Paths.get("target/big.txt");
+            try (OutputStream os = Files.newOutputStream(targetFile))
             {
                 Files.copy(nodeArray.rootPathOf("1").resolve("big.txt"), os);
             }
-            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(targetFile.length()));
+            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(Files.size(targetFile)));
         }
     }
 
@@ -112,7 +112,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
             {
                 byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
                 long totalCount = 0L;
-                try (OutputStream bigOs = new BufferedOutputStream(new FileOutputStream("big.txt"), 1024 * 1024))
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024))
                 {
                     while (totalCount < 16 * 1024)
                     {
@@ -123,12 +123,12 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
                 tools.atomicCounter("fileSize", totalCount);
             }).get();
 
-            File targetFile = new File("target/big.txt");
-            try (OutputStream os = new FileOutputStream(targetFile))
+            Path targetFile = Paths.get("target/big.txt");
+            try (OutputStream os = Files.newOutputStream(targetFile))
             {
                 Files.copy(nodeArray.rootPathOf("1").resolve("big.txt"), os);
             }
-            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(targetFile.length()));
+            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(Files.size(targetFile)));
         }
     }
 
@@ -150,7 +150,7 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
             {
                 byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
                 long totalCount = 0L;
-                try (OutputStream bigOs = new BufferedOutputStream(new FileOutputStream("big.txt"), 1024 * 1024))
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024))
                 {
                     while (totalCount < 16 * 1024 * 1024)
                     {
@@ -161,12 +161,12 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest
                 tools.atomicCounter("fileSize", totalCount);
             }).get();
 
-            File targetFile = new File("target/big.txt");
-            try (OutputStream os = new FileOutputStream(targetFile))
+            Path targetFile = Paths.get("target/big.txt");
+            try (OutputStream os = Files.newOutputStream(targetFile))
             {
                 Files.copy(nodeArray.rootPathOf("1").resolve("big.txt"), os);
             }
-            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(targetFile.length()));
+            assertThat(cluster.tools().atomicCounter("fileSize", 0L).get(), is(Files.size(targetFile)));
         }
     }
 }
