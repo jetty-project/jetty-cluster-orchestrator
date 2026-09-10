@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Multi-module build (all modules)
 mvn clean install          # Build and run all tests
 mvn test                   # Run tests only
-mvn validate               # Run license header check only
+mvn validate               # Run the spotless format + license header check only
+mvn -Pmay-spotless-apply validate   # Reformat everything instead of just complaining
 
 # Single module build
 mvn clean install -pl jetty-cluster-orchestrator-api     # Build API module only
@@ -67,9 +68,10 @@ Key layers:
 
 ## Conventions
 
-- **License**: Dual-licensed EPL-2.0 / Apache-2.0. All Java files must have the license header from `header-template.txt`, enforced by `license-maven-plugin` during the `validate` phase.
+- **License**: Dual-licensed EPL-2.0 / Apache-2.0. All Java files must have the license header from `header-template.txt`, enforced by `spotless-maven-plugin` during the `validate` phase.
 - **Package root**: `org.mortbay.jetty.orchestrator`
-- **Code style**: Braces on same line as control structures (Jetty/K&R style).
+- **Code style**: Apache Maven style, enforced by `spotless-maven-plugin` via `palantirJavaFormat` — K&R braces (open brace on the same line), 4-space indent, no tabs, 120-column wrap. Imports follow the Apache Maven order: `javax`, `java`, everything else, static last.
+- **Formatting a change**: `mvn -Pmay-spotless-apply validate` reformats; a plain build checks and fails on a violation. Wrap anything the formatter should not touch in `// spotless:off` / `// spotless:on`.
 - **Logging**: SLF4J with Logback for tests. Guard debug logs with `if (LOG.isDebugEnabled())`.
 - **Resource management**: `AutoCloseable` used pervasively (`Cluster`, `RpcClient`, `RpcServer`, `HostLauncher`, `NodeProcess`, file systems). `IOUtil.close()` used for exception-swallowing cleanup.
 - **No framework DI**: All wiring is manual constructor injection.

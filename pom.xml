@@ -23,6 +23,9 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
+    <!-- spotless checks by default, -Pmay-spotless-apply reformats -->
+    <spotless.action>check</spotless.action>
+    <spotless.skip>false</spotless.skip>
     <k8s.image>jettyproject/jetty-perf-node:ubuntu24-jdk21</k8s.image>
     <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
     <!-- The path to the Kubernetes config file, if not set, tests will not run -->
@@ -79,7 +82,7 @@
                   <version>[${maven.compiler.source},)</version>
                 </requireJavaVersion>
                 <requireMavenVersion>
-                  <version>[3.5,)</version>
+                  <version>[3.9.0,)</version>
                 </requireMavenVersion>
               </rules>
             </configuration>
@@ -87,35 +90,63 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <inherited>false</inherited>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
         <configuration>
-          <licenseSets>
-            <licenseSet>
-              <header>header-template.txt</header>
-              <includes>
-                <include>**/*.java</include>
-              </includes>
-            </licenseSet>
-          </licenseSets>
-          <failIfMissing>true</failIfMissing>
-          <aggregate>true</aggregate>
-          <strictCheck>true</strictCheck>
-          <properties>
-            <copyright-range>1995-2021</copyright-range>
-          </properties>
-          <mapping>
-            <java>DOUBLESLASH_STYLE</java>
-          </mapping>
+          <skip>${spotless.skip}</skip>
+          <java>
+            <excludes>
+              <exclude>**/target/**</exclude>
+            </excludes>
+            <!-- wrap anything you want left alone in spotless:off / spotless:on -->
+            <toggleOffOn />
+            <!-- palantir goes first: it drives its own import order, so it has to run
+                 before importOrder. licenseHeader stays last, it rewrites the top of the file -->
+            <palantirJavaFormat>
+              <!-- pin it so the format does not shift with the build JDK -->
+              <version>2.97.0</version>
+            </palantirJavaFormat>
+            <removeUnusedImports />
+            <!-- same import order as the Apache Maven project -->
+            <importOrder>
+              <order>javax,java,,\#</order>
+            </importOrder>
+            <licenseHeader>
+              <file>${maven.multiModuleProjectDirectory}/header-template.txt</file>
+              <delimiter>(package |import |public |class |interface |enum |@)</delimiter>
+            </licenseHeader>
+          </java>
+          <!-- accept any line ending so checks also pass on a source archive -->
+          <lineEndings>PRESERVE</lineEndings>
+          <pom>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+            <sortPom>
+              <nrOfIndentSpace>2</nrOfIndentSpace>
+              <!-- see https://github.com/Ekryd/sortpom/wiki/PredefinedSortOrderProfiles -->
+              <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+              <expandEmptyElements>false</expandEmptyElements>
+              <!-- maven-release-plugin writes "<foo />" with a space, see MRELEASE-1111 -->
+              <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+              <sortProperties>true</sortProperties>
+              <sortExecutions>true</sortExecutions>
+              <sortDependencies>scope,groupId,artifactId</sortDependencies>
+              <sortDependencyExclusions>groupId,artifactId</sortDependencyExclusions>
+              <sortPlugins>groupId,artifactId</sortPlugins>
+              <quiet>true</quiet>
+            </sortPom>
+          </pom>
+          <upToDateChecking>
+            <enabled>true</enabled>
+          </upToDateChecking>
         </configuration>
         <executions>
           <execution>
-            <id>check-copyright-header</id>
-            <phase>validate</phase>
             <goals>
-              <goal>check</goal>
+              <goal>${spotless.action}</goal>
             </goals>
+            <phase>validate</phase>
           </execution>
         </executions>
       </plugin>
@@ -264,9 +295,9 @@
           <version>0.8.15</version>
         </plugin>
         <plugin>
-          <groupId>com.mycila</groupId>
-          <artifactId>license-maven-plugin</artifactId>
-          <version>5.1.2</version>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>3.9.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -390,6 +421,23 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <!-- on by default: fail the build when the code is not formatted -->
+      <id>spotless-check</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <spotless.action>check</spotless.action>
+      </properties>
+    </profile>
+    <profile>
+      <!-- mvn -Pmay-spotless-apply install : reformat instead of complaining -->
+      <id>may-spotless-apply</id>
+      <properties>
+        <spotless.action>apply</spotless.action>
+      </properties>
     </profile>
   </profiles>
 
