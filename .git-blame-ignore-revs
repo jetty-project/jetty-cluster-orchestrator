@@ -1,0 +1,4 @@
+# Reformat the whole codebase with spotless (palantir Java format + pom sort).
+# Mechanical only. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+0dcf0e0b867a5ccb9e612d46ecaf30005bbe6674
