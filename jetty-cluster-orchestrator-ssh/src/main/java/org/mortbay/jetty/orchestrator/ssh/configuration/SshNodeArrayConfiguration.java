@@ -23,32 +23,28 @@ import org.mortbay.jetty.orchestrator.ssh.launcher.SshRemoteHostLauncher;
  * Node array run by {@link SshRemoteHostLauncher} on machines reached over SSH.
  * Nodes naming the same machine share one host JVM.
  */
-public class SshNodeArrayConfiguration extends AbstractNodeArrayConfiguration
-{
-    public SshNodeArrayConfiguration(String id)
-    {
+public class SshNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
+    public SshNodeArrayConfiguration(String id) {
         super(id);
     }
 
     /**
      * Adds a node whose id is the hostname it runs on.
      */
-    public SshNodeArrayConfiguration node(String hostname)
-    {
+    public SshNodeArrayConfiguration node(String hostname) {
         return node(hostname, hostname);
     }
 
-    public SshNodeArrayConfiguration node(String id, String hostname)
-    {
+    public SshNodeArrayConfiguration node(String id, String hostname) {
         if (LocalLauncher.HOSTNAME.equals(hostname))
-            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
+            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME
+                    + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
         addNode(new SimpleNode(id, hostname));
         return this;
     }
 
     @Override
-    public SshNodeArrayConfiguration jvm(Jvm jvm)
-    {
+    public SshNodeArrayConfiguration jvm(Jvm jvm) {
         super.jvm(jvm);
         return this;
     }

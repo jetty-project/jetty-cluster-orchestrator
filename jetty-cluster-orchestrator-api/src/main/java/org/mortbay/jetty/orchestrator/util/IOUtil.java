@@ -24,74 +24,50 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IOUtil
-{
+public class IOUtil {
     private static final Logger LOG = LoggerFactory.getLogger(IOUtil.class);
 
-    public static void close(AutoCloseable closeable)
-    {
-        try
-        {
-            if (closeable != null)
-                closeable.close();
-        }
-        catch (Exception e)
-        {
-            if (LOG.isDebugEnabled())
-                LOG.debug("error closing {}", closeable, e);
+    public static void close(AutoCloseable closeable) {
+        try {
+            if (closeable != null) closeable.close();
+        } catch (Exception e) {
+            if (LOG.isDebugEnabled()) LOG.debug("error closing {}", closeable, e);
         }
     }
 
-    public static void close(AutoCloseable... closeables)
-    {
+    public static void close(AutoCloseable... closeables) {
         Arrays.stream(closeables).forEach(IOUtil::close);
     }
 
-    public static void copy(InputStream is, OutputStream os) throws IOException
-    {
+    public static void copy(InputStream is, OutputStream os) throws IOException {
         copy(is, os, 8192, false);
     }
 
-    public static void copy(InputStream is, OutputStream os, int bufferSize, boolean flushOnWrite) throws IOException
-    {
+    public static void copy(InputStream is, OutputStream os, int bufferSize, boolean flushOnWrite) throws IOException {
         byte[] buffer = new byte[bufferSize];
-        while (true)
-        {
+        while (true) {
             int read = is.read(buffer);
-            if (read == -1)
-                return;
+            if (read == -1) return;
             os.write(buffer, 0, read);
-            if (flushOnWrite)
-                os.flush();
+            if (flushOnWrite) os.flush();
         }
     }
 
-    public static boolean deltree(Path folder)
-    {
-        if (Files.isDirectory(folder))
-        {
-            try (DirectoryStream<Path> children = Files.newDirectoryStream(folder))
-            {
-                for (Path child : children)
-                {
+    public static boolean deltree(Path folder) {
+        if (Files.isDirectory(folder)) {
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(folder)) {
+                for (Path child : children) {
                     deltree(child);
                 }
-            }
-            catch (IOException e)
-            {
-                if (LOG.isDebugEnabled())
-                    LOG.debug("error listing {}", folder, e);
+            } catch (IOException e) {
+                if (LOG.isDebugEnabled()) LOG.debug("error listing {}", folder, e);
             }
         }
-        try
-        {
+        try {
             Files.delete(folder);
             return true;
-        }
-        catch (IOException e)
-        {
-            if (LOG.isDebugEnabled())
-                LOG.debug("error deleting {}", folder, e);
+        } catch (IOException e) {
+            if (LOG.isDebugEnabled()) LOG.debug("error deleting {}", folder, e);
             return false;
         }
     }

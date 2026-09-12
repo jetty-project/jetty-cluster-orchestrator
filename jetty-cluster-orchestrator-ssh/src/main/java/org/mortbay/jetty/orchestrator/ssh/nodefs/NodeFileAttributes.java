@@ -18,71 +18,59 @@ import java.nio.file.attribute.FileTime;
 
 import org.apache.sshd.sftp.client.SftpClient;
 
-class NodeFileAttributes implements BasicFileAttributes
-{
+class NodeFileAttributes implements BasicFileAttributes {
     private final SftpClient.Attributes lstat;
 
-    NodeFileAttributes(SftpClient.Attributes lstat)
-    {
+    NodeFileAttributes(SftpClient.Attributes lstat) {
         this.lstat = lstat;
     }
 
-    public SftpClient.Attributes getLstat()
-    {
+    public SftpClient.Attributes getLstat() {
         return lstat;
     }
 
     @Override
-    public FileTime lastModifiedTime()
-    {
+    public FileTime lastModifiedTime() {
         return lstat.getModifyTime();
     }
 
     @Override
-    public FileTime lastAccessTime()
-    {
+    public FileTime lastAccessTime() {
         return lstat.getAccessTime();
     }
 
     @Override
-    public FileTime creationTime()
-    {
+    public FileTime creationTime() {
         return lastModifiedTime();
     }
 
     @Override
-    public boolean isRegularFile()
-    {
+    public boolean isRegularFile() {
         return lstat.isRegularFile();
     }
 
     @Override
-    public boolean isDirectory()
-    {
+    public boolean isDirectory() {
         return lstat.isDirectory();
     }
 
     @Override
-    public boolean isSymbolicLink()
-    {
+    public boolean isSymbolicLink() {
         return lstat.isSymbolicLink();
     }
 
     @Override
-    public boolean isOther()
-    {
+    public boolean isOther() {
         return lstat.isOther();
     }
 
     @Override
-    public long size()
-    {
+    public long size() {
         return lstat.getSize();
     }
 
     @Override
-    public Object fileKey()
-    {
+    public Object fileKey() {
         return null;
     }
 }

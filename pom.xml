@@ -7,28 +7,8 @@
   <version>2.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Jetty :: JVM Cluster Orchestrator</name>
+  <description>The Jetty Cluster Orchestrator library</description>
   <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
-  <description>
-    The Jetty Cluster Orchestrator library
-  </description>
-
-  <modules>
-    <module>jetty-cluster-orchestrator-api</module>
-    <module>jetty-cluster-orchestrator-ssh</module>
-    <module>jetty-cluster-orchestrator-k8s</module>
-  </modules>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>17</maven.compiler.release>
-    <k8s.image>jettyproject/jetty-perf-node:ubuntu24-jdk21</k8s.image>
-    <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
-    <!-- The path to the Kubernetes config file, if not set, tests will not run -->
-    <!-- -Dkubernetes.config.path=${user.home}/.kube/config -->
-    <kubernetes.config.path />
-  </properties>
 
   <licenses>
     <license>
@@ -41,11 +21,44 @@
     </license>
   </licenses>
 
+  <developers>
+    <developer>
+      <id>lorban</id>
+      <name>Ludovic Orban</name>
+      <email>lorban@bitronix.be</email>
+      <organization>Webtide, LLC</organization>
+      <organizationUrl>https://webtide.com</organizationUrl>
+      <timezone>1</timezone>
+    </developer>
+    <developer>
+      <id>olamy</id>
+      <name>Olivier Lamy</name>
+      <email>oliver.lamy@gmail.com</email>
+      <organization>Webtide, LLC</organization>
+      <organizationUrl>https://webtide.com</organizationUrl>
+      <timezone>Australia/Brisbane</timezone>
+    </developer>
+    <developer>
+      <id>joakime</id>
+      <name>Joakim Erdfelt</name>
+      <email>joakim.erdfelt@gmail.com</email>
+      <organization>Webtide, LLC</organization>
+      <organizationUrl>https://webtide.com</organizationUrl>
+      <timezone>-6</timezone>
+    </developer>
+  </developers>
+
+  <modules>
+    <module>jetty-cluster-orchestrator-api</module>
+    <module>jetty-cluster-orchestrator-ssh</module>
+    <module>jetty-cluster-orchestrator-k8s</module>
+  </modules>
+
   <scm>
     <connection>scm:git:git://github.com/jetty-project/jetty-cluster-orchestrator.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jetty-project/jetty-cluster-orchestrator.git</developerConnection>
-    <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
     <tag>HEAD</tag>
+    <url>https://github.com/jetty-project/jetty-cluster-orchestrator</url>
   </scm>
 
   <distributionManagement>
@@ -61,105 +74,101 @@
     </snapshotRepository>
   </distributionManagement>
 
+  <properties>
+    <k8s.image>jettyproject/jetty-perf-node:ubuntu24-jdk21</k8s.image>
+    <k8s.namespace>jetty-cluster-orchestrator</k8s.namespace>
+    <!-- The path to the Kubernetes config file, if not set, tests will not run -->
+    <!-- -Dkubernetes.config.path=${user.home}/.kube/config -->
+    <kubernetes.config.path />
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- spotless checks by default, -Pmay-spotless-apply reformats -->
+    <spotless.action>check</spotless.action>
+    <spotless.skip>false</spotless.skip>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.14.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-core</artifactId>
+        <version>4.2.40</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-client</artifactId>
+        <version>6.13.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.28.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.sshd</groupId>
+        <artifactId>sshd-sftp</artifactId>
+        <version>2.19.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.zookeeper</groupId>
+        <artifactId>zookeeper</artifactId>
+        <version>3.9.5</version>
+      </dependency>
+      <!-- fabric8 needs this to read kubeconfigs with EC client certificates, as k3s and kind produce -->
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>1.85</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>2.0.19</version>
+      </dependency>
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>1.1.10.8</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>1.6.3</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-server-mock</artifactId>
+        <version>6.13.4</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>3.0</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <inherited>false</inherited>
-        <executions>
-          <execution>
-            <id>enforce-versions</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>[${maven.compiler.source},)</version>
-                </requireJavaVersion>
-                <requireMavenVersion>
-                  <version>[3.5,)</version>
-                </requireMavenVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <inherited>false</inherited>
-        <configuration>
-          <licenseSets>
-            <licenseSet>
-              <header>header-template.txt</header>
-              <includes>
-                <include>**/*.java</include>
-              </includes>
-            </licenseSet>
-          </licenseSets>
-          <failIfMissing>true</failIfMissing>
-          <aggregate>true</aggregate>
-          <strictCheck>true</strictCheck>
-          <properties>
-            <copyright-range>1995-2021</copyright-range>
-          </properties>
-          <mapping>
-            <java>DOUBLESLASH_STYLE</java>
-          </mapping>
-        </configuration>
-        <executions>
-          <execution>
-            <id>check-copyright-header</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>jacoco-initialize</id>
-            <phase>initialize</phase>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>jacoco-report</id>
-            <phase>package</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/org/mortbay/jetty/orchestrator/**</include>
-              </includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <goals>deploy</goals>
-          <preparationGoals>clean install</preparationGoals>
-          <mavenExecutorId>forked-path</mavenExecutorId>
-          <useReleaseProfile>true</useReleaseProfile>
-          <releaseProfiles>release</releaseProfiles>
-        </configuration>
-      </plugin>
-    </plugins>
 
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>3.9.0</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
@@ -263,112 +272,132 @@
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>0.8.15</version>
         </plugin>
-        <plugin>
-          <groupId>com.mycila</groupId>
-          <artifactId>license-maven-plugin</artifactId>
-          <version>5.1.2</version>
-        </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <configuration>
+          <skip>${spotless.skip}</skip>
+          <java>
+            <excludes>
+              <exclude>**/target/**</exclude>
+            </excludes>
+            <!-- wrap anything you want left alone in spotless:off / spotless:on -->
+            <toggleOffOn />
+            <!-- palantir goes first: it drives its own import order, so it has to run
+                 before importOrder. licenseHeader stays last, it rewrites the top of the file -->
+            <palantirJavaFormat>
+              <!-- pin it so the format does not shift with the build JDK -->
+              <version>2.97.0</version>
+            </palantirJavaFormat>
+            <removeUnusedImports />
+            <!-- same import order as the Apache Maven project -->
+            <importOrder>
+              <order>javax,java,,\#</order>
+            </importOrder>
+            <licenseHeader>
+              <file>${maven.multiModuleProjectDirectory}/header-template.txt</file>
+              <delimiter>(package |import |public |class |interface |enum |@)</delimiter>
+            </licenseHeader>
+          </java>
+          <!-- accept any line ending so checks also pass on a source archive -->
+          <lineEndings>PRESERVE</lineEndings>
+          <pom>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+            <sortPom>
+              <nrOfIndentSpace>2</nrOfIndentSpace>
+              <!-- see https://github.com/Ekryd/sortpom/wiki/PredefinedSortOrderProfiles -->
+              <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+              <expandEmptyElements>false</expandEmptyElements>
+              <!-- maven-release-plugin writes "<foo />" with a space, see MRELEASE-1111 -->
+              <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+              <sortProperties>true</sortProperties>
+              <sortExecutions>true</sortExecutions>
+              <sortDependencies>scope,groupId,artifactId</sortDependencies>
+              <sortDependencyExclusions>groupId,artifactId</sortDependencyExclusions>
+              <sortPlugins>groupId,artifactId</sortPlugins>
+              <quiet>true</quiet>
+            </sortPom>
+          </pom>
+          <upToDateChecking>
+            <enabled>true</enabled>
+          </upToDateChecking>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>${spotless.action}</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[${maven.compiler.source},)</version>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9.0,)</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <goals>deploy</goals>
+          <preparationGoals>clean install</preparationGoals>
+          <mavenExecutorId>forked-path</mavenExecutorId>
+          <useReleaseProfile>true</useReleaseProfile>
+          <releaseProfiles>release</releaseProfiles>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jacoco-initialize</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <includes>
+                <include>**/org/mortbay/jetty/orchestrator/**</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>5.14.3</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>2.0.19</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.zookeeper</groupId>
-        <artifactId>zookeeper</artifactId>
-        <version>3.9.5</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>4.2.40</version>
-      </dependency>
-      <dependency>
-        <groupId>org.xerial.snappy</groupId>
-        <artifactId>snappy-java</artifactId>
-        <version>1.1.10.8</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fabric8</groupId>
-        <artifactId>kubernetes-client</artifactId>
-        <version>6.13.4</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-compress</artifactId>
-        <version>1.28.0</version>
-      </dependency>
-      <!-- fabric8 needs this to read kubeconfigs with EC client certificates, as k3s and kind produce -->
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk18on</artifactId>
-        <version>1.85</version>
-      </dependency>
-      <dependency>
-        <groupId>io.fabric8</groupId>
-        <artifactId>kubernetes-server-mock</artifactId>
-        <version>6.13.4</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest</artifactId>
-        <version>3.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.6.3</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.sshd</groupId>
-        <artifactId>sshd-sftp</artifactId>
-        <version>2.19.0</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <developers>
-    <developer>
-      <id>lorban</id>
-      <name>Ludovic Orban</name>
-      <email>lorban@bitronix.be</email>
-      <organization>Webtide, LLC</organization>
-      <organizationUrl>https://webtide.com</organizationUrl>
-      <timezone>1</timezone>
-    </developer>
-    <developer>
-      <id>olamy</id>
-      <name>Olivier Lamy</name>
-      <email>oliver.lamy@gmail.com</email>
-      <organization>Webtide, LLC</organization>
-      <organizationUrl>https://webtide.com</organizationUrl>
-      <timezone>Australia/Brisbane</timezone>
-    </developer>
-    <developer>
-      <id>joakime</id>
-      <name>Joakim Erdfelt</name>
-      <email>joakim.erdfelt@gmail.com</email>
-      <organization>Webtide, LLC</organization>
-      <organizationUrl>https://webtide.com</organizationUrl>
-      <timezone>-6</timezone>
-    </developer>
-  </developers>
 
   <profiles>
     <profile>
@@ -381,15 +410,32 @@
             <executions>
               <execution>
                 <id>sign-artifacts</id>
-                <phase>verify</phase>
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <phase>verify</phase>
               </execution>
             </executions>
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <!-- on by default: fail the build when the code is not formatted -->
+      <id>spotless-check</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <spotless.action>check</spotless.action>
+      </properties>
+    </profile>
+    <profile>
+      <!-- mvn -Pmay-spotless-apply install : reformat instead of complaining -->
+      <id>may-spotless-apply</id>
+      <properties>
+        <spotless.action>apply</spotless.action>
+      </properties>
     </profile>
   </profiles>
 

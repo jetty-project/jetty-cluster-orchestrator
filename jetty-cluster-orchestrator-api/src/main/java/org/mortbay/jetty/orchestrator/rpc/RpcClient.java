@@ -30,8 +30,7 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RpcClient implements AutoCloseable
-{
+public class RpcClient implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(RpcClient.class);
 
     private final DistributedQueue<Request> requestQueue;
@@ -41,68 +40,58 @@ public class RpcClient implements AutoCloseable
     private final AtomicLong requestIdGenerator = new AtomicLong();
     private final GlobalNodeId globalNodeId;
 
-    public RpcClient(ZooKeeperClient zkClient, GlobalNodeId globalNodeId)
-    {
+    public RpcClient(ZooKeeperClient zkClient, GlobalNodeId globalNodeId) {
         this.globalNodeId = globalNodeId;
         requestQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.REQUEST_QUEUE_NAME);
         responseQueue = zkClient.createDistributedQueue(globalNodeId, RpcServer.RESPONSE_QUEUE_NAME);
-        executorService = Executors.newSingleThreadExecutor(new ThreadFactory()
-        {
+        executorService = Executors.newSingleThreadExecutor(new ThreadFactory() {
             private final AtomicInteger threadIdGenerator = new AtomicInteger();
 
             @Override
-            public Thread newThread(Runnable r)
-            {
+            public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setName("jco-" + threadIdGenerator.getAndIncrement());
                 return t;
             }
         });
-        executorService.submit(() ->
-        {
-            while (true)
-            {
+        executorService.submit(() -> {
+            while (true) {
                 Response resp = responseQueue.take();
-                if (LOG.isDebugEnabled())
-                    LOG.debug("{} got response {}", globalNodeId.getNodeId(), resp);
+                if (LOG.isDebugEnabled()) LOG.debug("{} got response {}", globalNodeId.getNodeId(), resp);
                 CompletableFuture<Object> future = calls.remove(resp.getId());
                 if (resp.getThrowable() != null)
                     future.completeExceptionally(new ExecutionException(resp.getThrowable()));
-                else
-                    future.complete(resp.getResult());
+                else future.complete(resp.getResult());
             }
         });
     }
 
-    public CompletableFuture<Object> callAsync(Command command) throws Exception
-    {
-        if (isClosed())
-            throw new IllegalStateException("RPC client is closed");
+    public CompletableFuture<Object> callAsync(Command command) throws Exception {
+        if (isClosed()) throw new IllegalStateException("RPC client is closed");
         long requestId = requestIdGenerator.getAndIncrement();
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         calls.put(requestId, completableFuture);
         Request request = new Request(requestId, command);
-        if (LOG.isDebugEnabled())
-            LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
+        if (LOG.isDebugEnabled()) LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
         requestQueue.offer(request);
         return completableFuture;
     }
 
-    public Object call(Command command, long timeout, TimeUnit unit) throws Exception
-    {
+    public Object call(Command command, long timeout, TimeUnit unit) throws Exception {
         return callAsync(command).get(timeout, unit);
     }
 
-    private boolean isClosed()
-    {
+    private boolean isClosed() {
         return executorService.isShutdown();
     }
 
     @Override
-    public void close()
-    {
+    public void close() {
         executorService.shutdownNow();
-        calls.values().forEach(f -> f.completeExceptionally(new IllegalStateException("Pending call terminated on close (remote process died?) for node " + globalNodeId.getNodeId())));
+        calls.values()
+                .forEach(f -> f.completeExceptionally(
+                        new IllegalStateException("Pending call terminated on close (remote process died?) for node "
+                                + globalNodeId.getNodeId())));
         calls.clear();
     }
 }

@@ -13,15 +13,14 @@
 
 package org.mortbay.jetty.orchestrator.configuration;
 
-import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent
-{
+import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
+
+public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent {
     private static final Jvm DEFAULT_JVM = new Jvm((f, h) -> "java");
 
     private Jvm jvm = DEFAULT_JVM;
@@ -30,62 +29,51 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     private long healthCheckDelay = 5000L;
     private HostLauncher hostLauncher = new LocalLauncher();
 
-    public SimpleClusterConfiguration()
-    {
-    }
+    public SimpleClusterConfiguration() {}
 
-    public SimpleClusterConfiguration jvm(Jvm jvm)
-    {
+    public SimpleClusterConfiguration jvm(Jvm jvm) {
         this.jvm = jvm;
         return this;
     }
 
     @Override
-    public Jvm jvm()
-    {
+    public Jvm jvm() {
         return jvm;
     }
 
     @Override
-    public Collection<NodeArrayConfiguration> nodeArrays()
-    {
+    public Collection<NodeArrayConfiguration> nodeArrays() {
         nodeArrayConfigurations.values().forEach(this::ensureJvmSet);
         return nodeArrayConfigurations.values();
     }
 
     @Override
-    public HostLauncher hostLauncher()
-    {
+    public HostLauncher hostLauncher() {
         ensureJvmSet(hostLauncher);
         return hostLauncher;
     }
 
-    public SimpleClusterConfiguration healthCheckTimeout(long healthCheckTimeout)
-    {
+    public SimpleClusterConfiguration healthCheckTimeout(long healthCheckTimeout) {
         this.healthCheckTimeout = healthCheckTimeout;
         return this;
     }
 
     @Override
-    public long healthCheckTimeout()
-    {
+    public long healthCheckTimeout() {
         return healthCheckTimeout;
     }
 
-    public SimpleClusterConfiguration healthCheckDelay(long healthCheckDelay)
-    {
+    public SimpleClusterConfiguration healthCheckDelay(long healthCheckDelay) {
         this.healthCheckDelay = healthCheckDelay;
         return this;
     }
 
     @Override
-    public long healthCheckDelay()
-    {
+    public long healthCheckDelay() {
         return healthCheckDelay;
     }
 
-    public SimpleClusterConfiguration nodeArray(NodeArrayConfiguration nodeArrayConfiguration)
-    {
+    public SimpleClusterConfiguration nodeArray(NodeArrayConfiguration nodeArrayConfiguration) {
         String id = nodeArrayConfiguration.id();
         if (nodeArrayConfigurations.containsKey(id))
             throw new IllegalArgumentException("Duplicate node array ID: " + id);
@@ -94,20 +82,16 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
         return this;
     }
 
-    public SimpleClusterConfiguration hostLauncher(HostLauncher hostLauncher)
-    {
+    public SimpleClusterConfiguration hostLauncher(HostLauncher hostLauncher) {
         this.hostLauncher = hostLauncher;
         ensureJvmSet(hostLauncher);
         return this;
     }
 
-    private void ensureJvmSet(Object obj)
-    {
-        if (obj instanceof JvmDependent)
-        {
-            JvmDependent jvmDependent = (JvmDependent)obj;
-            if (jvmDependent.jvm() == null)
-                jvmDependent.jvm(jvm);
+    private void ensureJvmSet(Object obj) {
+        if (obj instanceof JvmDependent) {
+            JvmDependent jvmDependent = (JvmDependent) obj;
+            if (jvmDependent.jvm() == null) jvmDependent.jvm(jvm);
         }
     }
 }

@@ -15,20 +15,18 @@ package org.mortbay.jetty.orchestrator.rpc;
 
 import java.util.Objects;
 
-import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 import org.mortbay.jetty.orchestrator.configuration.Node;
 import org.mortbay.jetty.orchestrator.configuration.NodeArrayConfiguration;
+import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
 
-public class GlobalNodeId
-{
+public class GlobalNodeId {
     private final String clusterId;
     private final String hostname;
     private final String hostId;
     private final String nodeId;
     private final boolean local;
 
-    public GlobalNodeId(String clusterId, NodeArrayConfiguration nodeArrayConfiguration, Node node)
-    {
+    public GlobalNodeId(String clusterId, NodeArrayConfiguration nodeArrayConfiguration, Node node) {
         this.clusterId = sanitize(clusterId);
         this.hostname = node.getHostname();
         this.hostId = this.clusterId + "/" + sanitize(hostname);
@@ -36,8 +34,7 @@ public class GlobalNodeId
         this.local = hostname.equals(LocalLauncher.HOSTNAME);
     }
 
-    public GlobalNodeId(String clusterId, String hostname)
-    {
+    public GlobalNodeId(String clusterId, String hostname) {
         this.clusterId = sanitize(clusterId);
         this.hostname = hostname;
         this.hostId = this.clusterId + "/" + sanitize(hostname);
@@ -45,20 +42,16 @@ public class GlobalNodeId
         this.local = hostname.equals(LocalLauncher.HOSTNAME);
     }
 
-    public GlobalNodeId(String nodeId)
-    {
+    public GlobalNodeId(String nodeId) {
         String[] parts = nodeId.split("/");
         if (parts.length != 2 && parts.length != 4)
             throw new IllegalArgumentException("Invalid global node id : '" + nodeId + "'");
         this.clusterId = parts[0];
-        if (parts.length == 2)
-        {
+        if (parts.length == 2) {
             this.hostId = nodeId;
             this.nodeId = nodeId;
             this.hostname = parts[1];
-        }
-        else
-        {
+        } else {
             this.hostId = clusterId + "/" + parts[1];
             this.nodeId = nodeId;
             this.hostname = parts[1];
@@ -66,56 +59,44 @@ public class GlobalNodeId
         this.local = parts[1].equals(LocalLauncher.HOSTNAME);
     }
 
-    private static String sanitize(String id)
-    {
-        return id.replace(":", "_")
-            .replace("/", "_");
+    private static String sanitize(String id) {
+        return id.replace(":", "_").replace("/", "_");
     }
 
-    public String getClusterId()
-    {
+    public String getClusterId() {
         return clusterId;
     }
 
-    public String getHostname()
-    {
+    public String getHostname() {
         return hostname;
     }
 
-    public String getHostId()
-    {
+    public String getHostId() {
         return hostId;
     }
 
-    public String getNodeId()
-    {
+    public String getNodeId() {
         return nodeId;
     }
 
-    public boolean isLocal()
-    {
+    public boolean isLocal() {
         return local;
     }
 
-    public GlobalNodeId getHostGlobalId()
-    {
+    public GlobalNodeId getHostGlobalId() {
         return new GlobalNodeId(clusterId, hostname);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        GlobalNodeId that = (GlobalNodeId)o;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GlobalNodeId that = (GlobalNodeId) o;
         return nodeId.equals(that.nodeId);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hash(nodeId);
     }
 }

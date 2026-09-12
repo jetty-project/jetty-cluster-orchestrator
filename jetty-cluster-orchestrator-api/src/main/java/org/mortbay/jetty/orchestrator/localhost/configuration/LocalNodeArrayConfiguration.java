@@ -22,22 +22,18 @@ import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
  * Node array run by {@link LocalLauncher} on the local machine.
  * Every node is on the same host, so a node only needs an id.
  */
-public class LocalNodeArrayConfiguration extends AbstractNodeArrayConfiguration
-{
-    public LocalNodeArrayConfiguration(String id)
-    {
+public class LocalNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
+    public LocalNodeArrayConfiguration(String id) {
         super(id);
     }
 
-    public LocalNodeArrayConfiguration node(String id)
-    {
+    public LocalNodeArrayConfiguration node(String id) {
         addNode(new SimpleNode(id, LocalLauncher.HOSTNAME));
         return this;
     }
 
     @Override
-    public LocalNodeArrayConfiguration jvm(Jvm jvm)
-    {
+    public LocalNodeArrayConfiguration jvm(Jvm jvm) {
         super.jvm(jvm);
         return this;
     }

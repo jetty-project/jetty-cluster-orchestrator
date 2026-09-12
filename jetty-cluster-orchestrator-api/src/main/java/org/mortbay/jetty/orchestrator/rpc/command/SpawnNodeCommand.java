@@ -14,12 +14,12 @@
 package org.mortbay.jetty.orchestrator.rpc.command;
 
 import java.nio.file.FileSystems;
+
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
 import org.mortbay.jetty.orchestrator.rpc.NodeProcess;
 
-public class SpawnNodeCommand implements Command
-{
+public class SpawnNodeCommand implements Command {
     private final Jvm jvm;
     private final String hostname;
     private final String hostId;
@@ -27,8 +27,8 @@ public class SpawnNodeCommand implements Command
     private final String connectString;
     private final String[] extraArgs;
 
-    public SpawnNodeCommand(Jvm jvm, String hostname, String hostId, String nodeId, String connectString, String... extraArgs)
-    {
+    public SpawnNodeCommand(
+            Jvm jvm, String hostname, String hostId, String nodeId, String connectString, String... extraArgs) {
         this.jvm = jvm;
         this.hostname = hostname;
         this.hostId = hostId;
@@ -38,14 +38,10 @@ public class SpawnNodeCommand implements Command
     }
 
     @Override
-    public NodeProcess execute(ClusterTools clusterTools)
-    {
-        try
-        {
+    public NodeProcess execute(ClusterTools clusterTools) {
+        try {
             return NodeProcess.spawn(FileSystems.getDefault(), jvm, hostId, nodeId, hostname, connectString, extraArgs);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

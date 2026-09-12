@@ -16,18 +16,15 @@ package org.mortbay.jetty.orchestrator.rpc.command;
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.NodeJob;
 
-public class ExecuteNodeJobCommand implements Command
-{
+public class ExecuteNodeJobCommand implements Command {
     private final NodeJob nodeJob;
 
-    public ExecuteNodeJobCommand(NodeJob nodeJob)
-    {
+    public ExecuteNodeJobCommand(NodeJob nodeJob) {
         this.nodeJob = nodeJob;
     }
 
     @Override
-    public Object execute(ClusterTools clusterTools) throws Exception
-    {
+    public Object execute(ClusterTools clusterTools) throws Exception {
         nodeJob.execute(clusterTools);
         return null;
     }
