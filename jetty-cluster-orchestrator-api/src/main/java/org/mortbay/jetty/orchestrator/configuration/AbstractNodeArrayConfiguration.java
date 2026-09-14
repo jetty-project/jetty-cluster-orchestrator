@@ -60,4 +60,9 @@ public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfigu
         this.jvm = jvm;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" + "id='" + id + '\'' + ", nodes=" + nodes + ", jvm=" + jvm + '}';
+    }
 }

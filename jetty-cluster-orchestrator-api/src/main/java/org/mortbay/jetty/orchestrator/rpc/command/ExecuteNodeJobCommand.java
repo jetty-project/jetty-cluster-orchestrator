@@ -28,4 +28,9 @@ public class ExecuteNodeJobCommand implements Command {
         nodeJob.execute(clusterTools);
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "ExecuteNodeJobCommand{" + "nodeJob=" + nodeJob + '}';
+    }
 }

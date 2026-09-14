@@ -28,4 +28,9 @@ public class KillNodeCommand implements Command {
         process.close();
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "KillNodeCommand{" + "process=" + process + '}';
+    }
 }

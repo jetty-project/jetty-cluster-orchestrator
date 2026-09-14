@@ -14,6 +14,7 @@
 package org.mortbay.jetty.orchestrator.rpc.command;
 
 import java.nio.file.FileSystems;
+import java.util.Arrays;
 
 import org.mortbay.jetty.orchestrator.ClusterTools;
 import org.mortbay.jetty.orchestrator.configuration.Jvm;
@@ -43,5 +44,16 @@ public class SpawnNodeCommand implements Command {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "SpawnNodeCommand{" + "jvm="
+                + jvm + ", hostname='"
+                + hostname + '\'' + ", hostId='"
+                + hostId + '\'' + ", nodeId='"
+                + nodeId + '\'' + ", connectString='"
+                + connectString + '\'' + ", extraArgs="
+                + Arrays.toString(extraArgs) + '}';
     }
 }

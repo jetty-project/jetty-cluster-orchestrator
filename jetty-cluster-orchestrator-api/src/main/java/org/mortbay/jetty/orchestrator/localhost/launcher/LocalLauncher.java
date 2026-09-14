@@ -176,4 +176,9 @@ public class LocalLauncher extends AbstractHostLauncher {
     public static boolean skipDiskCleanup() {
         return Boolean.getBoolean("org.mortbay.jetty.orchestrator.skipDiskCleanup");
     }
+
+    @Override
+    public String toString() {
+        return "LocalLauncher{" + "nodeId=" + nodeId + ", zkServer=" + zkServer + '}';
+    }
 }
