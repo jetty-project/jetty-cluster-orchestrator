@@ -310,13 +310,23 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         StringBuilder partial = new StringBuilder();
         for (String segment : path.split("/")) {
             if (segment.isEmpty()) continue;
-            if (absolute || partial.length() > 0) partial.append('/');
+            if (absolute || !partial.isEmpty()) partial.append('/');
             partial.append(segment);
             try {
-                sftpClient.mkdir(partial.toString());
+                if (!isDirectory(sftpClient, partial.toString())) sftpClient.mkdir(partial.toString());
             } catch (SftpException e) {
-                if (e.getStatus() != SftpConstants.SSH_FX_FILE_ALREADY_EXISTS) throw e;
+                if (e.getStatus() != SftpConstants.SSH_FX_FILE_ALREADY_EXISTS)
+                    throw new IOException("Failed to create remote directory " + path, e);
             }
+        }
+    }
+
+    private static boolean isDirectory(SftpClient sftpClient, String path) {
+        try {
+            SftpClient.Attributes lstat = sftpClient.lstat(path);
+            return lstat.isDirectory();
+        } catch (IOException e) {
+            return false;
         }
     }
 
