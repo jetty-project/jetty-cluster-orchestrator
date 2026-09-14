@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 public class NodeProcess implements Serializable, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(NodeProcess.class);
     public static final String CLASSPATH_FOLDER_NAME = ".classpath";
-
     private final ProcessHolder processHelper;
 
     private NodeProcess(Process process) {
@@ -55,7 +54,9 @@ public class NodeProcess implements Serializable, AutoCloseable {
         try {
             processHelper.destroy();
         } catch (Exception e) {
-            if (LOG.isDebugEnabled()) LOG.debug("Error terminating process with PID=" + processHelper.getPid(), e);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Error terminating process with PID=" + processHelper.getPid(), e);
+            }
         }
     }
 
@@ -73,24 +74,20 @@ public class NodeProcess implements Serializable, AutoCloseable {
             try {
                 healthCheckTimeout = Long.parseLong(healthCheckTimeoutString);
             } catch (NumberFormatException e) {
-                LOG.warn(
-                        "Invalid health check timeout {}, using default of {}ms",
-                        healthCheckTimeoutString,
-                        healthCheckTimeout);
+                LOG.warn("Invalid health check timeout {}, using default of {}ms", healthCheckTimeoutString, healthCheckTimeout);
             }
         }
 
-        if (LOG.isDebugEnabled())
-            LOG.debug(
-                    "Starting node [{}] with JVM version '{}' connecting to {}",
-                    nodeId,
-                    System.getProperty("java.version"),
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Starting node [{}] with JVM version '{}' connecting to {}", nodeId, System.getProperty("java.version"),
                     connectString);
+        }
         ZooKeeperClient zkClient = new ZooKeeperClient(connectString);
 
-        if (LOG.isDebugEnabled()) LOG.debug("Node [{}] connected to {}", nodeId, connectString);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Node [{}] connected to {}", nodeId, connectString);
+        }
         RpcServer rpcServer = new RpcServer(zkClient, new GlobalNodeId(nodeId));
-
         // The Cluster sends a CheckNodeCommand every 5 seconds, if we miss too many
         // we can assume the connection is dead.
         final long finalHealthCheckTimeout = healthCheckTimeout;
@@ -113,11 +110,10 @@ public class NodeProcess implements Serializable, AutoCloseable {
                     }
                     System.exit(1);
                 }
-                if (LOG.isDebugEnabled())
-                    LOG.debug(
-                            "node {} health check not timed out as it happened {} ms ago",
-                            nodeId,
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("node {} health check not timed out as it happened {} ms ago", nodeId,
                             TimeUnit.NANOSECONDS.toMillis(delta));
+                }
             }
         });
         keepalive.setDaemon(true);
@@ -125,18 +121,27 @@ public class NodeProcess implements Serializable, AutoCloseable {
 
         AtomicBoolean isShutdown = new AtomicBoolean();
         Thread shutdown = new Thread(() -> {
-            if (!isShutdown.compareAndSet(false, true)) return;
-            if (LOG.isDebugEnabled()) LOG.debug("Node [{}] stopping", nodeId);
+            if (!isShutdown.compareAndSet(false, true)) {
+                return;
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Node [{}] stopping", nodeId);
+            }
             keepalive.interrupt();
             IOUtil.close(rpcServer);
             IOUtil.close(zkClient);
-            if (LOG.isDebugEnabled()) LOG.debug("Node [{}] stopped", nodeId);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Node [{}] stopped", nodeId);
+            }
         });
         Runtime.getRuntime().addShutdownHook(shutdown);
 
         rpcServer.run();
-        if (LOG.isDebugEnabled()) LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
-        shutdown.run(); // do not start that thread, run its runnable on the current thread
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Node [{}] disconnecting from {}", nodeId, connectString);
+        }
+        // do not start that thread, run its runnable on the current thread
+        shutdown.run();
         try {
             Runtime.getRuntime().removeShutdownHook(shutdown);
         } catch (IllegalStateException e) {
@@ -144,29 +149,21 @@ public class NodeProcess implements Serializable, AutoCloseable {
         }
     }
 
-    public static NodeProcess spawn(
-            FileSystem fileSystem,
-            Jvm jvm,
-            String hostId,
-            String nodeId,
-            String hostname,
-            String connectString,
-            String... extraArgs)
-            throws IOException {
+    public static NodeProcess spawn(FileSystem fileSystem, Jvm jvm, String hostId, String nodeId, String hostname,
+            String connectString, String... extraArgs) throws IOException {
         Path nodeRootPath = defaultRootPath(nodeId);
         IOUtil.deltree(nodeRootPath);
         Files.createDirectories(nodeRootPath);
 
-        List<String> cmdLine =
-                buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString, extraArgs);
+        List<String> cmdLine = buildCommandLine(fileSystem, jvm, defaultLibPath(hostId), nodeId, hostname, connectString, extraArgs);
         // Inherited IO bypasses the System.setOut/setErr mechanism, so use piping for stdout/stderr such as
         // System.setOut/setErr can redirect the output of the process.
         Process process = new ProcessBuilder(cmdLine)
-                .directory(nodeRootPath.toFile())
-                .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                .redirectError(ProcessBuilder.Redirect.PIPE)
-                .redirectOutput(ProcessBuilder.Redirect.PIPE)
-                .start();
+            .directory(nodeRootPath.toFile())
+            .redirectInput(ProcessBuilder.Redirect.INHERIT)
+            .redirectError(ProcessBuilder.Redirect.PIPE)
+            .redirectOutput(ProcessBuilder.Redirect.PIPE)
+            .start();
         new StreamCopier(process.getInputStream(), System.out, true).spawnDaemon(hostname + "-proc-stdout");
         new StreamCopier(process.getErrorStream(), System.err, true).spawnDaemon(hostname + "-proc-stderr");
         return new NodeProcess(process);
@@ -212,15 +209,8 @@ public class NodeProcess implements Serializable, AutoCloseable {
         return rootPath.resolve(CLASSPATH_FOLDER_NAME);
     }
 
-    private static List<String> buildCommandLine(
-            FileSystem fileSystem,
-            Jvm jvm,
-            Path libPath,
-            String nodeId,
-            String hostname,
-            String connectString,
-            String... extraArgs)
-            throws IOException {
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, Path libPath, String nodeId, String hostname,
+            String connectString, String... extraArgs) throws IOException {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add(jvm.executable(fileSystem, hostname));
         cmdLine.addAll(filterOutEmptyStrings(jvm.getOpts()));
@@ -234,7 +224,10 @@ public class NodeProcess implements Serializable, AutoCloseable {
     }
 
     private static List<String> filterOutEmptyStrings(List<String> opts) {
-        return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+        return opts
+            .stream()
+            .filter(s -> !s.trim().isEmpty())
+            .collect(Collectors.toList());
     }
 
     private static String buildClassPath(Path libPath) throws IOException {
@@ -243,8 +236,9 @@ public class NodeProcess implements Serializable, AutoCloseable {
             try (DirectoryStream<Path> entries = Files.newDirectoryStream(libPath)) {
                 for (Path entry : entries) {
                     String path = entry.toString();
-                    if (!path.endsWith(".jar") && !path.endsWith(".JAR"))
+                    if (!path.endsWith(".jar") && !path.endsWith(".JAR")) {
                         sb.append(path).append(File.pathSeparator);
+                    }
                 }
             }
         }

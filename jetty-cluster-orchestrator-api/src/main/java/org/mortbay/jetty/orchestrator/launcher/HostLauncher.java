@@ -34,8 +34,7 @@ public interface HostLauncher extends AutoCloseable {
      *
      * @return for each hostname of the array, the connect string JVMs there use to reach ZooKeeper
      */
-    Map<String, String> launch(
-            String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs)
+    Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs)
             throws Exception;
 
     @Override

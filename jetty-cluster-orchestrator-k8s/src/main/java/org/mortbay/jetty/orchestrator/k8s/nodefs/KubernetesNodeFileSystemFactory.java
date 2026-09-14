@@ -28,11 +28,17 @@ import org.mortbay.jetty.orchestrator.nodefs.NodeFileSystemProvider;
  * Creates node filesystems backed by a Kubernetes pod.
  */
 public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory {
-    /** Namespace the pod runs in. */
+    /**
+     * Namespace the pod runs in.
+     */
     public static final String NAMESPACE_ENV_PROPERTY = "namespace";
-    /** Name of the pod to read files from. */
+    /**
+     * Name of the pod to read files from.
+     */
     public static final String POD_NAME_ENV_PROPERTY = "podName";
-    /** Home directory inside the pod. */
+    /**
+     * Home directory inside the pod.
+     */
     public static final String POD_HOME_ENV_PROPERTY = "podHome";
 
     @Override
@@ -41,8 +47,7 @@ public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory {
     }
 
     @Override
-    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env)
-            throws IOException {
+    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException {
         KubernetesClient k8sClient = (KubernetesClient) env.get(KubernetesClient.class.getName());
         String ns = (String) env.get(NAMESPACE_ENV_PROPERTY);
         String podName = (String) env.get(POD_NAME_ENV_PROPERTY);
@@ -55,28 +60,38 @@ public class KubernetesNodeFileSystemFactory implements NodeFileSystemFactory {
 
     @Override
     public int getPriority() {
-        return 200; // Higher priority for Kubernetes
+        // Higher priority for Kubernetes
+        return 200;
     }
 
     private String extractHostId(URI uri) {
         String hostId = uri.getHost();
         if (hostId == null) {
             String ssp = uri.getSchemeSpecificPart();
-            if (ssp.startsWith("//")) ssp = ssp.substring(2);
+            if (ssp.startsWith("//")) {
+                ssp = ssp.substring(2);
+            }
             int idx = ssp.indexOf('!');
-            if (idx >= 0) hostId = ssp.substring(0, idx);
-            else hostId = ssp;
+            if (idx >= 0) {
+                hostId = ssp.substring(0, idx);
+            } else {
+                hostId = ssp;
+            }
         }
         return hostId;
     }
 
     private String extractPath(URI uri) {
         String fragment = uri.getFragment();
-        if (fragment != null && fragment.startsWith("/")) return fragment.substring(1);
+        if (fragment != null && fragment.startsWith("/")) {
+            return fragment.substring(1);
+        }
 
         String ssp = uri.getSchemeSpecificPart();
         int idx = ssp.indexOf('!');
-        if (idx >= 0 && idx + 2 < ssp.length() && ssp.charAt(idx + 1) == '/') return ssp.substring(idx + 2);
+        if (idx >= 0 && idx + 2 < ssp.length() && ssp.charAt(idx + 1) == '/') {
+            return ssp.substring(idx + 2);
+        }
 
         return "";
     }

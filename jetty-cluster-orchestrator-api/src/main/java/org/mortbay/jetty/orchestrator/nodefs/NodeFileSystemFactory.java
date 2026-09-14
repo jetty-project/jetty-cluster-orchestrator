@@ -37,8 +37,7 @@ public interface NodeFileSystemFactory {
      * @return the created filesystem
      * @throws IOException if the filesystem cannot be created
      */
-    AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env)
-            throws IOException;
+    AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException;
 
     /**
      * Get the priority of this factory (higher priority factories are tried first)

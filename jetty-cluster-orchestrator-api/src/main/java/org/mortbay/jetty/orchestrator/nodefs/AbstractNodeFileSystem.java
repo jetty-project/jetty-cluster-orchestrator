@@ -39,14 +39,14 @@ public abstract class AbstractNodeFileSystem extends FileSystem {
 
     public abstract InputStream newInputStream(NodePath path, OpenOption... options) throws IOException;
 
-    public abstract SeekableByteChannel newByteChannel(
-            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException;
+    public abstract SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+            throws IOException;
 
     public abstract DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
             throws IOException;
 
-    public abstract <A extends BasicFileAttributes> A readAttributes(
-            NodePath path, Class<A> type, LinkOption... options) throws IOException;
+    public abstract <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
+            throws IOException;
 
     public abstract Path getPath(boolean absolute, List<String> segments);
 }

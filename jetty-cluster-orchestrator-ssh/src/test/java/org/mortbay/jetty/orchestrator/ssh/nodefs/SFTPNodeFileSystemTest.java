@@ -65,29 +65,24 @@ public class SFTPNodeFileSystemTest {
 
     @Test
     public void testNodeIdFolder() throws Exception {
-        Files.createDirectories(
-                Paths.get("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a"));
+        Files.createDirectories(Paths.get("target/testNodeIdFolder/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost/a"));
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testNodeIdFolder"));
         SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
         sshClient.start();
-        ClientSession session = closer.register(sshClient
-                .connect("username", "localhost", testSshServer.getPort())
-                .verify()
-                .getSession());
+        ClientSession session =
+                closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
         session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
         session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(
-                SftpClient.class.getName(),
-                closer.register(SftpClientFactory.instance().createSftpClient(session)));
-        SFTPNodeFileSystem fileSystem = closer.register((SFTPNodeFileSystem) FileSystems.newFileSystem(
-                URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX
-                        + "/the-test/myhost"),
-                env));
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
+        SFTPNodeFileSystem fileSystem = closer.register(
+                (SFTPNodeFileSystem) FileSystems.newFileSystem(URI.create(
+                                NodeFileSystemProvider.PREFIX + ":the-test/myhost!/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"),
+                        env));
 
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."))) {
             Iterator<Path> iterator = paths.iterator();
@@ -99,27 +94,22 @@ public class SFTPNodeFileSystemTest {
 
     @Test
     public void testHomeFolderIsDefault() throws Exception {
-        Files.createDirectories(
-                Paths.get("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"));
+        Files.createDirectories(Paths.get("target/testHomeFolderIsDefault/." + NodeFileSystemProvider.PREFIX + "/the-test/myhost"));
 
         TestSshServer testSshServer = closer.register(new TestSshServer("target/testHomeFolderIsDefault"));
         SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
         sshClient.start();
-        ClientSession session = closer.register(sshClient
-                .connect("username", "localhost", testSshServer.getPort())
-                .verify()
-                .getSession());
+        ClientSession session =
+                closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
         session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
         session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(
-                SftpClient.class.getName(),
-                closer.register(SftpClientFactory.instance().createSftpClient(session)));
-        FileSystem fileSystem = closer.register(
-                FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
+        FileSystem fileSystem =
+                closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(fileSystem.getPath("."))) {
             Iterator<Path> iterator = paths.iterator();
@@ -137,25 +127,21 @@ public class SFTPNodeFileSystemTest {
         SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
         sshClient.start();
-        ClientSession session = closer.register(sshClient
-                .connect("username", "localhost", testSshServer.getPort())
-                .verify()
-                .getSession());
+        ClientSession session =
+                closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
         session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
         session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(
-                SftpClient.class.getName(),
-                closer.register(SftpClientFactory.instance().createSftpClient(session)));
-        FileSystem fileSystem = closer.register(
-                FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
+        FileSystem fileSystem =
+                closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(fileSystem.getPath("/"))) {
-            long pathCount = StreamSupport.stream(
-                            Spliterators.spliteratorUnknownSize(directoryStream.iterator(), Spliterator.ORDERED), false)
-                    .count();
+            long pathCount = StreamSupport
+                .stream(Spliterators.spliteratorUnknownSize(directoryStream.iterator(), Spliterator.ORDERED), false)
+                .count();
             assertThat(pathCount, greaterThan(0L));
         }
     }
@@ -173,27 +159,24 @@ public class SFTPNodeFileSystemTest {
         SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
         sshClient.start();
-        ClientSession session = closer.register(sshClient
-                .connect("username", "localhost", testSshServer.getPort())
-                .verify()
-                .getSession());
+        ClientSession session =
+                closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
         session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
         session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(
-                SftpClient.class.getName(),
-                closer.register(SftpClientFactory.instance().createSftpClient(session)));
-        FileSystem fileSystem = closer.register(
-                FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
+        FileSystem fileSystem =
+                closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
         Jvm jvm = new Jvm((fs, h) -> {
             try (Stream<Path> stream = Files.walk(fs.getPath("storage"), 2)) {
-                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                        .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
-                        .findAny()
-                        .orElseThrow(() -> new RuntimeException("jdk not found"));
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(() -> new RuntimeException("jdk not found"));
             } catch (IOException e) {
                 throw new RuntimeException("jdk not found", e);
             }
@@ -212,52 +195,40 @@ public class SFTPNodeFileSystemTest {
         SshClient sshClient = closer.register(SshClient.setUpDefaultClient());
         sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
         sshClient.start();
-        ClientSession session = closer.register(sshClient
-                .connect("username", "localhost", testSshServer.getPort())
-                .verify()
-                .getSession());
+        ClientSession session =
+                closer.register(sshClient.connect("username", "localhost", testSshServer.getPort()).verify().getSession());
         session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(""));
         session.auth().verify();
 
         HashMap<String, Object> env = new HashMap<>();
         env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, false);
-        env.put(
-                SftpClient.class.getName(),
-                closer.register(SftpClientFactory.instance().createSftpClient(session)));
-        FileSystem fileSystem = closer.register(
-                FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
+        env.put(SftpClient.class.getName(), closer.register(SftpClientFactory.instance().createSftpClient(session)));
+        FileSystem fileSystem =
+                closer.register(FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":the-test/myhost"), env));
 
-        assertThrows(
-                NoFileException.class,
-                () -> new Jvm((fs, h) -> {
-                            try (Stream<Path> stream = Files.walk(fs.getPath("storage"), 2)) {
-                                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                                        .map(path -> path.resolve("bin/java")
-                                                .toAbsolutePath()
-                                                .toString())
-                                        .findAny()
-                                        .orElseThrow(NoFileException::new);
-                            } catch (IOException e) {
-                                throw new NoDirException(e);
-                            }
-                        })
-                        .executable(fileSystem, "myhost"));
+        assertThrows(NoFileException.class, () -> new Jvm((fs, h) -> {
+            try (Stream<Path> stream = Files.walk(fs.getPath("storage"), 2)) {
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            } catch (IOException e) {
+                throw new NoDirException(e);
+            }
+        }).executable(fileSystem, "myhost"));
 
-        assertThrows(
-                NoDirException.class,
-                () -> new Jvm((fs, h) -> {
-                            try (Stream<Path> stream = Files.walk(fs.getPath("does-not-exist"), 2)) {
-                                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                                        .map(path -> path.resolve("bin/java")
-                                                .toAbsolutePath()
-                                                .toString())
-                                        .findAny()
-                                        .orElseThrow(NoFileException::new);
-                            } catch (IOException e) {
-                                throw new NoDirException(e);
-                            }
-                        })
-                        .executable(fileSystem, "myhost"));
+        assertThrows(NoDirException.class, () -> new Jvm((fs, h) -> {
+            try (Stream<Path> stream = Files.walk(fs.getPath("does-not-exist"), 2)) {
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            } catch (IOException e) {
+                throw new NoDirException(e);
+            }
+        }).executable(fileSystem, "myhost"));
     }
 
     @Test
@@ -271,10 +242,11 @@ public class SFTPNodeFileSystemTest {
 
         Jvm jvm = new Jvm((fs, h) -> {
             try (Stream<Path> stream = Files.walk(fs.getPath(home.toString()).resolve("storage"), 2)) {
-                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                        .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
-                        .findAny()
-                        .orElseThrow(() -> new RuntimeException("jdk not found"));
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(() -> new RuntimeException("jdk not found"));
             } catch (IOException e) {
                 throw new RuntimeException("jdk not found", e);
             }
@@ -289,39 +261,29 @@ public class SFTPNodeFileSystemTest {
         Path folder = home.resolve("storage");
         Files.createDirectories(folder);
 
-        assertThrows(
-                NoFileException.class,
-                () -> new Jvm((fs, h) -> {
-                            try (Stream<Path> stream =
-                                    Files.walk(fs.getPath(home.toString()).resolve("storage"), 2)) {
-                                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                                        .map(path -> path.resolve("bin/java")
-                                                .toAbsolutePath()
-                                                .toString())
-                                        .findAny()
-                                        .orElseThrow(NoFileException::new);
-                            } catch (IOException e) {
-                                throw new NoDirException(e);
-                            }
-                        })
-                        .executable(FileSystems.getDefault(), "myhost"));
+        assertThrows(NoFileException.class, () -> new Jvm((fs, h) -> {
+            try (Stream<Path> stream = Files.walk(fs.getPath(home.toString()).resolve("storage"), 2)) {
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            } catch (IOException e) {
+                throw new NoDirException(e);
+            }
+        }).executable(FileSystems.getDefault(), "myhost"));
 
-        assertThrows(
-                NoDirException.class,
-                () -> new Jvm((fs, h) -> {
-                            try (Stream<Path> stream =
-                                    Files.walk(fs.getPath(home.toString()).resolve("does-not-exist"), 2)) {
-                                return stream.filter(path -> Files.isExecutable(path.resolve("bin/java")))
-                                        .map(path -> path.resolve("bin/java")
-                                                .toAbsolutePath()
-                                                .toString())
-                                        .findAny()
-                                        .orElseThrow(NoFileException::new);
-                            } catch (IOException e) {
-                                throw new NoDirException(e);
-                            }
-                        })
-                        .executable(FileSystems.getDefault(), "myhost"));
+        assertThrows(NoDirException.class, () -> new Jvm((fs, h) -> {
+            try (Stream<Path> stream = Files.walk(fs.getPath(home.toString()).resolve("does-not-exist"), 2)) {
+                return stream
+                    .filter(path -> Files.isExecutable(path.resolve("bin/java")))
+                    .map(path -> path.resolve("bin/java").toAbsolutePath().toString())
+                    .findAny()
+                    .orElseThrow(NoFileException::new);
+            } catch (IOException e) {
+                throw new NoDirException(e);
+            }
+        }).executable(FileSystems.getDefault(), "myhost"));
     }
 
     private static void makeExecutable(Path path) throws IOException {
@@ -335,7 +297,8 @@ public class SFTPNodeFileSystemTest {
         }
     }
 
-    private static class NoFileException extends RuntimeException {}
+    private static class NoFileException extends RuntimeException {
+    }
 
     private static class NoDirException extends RuntimeException {
         public NoDirException(Throwable t) {

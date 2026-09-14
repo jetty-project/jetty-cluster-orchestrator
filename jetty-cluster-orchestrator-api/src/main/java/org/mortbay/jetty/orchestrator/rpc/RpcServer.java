@@ -28,7 +28,6 @@ public class RpcServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(RpcServer.class);
     static final String REQUEST_QUEUE_NAME = "RPC/requestQ";
     static final String RESPONSE_QUEUE_NAME = "RPC/responseQ";
-
     private final GlobalNodeId globalNodeId;
     private final DistributedQueue<Request> requestQueue;
     private final DistributedQueue<Response> responseQueue;
@@ -59,10 +58,15 @@ public class RpcServer implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        if (active) abort();
+        if (active) {
+            abort();
+        }
         for (int i = 0; i < 1000; i++) {
-            if (active) Thread.sleep(5);
-            else break;
+            if (active) {
+                Thread.sleep(5);
+            } else {
+                break;
+            }
         }
         executorService.shutdownNow();
     }
@@ -72,7 +76,9 @@ public class RpcServer implements AutoCloseable {
             requestQueue.offer(new Request(0, new AbortCommand()));
         } catch (Exception e) {
             // does not matter, ZK is shutting down if this happens
-            if (LOG.isDebugEnabled()) LOG.debug("", e);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("", e);
+            }
         }
     }
 
@@ -82,7 +88,9 @@ public class RpcServer implements AutoCloseable {
             try {
                 Request request = requestQueue.take();
                 lastRequestTimestamp = System.nanoTime();
-                if (LOG.isDebugEnabled()) LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Received request from {} : {}", globalNodeId.getNodeId(), request);
+                }
                 if (request.getCommand().getClass() == AbortCommand.class) {
                     active = false;
                     return;
@@ -104,7 +112,9 @@ public class RpcServer implements AutoCloseable {
                         responseQueue.offer(response);
                     } catch (Exception e) {
                         // does not matter, ZK is shutting down if this happens
-                        if (LOG.isDebugEnabled()) LOG.debug("", e);
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("", e);
+                        }
                     }
                 });
             } catch (InterruptedException e) {

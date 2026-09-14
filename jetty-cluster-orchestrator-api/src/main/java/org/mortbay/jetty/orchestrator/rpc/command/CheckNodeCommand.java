@@ -25,7 +25,9 @@ public class CheckNodeCommand implements Command {
 
     @Override
     public Object execute(ClusterTools clusterTools) throws Exception {
-        if (!process.isAlive()) throw new IllegalStateException("Process died unexpectedly: " + process);
+        if (!process.isAlive()) {
+            throw new IllegalStateException("Process died unexpectedly: " + process);
+        }
         return null;
     }
 }

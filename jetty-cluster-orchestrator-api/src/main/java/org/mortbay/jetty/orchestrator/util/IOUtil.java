@@ -29,9 +29,13 @@ public class IOUtil {
 
     public static void close(AutoCloseable closeable) {
         try {
-            if (closeable != null) closeable.close();
+            if (closeable != null) {
+                closeable.close();
+            }
         } catch (Exception e) {
-            if (LOG.isDebugEnabled()) LOG.debug("error closing {}", closeable, e);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("error closing {}", closeable, e);
+            }
         }
     }
 
@@ -47,9 +51,13 @@ public class IOUtil {
         byte[] buffer = new byte[bufferSize];
         while (true) {
             int read = is.read(buffer);
-            if (read == -1) return;
+            if (read == -1) {
+                return;
+            }
             os.write(buffer, 0, read);
-            if (flushOnWrite) os.flush();
+            if (flushOnWrite) {
+                os.flush();
+            }
         }
     }
 
@@ -60,14 +68,18 @@ public class IOUtil {
                     deltree(child);
                 }
             } catch (IOException e) {
-                if (LOG.isDebugEnabled()) LOG.debug("error listing {}", folder, e);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("error listing {}", folder, e);
+                }
             }
         }
         try {
             Files.delete(folder);
             return true;
         } catch (IOException e) {
-            if (LOG.isDebugEnabled()) LOG.debug("error deleting {}", folder, e);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("error deleting {}", folder, e);
+            }
             return false;
         }
     }

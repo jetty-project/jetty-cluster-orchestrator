@@ -36,9 +36,10 @@ public class SshNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
     }
 
     public SshNodeArrayConfiguration node(String id, String hostname) {
-        if (LocalLauncher.HOSTNAME.equals(hostname))
-            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME
-                    + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
+        if (LocalLauncher.HOSTNAME.equals(hostname)) {
+            throw new IllegalArgumentException(
+                    "'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a resolvable hostname instead");
+        }
         addNode(new SimpleNode(id, hostname));
         return this;
     }

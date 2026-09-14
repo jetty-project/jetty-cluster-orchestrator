@@ -37,9 +37,10 @@ public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
     }
 
     public K8sNodeArrayConfiguration node(K8sNode node) {
-        if (LocalLauncher.HOSTNAME.equals(node.getHostname()))
-            throw new IllegalArgumentException("'" + LocalLauncher.HOSTNAME
-                    + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
+        if (LocalLauncher.HOSTNAME.equals(node.getHostname())) {
+            throw new IllegalArgumentException(
+                    "'" + LocalLauncher.HOSTNAME + "' is reserved for LocalNodeArrayConfiguration, use a pod hostname instead");
+        }
         addNode(node);
         return this;
     }
@@ -60,7 +61,9 @@ public class K8sNodeArrayConfiguration extends AbstractNodeArrayConfiguration {
     @Override
     public Collection<? extends Node> nodes() {
         Collection<? extends Node> nodes = super.nodes();
-        if (nodeSelectors.isEmpty()) return nodes;
+        if (nodeSelectors.isEmpty()) {
+            return nodes;
+        }
 
         List<K8sNode> merged = new ArrayList<>(nodes.size());
         for (Node node : nodes) {

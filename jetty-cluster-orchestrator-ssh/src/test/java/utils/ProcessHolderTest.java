@@ -39,8 +39,8 @@ public class ProcessHolderTest {
     }
 
     private static Process startBlockingProcess() throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(
-                jvm(), "-classpath", System.getProperty("java.class.path"), MainForProcessHolder.class.getName());
+        ProcessBuilder pb =
+                new ProcessBuilder(jvm(), "-classpath", System.getProperty("java.class.path"), MainForProcessHolder.class.getName());
         pb.inheritIO();
         return pb.start();
     }

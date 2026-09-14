@@ -44,8 +44,7 @@ public abstract class AbstractHostLauncher implements HostLauncher {
     /**
      * Starts one host JVM and returns the connect string it uses to reach ZooKeeper.
      */
-    protected abstract String launchHost(GlobalNodeId hostId, Node node, String connectString, String... extraArgs)
-            throws Exception;
+    protected abstract String launchHost(GlobalNodeId hostId, Node node, String connectString, String... extraArgs) throws Exception;
 
     /**
      * Releases whatever {@link #launchHost} created. Called by {@link #close()}.
@@ -59,20 +58,21 @@ public abstract class AbstractHostLauncher implements HostLauncher {
     protected void checkSharedHost(Node first, Node second) {}
 
     @Override
-    public final Map<String, String> launch(
-            String clusterId, NodeArrayConfiguration nodeArray, String connectString, String... extraArgs)
-            throws Exception {
+    public final Map<String, String> launch(String clusterId, NodeArrayConfiguration nodeArray, String connectString,
+            String... extraArgs) throws Exception {
         Class<? extends NodeArrayConfiguration> expected = configurationType();
-        if (!expected.isInstance(nodeArray))
-            throw new IllegalArgumentException("Node array '" + nodeArray.id() + "' is a "
-                    + nodeArray.getClass().getName() + " but " + getClass().getSimpleName() + " needs a "
-                    + expected.getName());
-
+        if (!expected.isInstance(nodeArray)) {
+            throw new IllegalArgumentException(
+                    "Node array '" + nodeArray.id() + "' is a " + nodeArray.getClass().getName() + " but "
+                    + getClass().getSimpleName() + " needs a " + expected.getName());
+        }
         // Nodes naming the same host all run on one host JVM.
         Map<String, Node> hostNodes = new LinkedHashMap<>();
         for (Node node : nodeArray.nodes()) {
             Node alreadyOnThatHost = hostNodes.putIfAbsent(node.getHostname(), node);
-            if (alreadyOnThatHost != null) checkSharedHost(alreadyOnThatHost, node);
+            if (alreadyOnThatHost != null) {
+                checkSharedHost(alreadyOnThatHost, node);
+            }
         }
 
         Map<String, CompletableFuture<String>> pending = new LinkedHashMap<>();
@@ -107,13 +107,18 @@ public abstract class AbstractHostLauncher implements HostLauncher {
                 remoteConnectStrings.put(entry.getKey(), entry.getValue().get());
             } catch (Exception e) {
                 Throwable cause = e instanceof ExecutionException && e.getCause() != null ? e.getCause() : e;
-                Exception error = new Exception(
-                        "Error launching host '" + entry.getKey() + "' of node array '" + nodeArray.id() + "'", cause);
-                if (failure == null) failure = error;
-                else failure.addSuppressed(error);
+                Exception error =
+                        new Exception("Error launching host '" + entry.getKey() + "' of node array '" + nodeArray.id() + "'", cause);
+                if (failure == null) {
+                    failure = error;
+                } else {
+                    failure.addSuppressed(error);
+                }
             }
         }
-        if (failure != null) throw failure;
+        if (failure != null) {
+            throw failure;
+        }
         return remoteConnectStrings;
     }
 

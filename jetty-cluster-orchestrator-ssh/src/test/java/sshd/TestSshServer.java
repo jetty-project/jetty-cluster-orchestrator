@@ -63,7 +63,6 @@ public class TestSshServer implements AutoCloseable {
 
     private void init(KeyPair keyPair, String homePath) throws Exception {
         sshd = SshServer.setUpDefaultServer();
-
         // configure server keys
         sshd.setKeyPairProvider(new AbstractResourceKeyPairProvider<Object>() {
             @Override
@@ -74,18 +73,15 @@ public class TestSshServer implements AutoCloseable {
         // fully open auth
         sshd.setPublickeyAuthenticator((s, publicKey, serverSession) -> true);
         sshd.setPasswordAuthenticator((username, password, session) -> true);
-
         // enable TCP port forwarding
         sshd.setForwardingFilter(new AcceptAllForwardingFilter());
-
         // enable SFTP
         SftpSubsystemFactory factory = new SftpSubsystemFactory() {
             @Override
             public Command createSubsystem(ChannelSession channel) {
                 SftpSubsystem subsystem = new SftpSubsystem(channel, this) {
                     {
-                        this.defaultDir =
-                                fileSystem.getPath(homePath).toAbsolutePath().normalize();
+                        this.defaultDir = fileSystem.getPath(homePath).toAbsolutePath().normalize();
                     }
                 };
                 GenericUtils.forEach(getRegisteredListeners(), subsystem::addSftpEventListener);
@@ -94,7 +90,6 @@ public class TestSshServer implements AutoCloseable {
         };
         sshd.setSubsystemFactories(Collections.singletonList(factory));
         sshd.setFileSystemFactory(new NativeFileSystemFactory());
-
         // execute commands from home folder
         sshd.setCommandFactory(new ProcessShellCommandFactory() {
             @Override
@@ -102,8 +97,7 @@ public class TestSshServer implements AutoCloseable {
                 ShellFactory factory = new ProcessShellFactory(command, CommandFactory.split(command)) {
                     @Override
                     protected InvertedShell createInvertedShell(ChannelSession channel) {
-                        return new HomeProcessShell(
-                                homePath, resolveEffectiveCommand(channel, getCommand(), getElements()));
+                        return new HomeProcessShell(homePath, resolveEffectiveCommand(channel, getCommand(), getElements()));
                     }
                 };
                 return factory.createShell(channel);

@@ -34,30 +34,30 @@ public class NodeArrayFutureTest extends AbstractSshTest {
     @Test
     public void testJvmOptionWithStar() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm("-Dmyprop=*"))
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm("-Dmyprop=*"))
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
             nodeArray.executeOnAll(tools -> tools.barrier("barrier", 2).await());
-            cluster.tools().barrier("barrier", 2).await(15, TimeUnit.SECONDS); // check that the remote node is working
+            // check that the remote node is working
+            cluster.tools().barrier("barrier", 2).await(15, TimeUnit.SECONDS);
         }
     }
 
     @Test
     public void testDetectProcessDeath() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
             NodeArrayFuture future = nodeArray.executeOnAll(tools -> {
-                System.exit(1); // terminate the remote JVM
+                // terminate the remote JVM
+                System.exit(1);
             });
             assertThrows(ExecutionException.class, () -> future.get(10, TimeUnit.SECONDS));
         }
@@ -66,18 +66,21 @@ public class NodeArrayFutureTest extends AbstractSshTest {
     @Test
     public void testDetectTimeout() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName())
-                        .node("2", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                .node("1", InetAddress.getLocalHost().getHostName())
+                .node("2", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
             NodeArrayFuture future = nodeArray.executeOnAll(tools -> {
                 int id = tools.barrier("barrier", 2).await();
-                if (id == 0) Thread.sleep(200);
-                else throw new ArithmeticException("something went wrong");
+                if (id == 0) {
+                    Thread.sleep(200);
+                } else {
+                    throw new ArithmeticException("something went wrong");
+                }
             });
             assertThrows(TimeoutException.class, () -> future.get(100, TimeUnit.MILLISECONDS));
         }
@@ -86,22 +89,23 @@ public class NodeArrayFutureTest extends AbstractSshTest {
     @Test
     public void testZeroTimeoutThenDetectDeath() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
             NodeArrayFuture future1 = nodeArray.executeOnAll(tools -> {
                 Thread.sleep(1000);
-                System.exit(1); // terminate the remote JVM
+                // terminate the remote JVM
+                System.exit(1);
             });
             assertThrows(TimeoutException.class, () -> future1.get(0, TimeUnit.SECONDS));
             assertThrows(ExecutionException.class, future1::get);
 
             NodeArrayFuture future2 = nodeArray.executeOnAll(tools -> {
-                tools.atomicCounter("counter", 1); // this should not execute as the process should have died
+                // this should not execute as the process should have died
+                tools.atomicCounter("counter", 1);
             });
             assertThrows(ExecutionException.class, future2::get);
             assertThat(cluster.tools().atomicCounter("counter", 0).get(), is(0L));
@@ -111,11 +115,11 @@ public class NodeArrayFutureTest extends AbstractSshTest {
     @Test
     public void testTimeoutIsSpread() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName())
-                        .node("2", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array")
+                .node("1", InetAddress.getLocalHost().getHostName())
+                .node("2", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");

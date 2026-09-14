@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 public class StreamCopier {
     private static final Logger LOG = LoggerFactory.getLogger(StreamCopier.class);
-
     private final InputStream is;
     private final OutputStream os;
     private final int bufferSize;
@@ -33,21 +32,24 @@ public class StreamCopier {
 
     public StreamCopier(InputStream is, OutputStream os, int bufferSize, boolean lineBuffering) {
         this.is = is;
-        if (lineBuffering) this.os = new LineBufferingOutputStream(os, bufferSize);
-        else this.os = os;
+        if (lineBuffering) {
+            this.os = new LineBufferingOutputStream(os, bufferSize);
+        } else {
+            this.os = os;
+        }
         this.bufferSize = bufferSize;
     }
 
     public void spawnDaemon(String name) {
-        Thread thread = new Thread(
-                () -> {
-                    try {
-                        IOUtil.copy(is, os, bufferSize, true);
-                    } catch (Exception e) {
-                        if (LOG.isDebugEnabled()) LOG.debug("Error copying stream", e);
-                    }
-                },
-                name);
+        Thread thread = new Thread(() -> {
+            try {
+                IOUtil.copy(is, os, bufferSize, true);
+            } catch (Exception e) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Error copying stream", e);
+                }
+            }
+        }, name);
         thread.setDaemon(true);
         thread.start();
     }
@@ -91,7 +93,9 @@ public class StreamCopier {
         }
 
         public void append(int b) {
-            if (isFull()) throw new IllegalStateException("buffer is full");
+            if (isFull()) {
+                throw new IllegalStateException("buffer is full");
+            }
             buffer[length] = (byte) b;
             length++;
         }

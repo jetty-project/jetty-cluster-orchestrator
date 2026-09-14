@@ -30,12 +30,7 @@ public class K8sNode implements Node {
     private final Map<String, String> labels;
     private final int servicePort;
 
-    private K8sNode(
-            String id,
-            String hostname,
-            Map<String, String> nodeSelectors,
-            Map<String, String> labels,
-            int servicePort) {
+    private K8sNode(String id, String hostname, Map<String, String> nodeSelectors, Map<String, String> labels, int servicePort) {
         this.id = Objects.requireNonNull(id, "Node id cannot be null");
         this.hostname = Objects.requireNonNull(hostname, "Node hostname cannot be null");
         this.nodeSelectors = Map.copyOf(nodeSelectors);
@@ -85,12 +80,8 @@ public class K8sNode implements Node {
 
     @Override
     public String toString() {
-        return "K8sNode{" + "id='"
-                + id + '\'' + ", hostname='"
-                + hostname + '\'' + ", labels="
-                + labels + ", nodeSelectors="
-                + nodeSelectors + ", servicePort="
-                + servicePort + '}';
+        return "K8sNode{" + "id='" + id + '\'' + ", hostname='" + hostname + '\'' + ", labels=" + labels + ", nodeSelectors="
+                + nodeSelectors + ", servicePort=" + servicePort + '}';
     }
 
     public static final class Builder {

@@ -286,16 +286,21 @@
             </excludes>
             <!-- wrap anything you want left alone in spotless:off / spotless:on -->
             <toggleOffOn />
-            <!-- palantir goes first: it drives its own import order, so it has to run
+            <!-- princeOfSpace goes first: it drives its own import order, so it has to run
                  before importOrder. licenseHeader stays last, it rewrites the top of the file -->
-            <palantirJavaFormat>
-              <!-- pin it so the format does not shift with the build JDK -->
-              <version>2.97.0</version>
-            </palantirJavaFormat>
+            <princeOfSpace>
+              <version>2.2.0</version>
+              <indentStyle>SPACES</indentStyle>
+              <indentSize>4</indentSize>
+              <lineLength>132</lineLength>
+              <wrapStyle>WIDE</wrapStyle>
+              <closingParenOnNewLine>false</closingParenOnNewLine>
+              <trailingCommas>true</trailingCommas>
+              <javaLanguageLevel>17</javaLanguageLevel>
+            </princeOfSpace>
             <removeUnusedImports />
-            <!-- same import order as the Apache Maven project -->
             <importOrder>
-              <order>javax,java,,\#</order>
+              <order>java,javax,,\#</order>
             </importOrder>
             <licenseHeader>
               <file>${maven.multiModuleProjectDirectory}/header-template.txt</file>

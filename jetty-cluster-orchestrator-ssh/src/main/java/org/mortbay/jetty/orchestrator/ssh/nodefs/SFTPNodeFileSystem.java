@@ -43,7 +43,6 @@ import org.mortbay.jetty.orchestrator.nodefs.NodePath;
 class SFTPNodeFileSystem extends AbstractNodeFileSystem {
     static final String PATH_SEPARATOR = "/";
     static final String WINDOWS_PATH_SEPARATOR = "\\";
-
     private final NodeFileSystemProvider provider;
     private final SftpClient sftpClient;
     private final String hostId;
@@ -52,8 +51,7 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem {
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    SFTPNodeFileSystem(
-            NodeFileSystemProvider provider, SftpClient sftpClient, String hostId, List<String> cwd, boolean windows) {
+    SFTPNodeFileSystem(NodeFileSystemProvider provider, SftpClient sftpClient, String hostId, List<String> cwd, boolean windows) {
         this.provider = provider;
         this.sftpClient = sftpClient;
         this.hostId = hostId;
@@ -78,8 +76,8 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem {
         }
     }
 
-    public SeekableByteChannel newByteChannel(
-            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+    public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+            throws IOException {
         byte[] data;
         try (InputStream is = sftpClient.read(relativeFromHomeOrAbsolute(path).toString())) {
             data = is.readAllBytes();
@@ -134,16 +132,18 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem {
         };
     }
 
-    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
-            throws IOException {
+    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException {
         List<Path> filteredPaths = new ArrayList<>();
         try {
-            for (SftpClient.DirEntry entry :
-                    sftpClient.readDir(relativeFromHomeOrAbsolute(dir).toString())) {
+            for (SftpClient.DirEntry entry : sftpClient.readDir(relativeFromHomeOrAbsolute(dir).toString())) {
                 String name = entry.getFilename();
-                if (".".equals(name) || "..".equals(name)) continue;
+                if (".".equals(name) || "..".equals(name)) {
+                    continue;
+                }
                 Path resolved = dir.resolve(name);
-                if (filter.accept(resolved)) filteredPaths.add(resolved);
+                if (filter.accept(resolved)) {
+                    filteredPaths.add(resolved);
+                }
             }
         } catch (IOException e) {
             throw new IOException("Unable to open directory stream for path: " + dir, e);
@@ -187,11 +187,11 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem {
     }
 
     @SuppressWarnings("unchecked")
-    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
-            throws IOException {
+    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException {
         Objects.requireNonNull(type);
-        if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class))
+        if (!type.equals(BasicFileAttributes.class) && !type.equals(NodeFileAttributes.class)) {
             throw new UnsupportedOperationException();
+        }
 
         String sftpPath = relativeFromHomeOrAbsolute(path).toString();
         try {
@@ -252,7 +252,9 @@ class SFTPNodeFileSystem extends AbstractNodeFileSystem {
     public Path getPath(String first, String... more) {
         boolean absolute = first.startsWith(PATH_SEPARATOR);
         List<String> segments = new ArrayList<>(NodePath.toSegments(first));
-        for (String s : more) segments.addAll(NodePath.toSegments(s));
+        for (String s : more) {
+            segments.addAll(NodePath.toSegments(s));
+        }
         return getPath(absolute, segments);
     }
 

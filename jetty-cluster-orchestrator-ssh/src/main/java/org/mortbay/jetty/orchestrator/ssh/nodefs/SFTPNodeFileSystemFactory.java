@@ -39,8 +39,7 @@ public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory {
     }
 
     @Override
-    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env)
-            throws IOException {
+    public AbstractNodeFileSystem createFileSystem(NodeFileSystemProvider provider, URI uri, Map<String, ?> env) throws IOException {
         boolean windows = (Boolean) env.get(IS_WINDOWS_ENV_PROPERTY);
         SftpClient sftpClient = (SftpClient) env.get(SftpClient.class.getName());
         String hostId = extractHostId(uri);
@@ -51,28 +50,38 @@ public class SFTPNodeFileSystemFactory implements NodeFileSystemFactory {
 
     @Override
     public int getPriority() {
-        return 100; // High priority for SSH
+        // High priority for SSH
+        return 100;
     }
 
     private String extractHostId(URI uri) {
         String hostId = uri.getHost();
         if (hostId == null) {
             String ssp = uri.getSchemeSpecificPart();
-            if (ssp.startsWith("//")) ssp = ssp.substring(2);
+            if (ssp.startsWith("//")) {
+                ssp = ssp.substring(2);
+            }
             int idx = ssp.indexOf('!');
-            if (idx >= 0) hostId = ssp.substring(0, idx);
-            else hostId = ssp;
+            if (idx >= 0) {
+                hostId = ssp.substring(0, idx);
+            } else {
+                hostId = ssp;
+            }
         }
         return hostId;
     }
 
     private String extractPath(URI uri) {
         String fragment = uri.getFragment();
-        if (fragment != null && fragment.startsWith("/")) return fragment.substring(1);
+        if (fragment != null && fragment.startsWith("/")) {
+            return fragment.substring(1);
+        }
 
         String ssp = uri.getSchemeSpecificPart();
         int idx = ssp.indexOf('!');
-        if (idx >= 0 && idx + 2 < ssp.length() && ssp.charAt(idx + 1) == '/') return ssp.substring(idx + 2);
+        if (idx >= 0 && idx + 2 < ssp.length() && ssp.charAt(idx + 1) == '/') {
+            return ssp.substring(idx + 2);
+        }
 
         return "";
     }
