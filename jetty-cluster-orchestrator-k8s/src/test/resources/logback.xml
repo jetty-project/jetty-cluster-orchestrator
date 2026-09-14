@@ -6,7 +6,6 @@
     </encoder>
   </appender>
 
-  <logger name="org.zeroturnaround.process" level="error" />
   <logger name="org.apache.zookeeper" level="error" />
   <logger name="org.apache.sshd" level="error" />
 
