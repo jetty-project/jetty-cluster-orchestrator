@@ -21,13 +21,16 @@ import org.mortbay.jetty.orchestrator.configuration.Jvm;
 
 public class JvmUtil {
     public static Jvm currentJvm(String... opts) {
-        return new Jvm((fileSystem, hostname) -> {
-            Path javaExec = JvmUtil.findCurrentJavaExecutable();
-            if (javaExec == null) {
-                throw new IllegalStateException("Cannot find executable java command of current JVM");
-            }
-            return javaExec.toAbsolutePath().toString();
-        }, opts);
+        return new Jvm(new FilenameSupplier.CurrentJvm(), opts);
+    }
+
+    public static Jvm mavenToolchains(String version, String... opts) {
+        return new Jvm(new FilenameSupplier.MavenToolchains(version), opts);
+    }
+
+    public static Jvm mavenToolchainsOrJavaOnPath(String version, String... opts) {
+        return new Jvm(
+                new FilenameSupplier.Combined(new FilenameSupplier.MavenToolchains(version), (fs, h) -> "java"), opts);
     }
 
     public static Path findCurrentJavaExecutable() {
@@ -37,23 +40,16 @@ public class JvmUtil {
     }
 
     public static Path findJavaExecutable(Path javaHomePath) {
-        // *nix
-        Path javaExec = javaHomePath.resolve("bin").resolve("java");
-        if (!Files.isExecutable(javaExec)) {
+        Path javaExec = javaHomePath.resolve("bin").resolve("java"); // *nix
+        if (!Files.isExecutable(javaExec))
             javaExec = javaHomePath
-                .resolve("Contents")
-                .resolve("Home")
-                .resolve("bin")
-                // OSX
-                .resolve("java");
-        }
-        if (!Files.isExecutable(javaExec)) {
-            // Windows
-            javaExec = javaHomePath.resolve("bin").resolve("java.exe");
-        }
-        if (!Files.isExecutable(javaExec)) {
-            return null;
-        }
+                    .resolve("Contents")
+                    .resolve("Home")
+                    .resolve("bin")
+                    .resolve("java"); // OSX
+        if (!Files.isExecutable(javaExec))
+            javaExec = javaHomePath.resolve("bin").resolve("java.exe"); // Windows
+        if (!Files.isExecutable(javaExec)) return null;
         return javaExec;
     }
 }

@@ -19,17 +19,18 @@ import java.util.Map;
 
 import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent {
-    private static final Jvm DEFAULT_JVM = new Jvm((f, h) -> "java");
+    private static final Jvm DEFAULT_JVM = JvmUtil.mavenToolchainsOrJavaOnPath("[17");
+
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private long healthCheckTimeout = 30_000L;
     private long healthCheckDelay = 5000L;
     private HostLauncher hostLauncher = new LocalLauncher();
 
-    public SimpleClusterConfiguration() {
-    }
+    public SimpleClusterConfiguration() {}
 
     public SimpleClusterConfiguration jvm(Jvm jvm) {
         this.jvm = jvm;
@@ -75,9 +76,8 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
 
     public SimpleClusterConfiguration nodeArray(NodeArrayConfiguration nodeArrayConfiguration) {
         String id = nodeArrayConfiguration.id();
-        if (nodeArrayConfigurations.containsKey(id)) {
+        if (nodeArrayConfigurations.containsKey(id))
             throw new IllegalArgumentException("Duplicate node array ID: " + id);
-        }
         nodeArrayConfigurations.put(id, nodeArrayConfiguration);
         ensureJvmSet(nodeArrayConfiguration);
         return this;
@@ -92,9 +92,7 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
     private void ensureJvmSet(Object obj) {
         if (obj instanceof JvmDependent) {
             JvmDependent jvmDependent = (JvmDependent) obj;
-            if (jvmDependent.jvm() == null) {
-                jvmDependent.jvm(jvm);
-            }
+            if (jvmDependent.jvm() == null) jvmDependent.jvm(jvm);
         }
     }
 
