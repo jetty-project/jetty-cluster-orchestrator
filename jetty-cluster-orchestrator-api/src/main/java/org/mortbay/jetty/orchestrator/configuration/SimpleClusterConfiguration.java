@@ -97,4 +97,14 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return "SimpleClusterConfiguration{" + "jvm="
+                + jvm + ", nodeArrayConfigurations="
+                + nodeArrayConfigurations + ", healthCheckTimeout="
+                + healthCheckTimeout + ", healthCheckDelay="
+                + healthCheckDelay + ", hostLauncher="
+                + hostLauncher + '}';
+    }
 }

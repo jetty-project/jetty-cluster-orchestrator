@@ -643,4 +643,18 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return "KubernetesRemoteHostLauncher{" + "pods="
+                + pods + ", launcherId='"
+                + launcherId + '\'' + ", namespace='"
+                + namespace + '\'' + ", image='"
+                + image + '\'' + ", jvm="
+                + jvm + ", zkServiceName='"
+                + zkServiceName + '\'' + ", headlessServiceName='"
+                + headlessServiceName + '\'' + ", headlessServiceCreated="
+                + headlessServiceCreated + ", zkPodName='"
+                + zkPodName + '\'' + '}';
+    }
 }
