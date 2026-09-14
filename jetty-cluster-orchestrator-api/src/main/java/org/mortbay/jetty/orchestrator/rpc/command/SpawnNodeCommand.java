@@ -27,8 +27,7 @@ public class SpawnNodeCommand implements Command {
     private final String connectString;
     private final String[] extraArgs;
 
-    public SpawnNodeCommand(
-            Jvm jvm, String hostname, String hostId, String nodeId, String connectString, String... extraArgs) {
+    public SpawnNodeCommand(Jvm jvm, String hostname, String hostId, String nodeId, String connectString, String... extraArgs) {
         this.jvm = jvm;
         this.hostname = hostname;
         this.hostId = hostId;

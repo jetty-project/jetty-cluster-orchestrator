@@ -45,8 +45,9 @@ public abstract class AbstractNodeArrayConfiguration implements NodeArrayConfigu
 
     protected void addNode(Node node) {
         Objects.requireNonNull(node, "Node cannot be null");
-        if (nodes.putIfAbsent(node.getId(), node) != null)
+        if (nodes.putIfAbsent(node.getId(), node) != null) {
             throw new IllegalArgumentException("Duplicate node ID in node array '" + id + "': " + node.getId());
+        }
     }
 
     @Override

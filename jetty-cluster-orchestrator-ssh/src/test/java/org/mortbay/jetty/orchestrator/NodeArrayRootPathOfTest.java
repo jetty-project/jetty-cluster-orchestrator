@@ -37,18 +37,16 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest {
     @Test
     public void testTwoClustersOnSameHost() throws Exception {
         ClusterConfiguration cfg1 = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         new Cluster(cfg1).close();
 
         ClusterConfiguration cfg2 = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         new Cluster(cfg2).close();
     }
@@ -56,28 +54,24 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest {
     @Test
     public void testSmallFile() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
 
-            nodeArray
-                    .executeOnAll(tools -> {
-                        byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
-                        long totalCount = 0L;
-                        try (OutputStream bigOs =
-                                new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
-                            while (totalCount < 16 * 1024) {
-                                bigOs.write(buffer);
-                                totalCount += buffer.length;
-                            }
-                        }
-                        tools.atomicCounter("fileSize", totalCount);
-                    })
-                    .get();
+            nodeArray.executeOnAll(tools -> {
+                byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
+                long totalCount = 0L;
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
+                    while (totalCount < 16 * 1024) {
+                        bigOs.write(buffer);
+                        totalCount += buffer.length;
+                    }
+                }
+                tools.atomicCounter("fileSize", totalCount);
+            }).get();
 
             Path targetFile = Paths.get("target/big.txt");
             try (OutputStream os = Files.newOutputStream(targetFile)) {
@@ -90,26 +84,23 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest {
     @Test
     public void testSmallFileLocalhost() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
 
-            nodeArray
-                    .executeOnAll(tools -> {
-                        byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
-                        long totalCount = 0L;
-                        try (OutputStream bigOs =
-                                new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
-                            while (totalCount < 16 * 1024) {
-                                bigOs.write(buffer);
-                                totalCount += buffer.length;
-                            }
-                        }
-                        tools.atomicCounter("fileSize", totalCount);
-                    })
-                    .get();
+            nodeArray.executeOnAll(tools -> {
+                byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
+                long totalCount = 0L;
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
+                    while (totalCount < 16 * 1024) {
+                        bigOs.write(buffer);
+                        totalCount += buffer.length;
+                    }
+                }
+                tools.atomicCounter("fileSize", totalCount);
+            }).get();
 
             Path targetFile = Paths.get("target/big.txt");
             try (OutputStream os = Files.newOutputStream(targetFile)) {
@@ -122,28 +113,24 @@ public class NodeArrayRootPathOfTest extends AbstractSshTest {
     @Test
     public void testLargeFile() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new SshNodeArrayConfiguration("my-array")
-                        .node("1", InetAddress.getLocalHost().getHostName()))
-                .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new SshNodeArrayConfiguration("my-array").node("1", InetAddress.getLocalHost().getHostName()))
+            .hostLauncher(new SshRemoteHostLauncher(System.getProperty("user.name"), new char[0], sshd.getPort()));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
 
-            nodeArray
-                    .executeOnAll(tools -> {
-                        byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
-                        long totalCount = 0L;
-                        try (OutputStream bigOs =
-                                new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
-                            while (totalCount < 16 * 1024 * 1024) {
-                                bigOs.write(buffer);
-                                totalCount += buffer.length;
-                            }
-                        }
-                        tools.atomicCounter("fileSize", totalCount);
-                    })
-                    .get();
+            nodeArray.executeOnAll(tools -> {
+                byte[] buffer = "Big File!\n".getBytes(StandardCharsets.UTF_8);
+                long totalCount = 0L;
+                try (OutputStream bigOs = new BufferedOutputStream(Files.newOutputStream(Paths.get("big.txt")), 1024 * 1024)) {
+                    while (totalCount < 16 * 1024 * 1024) {
+                        bigOs.write(buffer);
+                        totalCount += buffer.length;
+                    }
+                }
+                tools.atomicCounter("fileSize", totalCount);
+            }).get();
 
             Path targetFile = Paths.get("target/big.txt");
             try (OutputStream os = Files.newOutputStream(targetFile)) {

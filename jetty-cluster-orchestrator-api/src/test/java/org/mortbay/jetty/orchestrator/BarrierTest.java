@@ -29,8 +29,8 @@ public class BarrierTest {
     @Test
     public void testNoTimeout() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
@@ -52,18 +52,19 @@ public class BarrierTest {
     @Test
     public void testTimeout() throws Exception {
         ClusterConfiguration cfg = new SimpleClusterConfiguration()
-                .jvm(JvmUtil.currentJvm())
-                .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
+            .jvm(JvmUtil.currentJvm())
+            .nodeArray(new LocalNodeArrayConfiguration("my-array").node("1"));
 
         try (Cluster cluster = new Cluster(cfg)) {
             NodeArray nodeArray = cluster.nodeArray("my-array");
-            NodeArrayFuture future = nodeArray.executeOnAll(tools -> Assertions.assertThrows(
-                    TimeoutException.class,
-                    () -> tools.barrier("the-barrier", 3).await(1, TimeUnit.SECONDS)));
+            NodeArrayFuture future = nodeArray.executeOnAll(tools -> Assertions.assertThrows(TimeoutException.class, () -> tools
+                .barrier("the-barrier", 3)
+                .await(1, TimeUnit.SECONDS)));
 
-            Assertions.assertThrows(
-                    TimeoutException.class,
-                    () -> cluster.tools().barrier("the-barrier", 3).await(1, TimeUnit.SECONDS));
+            Assertions.assertThrows(TimeoutException.class, () -> cluster
+                .tools()
+                .barrier("the-barrier", 3)
+                .await(1, TimeUnit.SECONDS));
             future.get();
         }
     }

@@ -48,9 +48,14 @@ public class NodePath implements Path {
     }
 
     public static List<String> toSegments(String path) {
-        if (path.equals(PATH_SEPARATOR)) return Collections.singletonList(PATH_SEPARATOR);
+        if (path.equals(PATH_SEPARATOR)) {
+            return Collections.singletonList(PATH_SEPARATOR);
+        }
         String[] segments = path.split(PATH_SEPARATOR);
-        return Arrays.stream(segments).filter(s -> !"".equals(s)).collect(Collectors.toList());
+        return Arrays
+            .stream(segments)
+            .filter(s -> !"".equals(s))
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -110,13 +115,17 @@ public class NodePath implements Path {
 
     @Override
     public Path getFileName() {
-        if (pathSegments.isEmpty()) return null;
+        if (pathSegments.isEmpty()) {
+            return null;
+        }
         return this;
     }
 
     @Override
     public Path getParent() {
-        if (getNameCount() == 0) return this;
+        if (getNameCount() == 0) {
+            return this;
+        }
         return getName(getNameCount() - 1);
     }
 
@@ -127,7 +136,9 @@ public class NodePath implements Path {
 
     @Override
     public Path getName(int index) {
-        if (index >= pathSegments.size()) throw new IllegalArgumentException("index " + index + " too big for " + this);
+        if (index >= pathSegments.size()) {
+            throw new IllegalArgumentException("index " + index + " too big for " + this);
+        }
         List<String> parentSegments = pathSegments.subList(0, index);
         NodePath base = new NodePath(fileSystem, basePath, parentSegments);
         return new NodePath(fileSystem, base, List.of(pathSegments.get(index)));
@@ -135,20 +146,28 @@ public class NodePath implements Path {
 
     @Override
     public Path resolve(Path other) {
-        if (other.isAbsolute()) return other;
-        if (other.getNameCount() == 0) return this;
+        if (other.isAbsolute()) {
+            return other;
+        }
+        if (other.getNameCount() == 0) {
+            return this;
+        }
         return new NodePath(fileSystem, this, toSegments(other.toString()));
     }
 
     @Override
     public URI toUri() {
-        if (!isAbsolute()) return toAbsolutePath().toUri();
+        if (!isAbsolute()) {
+            return toAbsolutePath().toUri();
+        }
         return URI.create(fileSystem.provider().getScheme() + ":" + fileSystem.getHostId() + "!/" + toAbsolutePath());
     }
 
     @Override
     public NodePath toAbsolutePath() {
-        if (isAbsolute()) return this;
+        if (isAbsolute()) {
+            return this;
+        }
         NodePath absoluteBasePath = basePath.toAbsolutePath();
         List<String> segments = new ArrayList<>();
         segments.addAll(absoluteBasePath.pathSegments);
@@ -213,7 +232,9 @@ public class NodePath implements Path {
         String otherAbsolute = other.toAbsolutePath().toString();
 
         int idx = otherAbsolute.indexOf(thisAbsolute);
-        if (idx == -1) throw new IllegalArgumentException();
+        if (idx == -1) {
+            throw new IllegalArgumentException();
+        }
 
         List<String> segments = toSegments(otherAbsolute.substring(idx + thisAbsolute.length()));
         return new NodePath(fileSystem, this, segments);
@@ -237,11 +258,14 @@ public class NodePath implements Path {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NodePath other = (NodePath) o;
-        return fileSystem == other.fileSystem
-                && Objects.equals(basePath, other.basePath)
+        return fileSystem == other.fileSystem && Objects.equals(basePath, other.basePath)
                 && Objects.equals(pathSegments, other.pathSegments);
     }
 
@@ -257,11 +281,15 @@ public class NodePath implements Path {
         StringBuilder sb = new StringBuilder();
         String separator = fileSystem != null ? fileSystem.getSeparator() : PATH_SEPARATOR;
         boolean windows = "\\".equals(separator);
-        if (isAbsolute() && !windows) sb.append(separator);
+        if (isAbsolute() && !windows) {
+            sb.append(separator);
+        }
         for (int i = 0; i < pathSegments.size(); i++) {
             String segment = pathSegments.get(i);
             sb.append(segment);
-            if (i < pathSegments.size() - 1) sb.append(separator);
+            if (i < pathSegments.size() - 1) {
+                sb.append(separator);
+            }
         }
         return sb.toString();
     }

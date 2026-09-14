@@ -30,9 +30,9 @@ public class ZooKeeperServer implements Closeable {
     public ZooKeeperServer() throws Exception {
         baseDir = createFreshBaseDir();
         zk = new ZooKeeperServerEmbedded.ZookKeeperServerEmbeddedBuilder()
-                .baseDir(baseDir)
-                .configuration(createConfiguration())
-                .build();
+            .baseDir(baseDir)
+            .configuration(createConfiguration())
+            .build();
         zk.start();
         connectString = zk.getConnectionString();
     }

@@ -44,8 +44,9 @@ public class GlobalNodeId {
 
     public GlobalNodeId(String nodeId) {
         String[] parts = nodeId.split("/");
-        if (parts.length != 2 && parts.length != 4)
+        if (parts.length != 2 && parts.length != 4) {
             throw new IllegalArgumentException("Invalid global node id : '" + nodeId + "'");
+        }
         this.clusterId = parts[0];
         if (parts.length == 2) {
             this.hostId = nodeId;
@@ -89,8 +90,12 @@ public class GlobalNodeId {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GlobalNodeId that = (GlobalNodeId) o;
         return nodeId.equals(that.nodeId);
     }

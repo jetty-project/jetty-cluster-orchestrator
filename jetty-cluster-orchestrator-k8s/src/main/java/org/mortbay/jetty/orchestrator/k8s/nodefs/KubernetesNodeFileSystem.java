@@ -52,7 +52,6 @@ import org.mortbay.jetty.orchestrator.nodefs.NodePath;
  */
 public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     static final String PATH_SEPARATOR = "/";
-
     private final NodeFileSystemProvider provider;
     private final KubernetesClient client;
     private final String namespace;
@@ -62,14 +61,8 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     private final NodePath cwdPath;
     private volatile boolean closed;
 
-    KubernetesNodeFileSystem(
-            NodeFileSystemProvider provider,
-            KubernetesClient client,
-            String namespace,
-            String podName,
-            String podHome,
-            String hostId,
-            List<String> cwd) {
+    KubernetesNodeFileSystem(NodeFileSystemProvider provider, KubernetesClient client, String namespace, String podName,
+            String podHome, String hostId, List<String> cwd) {
         this.provider = provider;
         this.client = client;
         this.namespace = namespace;
@@ -91,8 +84,8 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     }
 
     @Override
-    public SeekableByteChannel newByteChannel(
-            NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
+    public SeekableByteChannel newByteChannel(NodePath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+            throws IOException {
         byte[] data;
         try (InputStream is = newInputStream(path)) {
             data = is.readAllBytes();
@@ -148,8 +141,7 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     }
 
     @Override
-    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter)
-            throws IOException {
+    public DirectoryStream<Path> newDirectoryStream(NodePath dir, DirectoryStream.Filter<? super Path> filter) throws IOException {
         String abs = absolutePathString(dir);
         String output;
         try {
@@ -161,9 +153,13 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
         List<Path> filteredPaths = new ArrayList<>();
         for (String name : output.split("\n")) {
             name = name.trim();
-            if (name.isEmpty() || name.equals(".") || name.equals("..")) continue;
+            if (name.isEmpty() || name.equals(".") || name.equals("..")) {
+                continue;
+            }
             Path resolved = dir.resolve(name);
-            if (filter.accept(resolved)) filteredPaths.add(resolved);
+            if (filter.accept(resolved)) {
+                filteredPaths.add(resolved);
+            }
         }
 
         return new DirectoryStream<>() {
@@ -196,30 +192,29 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options)
-            throws IOException {
+    public <A extends BasicFileAttributes> A readAttributes(NodePath path, Class<A> type, LinkOption... options) throws IOException {
         Objects.requireNonNull(type);
-        if (!type.equals(BasicFileAttributes.class) && !type.equals(KubernetesNodeFileAttributes.class))
+        if (!type.equals(BasicFileAttributes.class) && !type.equals(KubernetesNodeFileAttributes.class)) {
             throw new UnsupportedOperationException("Unsupported attribute type: " + type);
+        }
 
         String abs = absolutePathString(path);
         String output;
         try {
             // Enhanced stat format with quotes for robust parsing
             // Format: '%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'
-            output = podRunAndCollect("stat", "--format='%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'", abs)
-                    .trim();
+            output = podRunAndCollect("stat", "--format='%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'", abs).trim();
         } catch (IOException e) {
             throw new IOException("Error reading attributes of path: " + path, e);
         }
-
         // Parse quoted stat output: "'%F' '%s' '%a' '%u' '%g' '%Y' '%X' '%Z'"
         // e.g. "'regular file' '1234' '755' '1000' '1000' '1678901234' '1678901230' '1678901235'"
         // Split on single quotes and extract every other element (skip empty strings between quotes)
         String[] parts = output.split("'");
-        if (parts.length < 15) // Should have 16 parts: empty + 8 quoted fields + 7 separators
-        throw new IOException("Unexpected stat output format for " + abs + ": " + output);
-
+        if (// Should have 16 parts: empty + 8 quoted fields + 7 separators
+        parts.length < 15) {
+            throw new IOException("Unexpected stat output format for " + abs + ": " + output);
+        }
         // Extract quoted fields (at indices 1, 3, 5, 7, 9, 11, 13, 15)
         String fileType = parts[1];
         String sizeStr = parts[3];
@@ -232,15 +227,17 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
 
         try {
             long size = Long.parseLong(sizeStr);
-            int permissions = Integer.parseInt(permissionsStr, 8); // Parse as octal
+            // Parse as octal
+            int permissions = Integer.parseInt(permissionsStr, 8);
             int userId = Integer.parseInt(userIdStr);
             int groupId = Integer.parseInt(groupIdStr);
             long mtimeSeconds = Long.parseLong(mtimeStr);
             long atimeSeconds = Long.parseLong(atimeStr);
             long ctimeSeconds = Long.parseLong(ctimeStr);
 
-            KubernetesNodeFileAttributes result = new KubernetesNodeFileAttributes(
-                    fileType, size, permissions, userId, groupId, mtimeSeconds, atimeSeconds, ctimeSeconds);
+            KubernetesNodeFileAttributes result =
+                    new KubernetesNodeFileAttributes(fileType, size, permissions, userId, groupId, mtimeSeconds, atimeSeconds,
+                            ctimeSeconds);
 
             return (A) result;
         } catch (NumberFormatException e) {
@@ -252,7 +249,9 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
     public Path getPath(String first, String... more) {
         boolean absolute = first.startsWith(PATH_SEPARATOR);
         List<String> segments = new ArrayList<>(NodePath.toSegments(first));
-        for (String s : more) segments.addAll(NodePath.toSegments(s));
+        for (String s : more) {
+            segments.addAll(NodePath.toSegments(s));
+        }
         return getPath(absolute, segments);
     }
 
@@ -321,19 +320,19 @@ public class KubernetesNodeFileSystem extends AbstractNodeFileSystem {
         return path.toAbsolutePath().toString();
     }
 
-    /** Runs a command inside the pod and returns stdout. Uses 30-second timeout. */
+    /**
+     * Runs a command inside the pod and returns stdout. Uses 30-second timeout.
+     */
     private String podRunAndCollect(String... command) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         // Uses Fabric8 pod exec API (String[] command, not a shell string — no injection risk)
-        try (ExecWatch watch = client.pods()
-                .inNamespace(namespace)
-                .withName(podName)
-                .writingOutput(out)
-                .exec(command)) {
+        try (ExecWatch watch = client.pods().inNamespace(namespace).withName(podName).writingOutput(out).exec(command)) {
             watch.exitCode().get(30, TimeUnit.SECONDS);
             return out.toString(StandardCharsets.UTF_8);
         } catch (Exception e) {
-            if (e instanceof IOException) throw (IOException) e;
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            }
             throw new IOException("Pod command failed: " + Arrays.toString(command), e);
         }
     }

@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 
 public class RpcClient implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(RpcClient.class);
-
     private final DistributedQueue<Request> requestQueue;
     private final DistributedQueue<Response> responseQueue;
     private final ExecutorService executorService;
@@ -57,22 +56,30 @@ public class RpcClient implements AutoCloseable {
         executorService.submit(() -> {
             while (true) {
                 Response resp = responseQueue.take();
-                if (LOG.isDebugEnabled()) LOG.debug("{} got response {}", globalNodeId.getNodeId(), resp);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("{} got response {}", globalNodeId.getNodeId(), resp);
+                }
                 CompletableFuture<Object> future = calls.remove(resp.getId());
-                if (resp.getThrowable() != null)
+                if (resp.getThrowable() != null) {
                     future.completeExceptionally(new ExecutionException(resp.getThrowable()));
-                else future.complete(resp.getResult());
+                } else {
+                    future.complete(resp.getResult());
+                }
             }
         });
     }
 
     public CompletableFuture<Object> callAsync(Command command) throws Exception {
-        if (isClosed()) throw new IllegalStateException("RPC client is closed");
+        if (isClosed()) {
+            throw new IllegalStateException("RPC client is closed");
+        }
         long requestId = requestIdGenerator.getAndIncrement();
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         calls.put(requestId, completableFuture);
         Request request = new Request(requestId, command);
-        if (LOG.isDebugEnabled()) LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} sending request {}", globalNodeId.getNodeId(), request);
+        }
         requestQueue.offer(request);
         return completableFuture;
     }
@@ -88,10 +95,11 @@ public class RpcClient implements AutoCloseable {
     @Override
     public void close() {
         executorService.shutdownNow();
-        calls.values()
-                .forEach(f -> f.completeExceptionally(
-                        new IllegalStateException("Pending call terminated on close (remote process died?) for node "
-                                + globalNodeId.getNodeId())));
+        calls
+            .values()
+            .forEach(f -> f.completeExceptionally(
+                    new IllegalStateException(
+                            "Pending call terminated on close (remote process died?) for node " + globalNodeId.getNodeId())));
         calls.clear();
     }
 }

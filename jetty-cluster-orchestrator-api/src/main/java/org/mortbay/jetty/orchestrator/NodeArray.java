@@ -41,19 +41,24 @@ public class NodeArray {
 
     public String hostnameOf(String id) {
         Node node = nodes.get(id);
-        if (node == null) throw new IllegalArgumentException("No such node with ID " + id);
+        if (node == null) {
+            throw new IllegalArgumentException("No such node with ID " + id);
+        }
         return node.globalNodeId.getHostname();
     }
 
     public Path rootPathOf(String id) {
         Node node = nodes.get(id);
-        if (node == null) throw new IllegalArgumentException("No such node with ID " + id);
+        if (node == null) {
+            throw new IllegalArgumentException("No such node with ID " + id);
+        }
         if (node.globalNodeId.isLocal()) {
             // The files are on this machine, so read them directly instead of over jco:.
             return LocalLauncher.rootPathOf(node.globalNodeId.getNodeId());
         } else {
-            URI uri = URI.create(NodeFileSystemProvider.PREFIX + ":" + node.globalNodeId.getHostId() + "!/."
-                    + NodeFileSystemProvider.PREFIX + "/" + node.globalNodeId.getNodeId());
+            URI uri = URI.create(
+                    NodeFileSystemProvider.PREFIX + ":" + node.globalNodeId.getHostId() + "!/." + NodeFileSystemProvider.PREFIX
+                    + "/" + node.globalNodeId.getNodeId());
             return Paths.get(uri);
         }
     }
@@ -64,7 +69,9 @@ public class NodeArray {
 
     public NodeArrayFuture executeOn(String id, NodeJob nodeJob) {
         Node node = nodes.get(id);
-        if (node == null) throw new IllegalArgumentException("No such node with ID " + id);
+        if (node == null) {
+            throw new IllegalArgumentException("No such node with ID " + id);
+        }
 
         Map<String, CompletableFuture<Object>> futures = new HashMap<>();
         try {
@@ -81,7 +88,9 @@ public class NodeArray {
     public NodeArrayFuture executeOn(Set<String> ids, NodeJob nodeJob) {
         Set<String> missingIds = new HashSet<>(nodes.keySet());
         ids.forEach(missingIds::remove);
-        if (!missingIds.isEmpty()) throw new IllegalArgumentException("No such node with ID " + missingIds);
+        if (!missingIds.isEmpty()) {
+            throw new IllegalArgumentException("No such node with ID " + missingIds);
+        }
 
         Map<String, CompletableFuture<Object>> futures = new HashMap<>();
         for (String id : ids) {

@@ -45,15 +45,8 @@ class KubernetesNodeFileAttributes implements BasicFileAttributes {
      * @param accessTime access time in seconds since epoch
      * @param statusChangeTime status change time in seconds since epoch
      */
-    KubernetesNodeFileAttributes(
-            String fileType,
-            long size,
-            int permissions,
-            int userId,
-            int groupId,
-            long modificationTime,
-            long accessTime,
-            long statusChangeTime) {
+    KubernetesNodeFileAttributes(String fileType, long size, int permissions, int userId, int groupId, long modificationTime,
+            long accessTime, long statusChangeTime) {
         this.fileType = fileType;
         this.size = size;
         this.permissions = permissions;
@@ -170,14 +163,8 @@ class KubernetesNodeFileAttributes implements BasicFileAttributes {
 
     @Override
     public String toString() {
-        return "KubernetesNodeFileAttributes{" + "fileType='"
-                + fileType + '\'' + ", size="
-                + size + ", permissions="
-                + Integer.toOctalString(permissions) + ", userId="
-                + userId + ", groupId="
-                + groupId + ", modificationTime="
-                + modificationTime + ", accessTime="
-                + accessTime + ", statusChangeTime="
-                + statusChangeTime + '}';
+        return "KubernetesNodeFileAttributes{" + "fileType='" + fileType + '\'' + ", size=" + size + ", permissions="
+                + Integer.toOctalString(permissions) + ", userId=" + userId + ", groupId=" + groupId + ", modificationTime="
+                + modificationTime + ", accessTime=" + accessTime + ", statusChangeTime=" + statusChangeTime + '}';
     }
 }

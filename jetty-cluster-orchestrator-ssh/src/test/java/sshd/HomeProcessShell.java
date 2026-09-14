@@ -91,13 +91,8 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell {
                 Map<String, String> procEnv = builder.environment();
                 procEnv.putAll(varsMap);
             } catch (Exception e) {
-                warn(
-                        "start({}) - Failed ({}) to set environment for command={}: {}",
-                        channel,
-                        e.getClass().getSimpleName(),
-                        cmdValue,
-                        e.getMessage(),
-                        e);
+                warn("start({}) - Failed ({}) to set environment for command={}: {}", channel, e.getClass().getSimpleName(),
+                        cmdValue, e.getMessage(), e);
             }
         }
 
@@ -174,13 +169,7 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell {
 
         IOException e = IoUtils.closeQuietly(getInputStream(), getOutputStream(), getErrorStream());
         if (e != null) {
-            debug(
-                    "destroy({}) {} while destroy streams of '{}': {}",
-                    channel,
-                    e.getClass().getSimpleName(),
-                    this,
-                    e.getMessage(),
-                    e);
+            debug("destroy({}) {} while destroy streams of '{}': {}", channel, e.getClass().getSimpleName(), this, e.getMessage(), e);
         }
     }
 

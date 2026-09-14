@@ -52,20 +52,22 @@ import java.util.Set;
  */
 public class NodeFileSystemProvider extends FileSystemProvider {
     public static final String PREFIX = "jco";
-
     // The env map is opaque to this provider: each NodeFileSystemFactory owns the keys it reads.
-
     private static final Map<AccessMode, Integer> ACCESS_MODES_MASKS = new EnumMap<>(AccessMode.class);
 
     static {
-        ACCESS_MODES_MASKS.put(AccessMode.EXECUTE, 0111); // Yes, octal.
-        ACCESS_MODES_MASKS.put(AccessMode.WRITE, 0222); // Yes, octal.
-        ACCESS_MODES_MASKS.put(AccessMode.READ, 0444); // Yes, octal.
+        // Yes, octal.
+        ACCESS_MODES_MASKS.put(AccessMode.EXECUTE, 0111);
+        // Yes, octal.
+        ACCESS_MODES_MASKS.put(AccessMode.WRITE, 0222);
+        // Yes, octal.
+        ACCESS_MODES_MASKS.put(AccessMode.READ, 0444);
     }
 
     private final Map<String, AbstractNodeFileSystem> fileSystems = new HashMap<>();
 
-    public NodeFileSystemProvider() {}
+    public NodeFileSystemProvider() {
+    }
 
     @Override
     public void copy(Path source, Path target, CopyOption... options) {
@@ -94,7 +96,7 @@ public class NodeFileSystemProvider extends FileSystemProvider {
                 @Override
                 public BasicFileAttributes readAttributes() throws IOException {
                     return ((AbstractNodeFileSystem) path.getFileSystem())
-                            .readAttributes((NodePath) path, BasicFileAttributes.class, options);
+                        .readAttributes((NodePath) path, BasicFileAttributes.class, options);
                 }
 
                 @Override
@@ -118,21 +120,19 @@ public class NodeFileSystemProvider extends FileSystemProvider {
     public FileSystem newFileSystem(URI uri, Map<String, ?> env) {
         synchronized (fileSystems) {
             String hostId = extractHostId(uri);
-            if (fileSystems.containsKey(hostId))
+            if (fileSystems.containsKey(hostId)) {
                 throw new FileSystemAlreadyExistsException("FileSystem already exists: " + hostId);
+            }
 
             AbstractNodeFileSystem fileSystem = null;
-
             // Discover and try all available filesystem factories
             ServiceLoader<NodeFileSystemFactory> loader = ServiceLoader.load(NodeFileSystemFactory.class);
             List<NodeFileSystemFactory> factories = new ArrayList<>();
             for (NodeFileSystemFactory factory : loader) {
                 factories.add(factory);
             }
-
             // Sort by priority (highest first)
-            factories.sort(
-                    Comparator.comparingInt(NodeFileSystemFactory::getPriority).reversed());
+            factories.sort(Comparator.comparingInt(NodeFileSystemFactory::getPriority).reversed());
 
             for (NodeFileSystemFactory factory : factories) {
                 if (factory.canHandle(env)) {
@@ -146,8 +146,7 @@ public class NodeFileSystemProvider extends FileSystemProvider {
             }
 
             if (fileSystem == null) {
-                throw new IllegalArgumentException(
-                        "No filesystem factory found that can handle the provided environment");
+                throw new IllegalArgumentException("No filesystem factory found that can handle the provided environment");
             }
             fileSystems.put(hostId, fileSystem);
             return fileSystem;
@@ -159,28 +158,35 @@ public class NodeFileSystemProvider extends FileSystemProvider {
         synchronized (fileSystems) {
             String hostId = extractHostId(uri);
             AbstractNodeFileSystem fileSystem = fileSystems.get(hostId);
-            if (fileSystem == null) throw new FileSystemNotFoundException(uri.toString());
+            if (fileSystem == null) {
+                throw new FileSystemNotFoundException(uri.toString());
+            }
             return fileSystem;
         }
     }
 
     public void remove(String hostId) {
         synchronized (fileSystems) {
-            fileSystems.remove(hostId); // closing is done by the caller
+            // closing is done by the caller
+            fileSystems.remove(hostId);
         }
     }
 
     private static String extractHostId(URI uri) {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
-        if (i >= 0) return nodeId.substring(0, i);
+        if (i >= 0) {
+            return nodeId.substring(0, i);
+        }
         return nodeId;
     }
 
     private static List<String> extractPath(URI uri) {
         String nodeId = uri.getSchemeSpecificPart();
         int i = nodeId.indexOf("!/");
-        if (i == -1) return Collections.emptyList();
+        if (i == -1) {
+            return Collections.emptyList();
+        }
         return NodePath.toSegments(nodeId.substring(i + 1));
     }
 
@@ -189,7 +195,9 @@ public class NodeFileSystemProvider extends FileSystemProvider {
         synchronized (fileSystems) {
             String hostId = extractHostId(uri);
             AbstractNodeFileSystem fileSystem = fileSystems.get(hostId);
-            if (fileSystem == null) throw new FileSystemNotFoundException(uri.toString());
+            if (fileSystem == null) {
+                throw new FileSystemNotFoundException(uri.toString());
+            }
             return fileSystem.getPath(false, extractPath(uri));
         }
     }
@@ -216,27 +224,31 @@ public class NodeFileSystemProvider extends FileSystemProvider {
 
     @Override
     public InputStream newInputStream(Path path, OpenOption... options) throws IOException {
-        if (!(path instanceof NodePath)) throw new ProviderMismatchException();
+        if (!(path instanceof NodePath)) {
+            throw new ProviderMismatchException();
+        }
         return ((AbstractNodeFileSystem) path.getFileSystem()).newInputStream((NodePath) path, options);
     }
 
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
             throws IOException {
-        if (!(path instanceof NodePath)) throw new ProviderMismatchException();
+        if (!(path instanceof NodePath)) {
+            throw new ProviderMismatchException();
+        }
         return ((AbstractNodeFileSystem) path.getFileSystem()).newByteChannel((NodePath) path, options, attrs);
     }
 
     @Override
-    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter)
-            throws IOException {
-        if (!(dir instanceof NodePath)) throw new ProviderMismatchException();
+    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) throws IOException {
+        if (!(dir instanceof NodePath)) {
+            throw new ProviderMismatchException();
+        }
         return ((AbstractNodeFileSystem) dir.getFileSystem()).newDirectoryStream((NodePath) dir, filter);
     }
 
     @Override
-    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
-            throws IOException {
+    public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException {
         return ((AbstractNodeFileSystem) path.getFileSystem()).readAttributes((NodePath) path, type, options);
     }
 
@@ -259,7 +271,9 @@ public class NodeFileSystemProvider extends FileSystemProvider {
     }
 
     private NodePath toNodePath(Path path) {
-        if (!(path instanceof NodePath)) throw new ProviderMismatchException();
+        if (!(path instanceof NodePath)) {
+            throw new ProviderMismatchException();
+        }
         return (NodePath) path;
     }
 }

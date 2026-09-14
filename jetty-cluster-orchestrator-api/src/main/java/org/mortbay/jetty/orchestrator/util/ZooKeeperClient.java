@@ -54,15 +54,12 @@ public class ZooKeeperClient implements Closeable {
     public static final String RETRY_MAX_RETRIES_PROPERTY = "jco.zookeeper.retry.maxRetries";
     public static final String SESSION_TIMEOUT_MS_PROPERTY = "jco.zookeeper.sessionTimeoutMs";
     public static final String CONNECTION_TIMEOUT_MS_PROPERTY = "jco.zookeeper.connectionTimeoutMs";
-
     private static final int DEFAULT_BASE_SLEEP_TIME_MS = 1000;
     private static final int DEFAULT_MAX_RETRIES = 3;
     private static final int DEFAULT_SESSION_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CONNECTION_TIMEOUT_MS = 15000;
-
     private static final byte[] EMPTY_BYTES = new byte[0];
     private static final List<ACL> OPEN_ACL = ZooDefs.Ids.OPEN_ACL_UNSAFE;
-
     private final ZooKeeper zk;
     private final int baseSleepTimeMs;
     private final int maxRetries;
@@ -75,7 +72,9 @@ public class ZooKeeperClient implements Closeable {
 
         CountDownLatch connectedLatch = new CountDownLatch(1);
         zk = new ZooKeeper(connectString, sessionTimeoutMs, event -> {
-            if (event.getState() == Watcher.Event.KeeperState.SyncConnected) connectedLatch.countDown();
+            if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
+                connectedLatch.countDown();
+            }
         });
 
         if (!connectedLatch.await(connectionTimeoutMs, TimeUnit.MILLISECONDS)) {
@@ -111,16 +110,16 @@ public class ZooKeeperClient implements Closeable {
      * bounded exponential-backoff retry for the transient, connection-related exceptions that
      * a CuratorFramework retry policy used to absorb automatically.
      */
-
     private <T> T retry(Callable<T> operation) throws Exception {
         int attempt = 0;
         while (true) {
             try {
                 return operation.call();
-            } catch (KeeperException.ConnectionLossException
-                    | KeeperException.SessionExpiredException
+            } catch (KeeperException.ConnectionLossException | KeeperException.SessionExpiredException
                     | KeeperException.OperationTimeoutException e) {
-                if (attempt >= maxRetries) throw e;
+                if (attempt >= maxRetries) {
+                    throw e;
+                }
                 Thread.sleep(baseSleepTimeMs * (1L << attempt));
                 attempt++;
             }
@@ -128,10 +127,14 @@ public class ZooKeeperClient implements Closeable {
     }
 
     private void ensurePath(String path) throws Exception {
-        if (path.isEmpty()) return;
+        if (path.isEmpty()) {
+            return;
+        }
         int idx = path.lastIndexOf('/');
         String parent = path.substring(0, idx);
-        if (!parent.isEmpty()) ensurePath(parent);
+        if (!parent.isEmpty()) {
+            ensurePath(parent);
+        }
         try {
             retry(() -> zk.create(path, EMPTY_BYTES, OPEN_ACL, CreateMode.PERSISTENT));
         } catch (KeeperException.NodeExistsException ignore) {
@@ -141,7 +144,9 @@ public class ZooKeeperClient implements Closeable {
 
     private String create(String path, byte[] data, CreateMode mode) throws Exception {
         String parent = path.substring(0, path.lastIndexOf('/'));
-        if (!parent.isEmpty()) ensurePath(parent);
+        if (!parent.isEmpty()) {
+            ensurePath(parent);
+        }
         return retry(() -> zk.create(path, data, OPEN_ACL, mode));
     }
 
@@ -224,11 +229,13 @@ public class ZooKeeperClient implements Closeable {
                 while (true) {
                     Stat stat = new Stat();
                     long updated = readValue(stat) + 1L;
-                    if (tryUpdate(updated, stat.getVersion())) return updated;
+                    if (tryUpdate(updated, stat.getVersion())) {
+                        return updated;
+                    }
                 }
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to increment and get counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to increment and get counter " + name,
+                        e);
             }
         }
 
@@ -238,11 +245,13 @@ public class ZooKeeperClient implements Closeable {
                 while (true) {
                     Stat stat = new Stat();
                     long updated = readValue(stat) - 1L;
-                    if (tryUpdate(updated, stat.getVersion())) return updated;
+                    if (tryUpdate(updated, stat.getVersion())) {
+                        return updated;
+                    }
                 }
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to decrement and get counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to decrement and get counter " + name,
+                        e);
             }
         }
 
@@ -252,11 +261,13 @@ public class ZooKeeperClient implements Closeable {
                 while (true) {
                     Stat stat = new Stat();
                     long current = readValue(stat);
-                    if (tryUpdate(current + 1L, stat.getVersion())) return current;
+                    if (tryUpdate(current + 1L, stat.getVersion())) {
+                        return current;
+                    }
                 }
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to get and increment counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get and increment counter " + name,
+                        e);
             }
         }
 
@@ -266,11 +277,13 @@ public class ZooKeeperClient implements Closeable {
                 while (true) {
                     Stat stat = new Stat();
                     long current = readValue(stat);
-                    if (tryUpdate(current - 1L, stat.getVersion())) return current;
+                    if (tryUpdate(current - 1L, stat.getVersion())) {
+                        return current;
+                    }
                 }
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to get and decrement counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get and decrement counter " + name,
+                        e);
             }
         }
 
@@ -279,8 +292,7 @@ public class ZooKeeperClient implements Closeable {
             try {
                 return readValue(null);
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to get counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to get counter " + name, e);
             }
         }
 
@@ -291,8 +303,7 @@ public class ZooKeeperClient implements Closeable {
                 ByteBuffer.wrap(data).putLong(value);
                 setData(counterPath, data, -1);
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "node " + globalNodeId.getNodeId() + " failed to set counter " + name, e);
+                throw new IllegalStateException("node " + globalNodeId.getNodeId() + " failed to set counter " + name, e);
             }
         }
     }
@@ -309,7 +320,6 @@ public class ZooKeeperClient implements Closeable {
      */
     private class BarrierImpl implements Barrier {
         private static final String READY_NODE = "ready";
-
         private final String barrierPath;
         private final String ourPath;
         private final String readyPath;
@@ -317,7 +327,8 @@ public class ZooKeeperClient implements Closeable {
         private final AtomicCounterImpl atomicCounter;
         private final AtomicBoolean guard = new AtomicBoolean();
         private final AtomicBoolean hasBeenNotified = new AtomicBoolean();
-        private final Watcher watcher = event -> {
+        private final Watcher watcher =
+                event -> {
             synchronized (this) {
                 hasBeenNotified.set(true);
                 notifyAll();
@@ -334,7 +345,9 @@ public class ZooKeeperClient implements Closeable {
 
         @Override
         public int await() throws Exception {
-            if (!guard.compareAndSet(false, true)) throw new BrokenBarrierException("Barrier is not cyclic");
+            if (!guard.compareAndSet(false, true)) {
+                throw new BrokenBarrierException("Barrier is not cyclic");
+            }
             enter(-1, null);
             try {
                 return computeIndex();
@@ -345,9 +358,13 @@ public class ZooKeeperClient implements Closeable {
 
         @Override
         public int await(long timeout, TimeUnit unit) throws Exception {
-            if (!guard.compareAndSet(false, true)) throw new BrokenBarrierException("Barrier is not cyclic");
+            if (!guard.compareAndSet(false, true)) {
+                throw new BrokenBarrierException("Barrier is not cyclic");
+            }
             boolean success = enter(timeout, unit);
-            if (!success) throw new TimeoutException("Timeout awaiting on barrier");
+            if (!success) {
+                throw new TimeoutException("Timeout awaiting on barrier");
+            }
             try {
                 return computeIndex();
             } finally {
@@ -357,7 +374,9 @@ public class ZooKeeperClient implements Closeable {
 
         private int computeIndex() {
             int index = (int) atomicCounter.decrementAndGet();
-            if (index == 0) atomicCounter.set(memberQty);
+            if (index == 0) {
+                atomicCounter.set(memberQty);
+            }
             return index;
         }
 
@@ -372,8 +391,7 @@ public class ZooKeeperClient implements Closeable {
             return readyPathExists || internalEnter(startNanos, hasMaxWait, maxWaitNanos);
         }
 
-        private synchronized boolean internalEnter(long startNanos, boolean hasMaxWait, long maxWaitNanos)
-                throws Exception {
+        private synchronized boolean internalEnter(long startNanos, boolean hasMaxWait, long maxWaitNanos) throws Exception {
             boolean result = true;
             List<String> children = getChildren(barrierPath, null);
             if (children.size() >= memberQty) {
@@ -389,7 +407,9 @@ public class ZooKeeperClient implements Closeable {
                     result = false;
                 } else {
                     wait(thisWaitMs);
-                    if (!hasBeenNotified.get()) result = false;
+                    if (!hasBeenNotified.get()) {
+                        result = false;
+                    }
                 }
             } else {
                 wait();
@@ -413,16 +433,19 @@ public class ZooKeeperClient implements Closeable {
                     children = new ArrayList<>();
                 }
                 children = filterAndSortChildren(children);
-                if (children.isEmpty()) break;
+                if (children.isEmpty()) {
+                    break;
+                }
 
                 int ourIndex = children.indexOf(ourPathName);
-                if (ourIndex < 0 && ourNodeShouldExist)
+                if (ourIndex < 0 && ourNodeShouldExist) {
                     throw new IllegalStateException("Our path (" + ourPathName + ") is missing");
+                }
 
                 if (children.size() == 1) {
-                    if (ourNodeShouldExist && !children.get(0).equals(ourPathName))
-                        throw new IllegalStateException(
-                                "Last path (" + children.get(0) + ") is not ours (" + ourPathName + ")");
+                    if (ourNodeShouldExist && !children.get(0).equals(ourPathName)) {
+                        throw new IllegalStateException("Last path (" + children.get(0) + ") is not ours (" + ourPathName + ")");
+                    }
                     checkDeleteOurPath(ourNodeShouldExist);
                     break;
                 }
@@ -465,13 +488,17 @@ public class ZooKeeperClient implements Closeable {
         }
 
         private void checkDeleteOurPath(boolean shouldExist) throws Exception {
-            if (shouldExist) delete(ourPath, -1);
+            if (shouldExist) {
+                delete(ourPath, -1);
+            }
         }
 
         private List<String> filterAndSortChildren(List<String> children) {
             List<String> filtered = new ArrayList<>(children.size());
             for (String name : children) {
-                if (!name.equals(READY_NODE)) filtered.add(name);
+                if (!name.equals(READY_NODE)) {
+                    filtered.add(name);
+                }
             }
             Collections.sort(filtered);
             return filtered;
@@ -484,7 +511,6 @@ public class ZooKeeperClient implements Closeable {
      */
     private class DistributedQueueImpl<T> implements DistributedQueue<T> {
         private static final String PREFIX = "qn-";
-
         private final String queuePath;
 
         DistributedQueueImpl(GlobalNodeId globalNodeId, String name) {
@@ -515,7 +541,9 @@ public class ZooKeeperClient implements Closeable {
                 Collections.sort(sorted);
 
                 for (String node : sorted) {
-                    if (!node.startsWith(PREFIX)) continue;
+                    if (!node.startsWith(PREFIX)) {
+                        continue;
+                    }
 
                     String nodePath = queuePath + "/" + node;
                     try {

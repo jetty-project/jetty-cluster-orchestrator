@@ -43,12 +43,13 @@ import org.slf4j.LoggerFactory;
 
 public class Cluster implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(Cluster.class);
-
     private final String id;
     private final ClusterConfiguration configuration;
     private final HostLauncher hostLauncher;
-    private final Map<String, NodeArray> nodeArrays = new HashMap<>(); // keyed by NodeArrayId
-    private final Map<GlobalNodeId, Host> hosts = new HashMap<>(); // keyed by HostId
+    // keyed by NodeArrayId
+    private final Map<String, NodeArray> nodeArrays = new HashMap<>();
+    // keyed by HostId
+    private final Map<GlobalNodeId, Host> hosts = new HashMap<>();
     private final Timer hostsCheckerTimer = new Timer();
     private ZooKeeperClient zkClient;
     private ClusterTools clusterTools;
@@ -68,8 +69,9 @@ public class Cluster implements AutoCloseable {
         this.id = id;
         this.configuration = configuration;
         this.hostLauncher = configuration.hostLauncher();
-        if (this.hostLauncher == null)
+        if (this.hostLauncher == null) {
             throw new IllegalStateException("No configured host launcher to start the nodes of cluster " + id);
+        }
         try {
             init();
         } catch (Exception e) {
@@ -82,17 +84,14 @@ public class Cluster implements AutoCloseable {
         String connectString = hostLauncher.initialize();
         zkClient = new ZooKeeperClient(connectString);
         clusterTools = new ClusterTools(zkClient, new GlobalNodeId(id, LocalLauncher.HOSTNAME));
-
         // Start the hosts of every node array. The launcher works out which hosts are needed and
         // reuses the ones shared between arrays, so all we get back is hostname -> connect string.
         String healthCheckTimeout = Long.toString(configuration.healthCheckTimeout());
         List<Future<Map<String, String>>> futures = new ArrayList<>();
-        ExecutorService launchPool =
-                Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        ExecutorService launchPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         try {
             for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays()) {
-                futures.add(launchPool.submit(
-                        () -> hostLauncher.launch(id, nodeArrayConfig, connectString, healthCheckTimeout)));
+                futures.add(launchPool.submit(() -> hostLauncher.launch(id, nodeArrayConfig, connectString, healthCheckTimeout)));
             }
         } finally {
             launchPool.shutdown();
@@ -101,50 +100,39 @@ public class Cluster implements AutoCloseable {
             for (Map.Entry<String, String> entry : future.get().entrySet()) {
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, entry.getKey());
                 // A host shared by several node arrays is reported once per array.
-                if (!hosts.containsKey(globalNodeId))
-                    hosts.put(
-                            globalNodeId,
-                            new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), entry.getValue()));
+                if (!hosts.containsKey(globalNodeId)) {
+                    hosts.put(globalNodeId, new Host(globalNodeId, new RpcClient(zkClient, globalNodeId), entry.getValue()));
+                }
             }
         }
-
         // start heath check timer
         long healthCheckDelay = configuration.healthCheckDelay();
-        hostsCheckerTimer.schedule(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        for (Host host : hosts.values()) {
-                            if (LOG.isDebugEnabled()) LOG.debug("Checking health of host {}", host);
-                            host.check();
-                        }
+        hostsCheckerTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                for (Host host : hosts.values()) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Checking health of host {}", host);
                     }
-                },
-                healthCheckDelay,
-                healthCheckDelay);
-
+                    host.check();
+                }
+            }
+        }, healthCheckDelay, healthCheckDelay);
         // start all worker nodes
         for (NodeArrayConfiguration nodeArrayConfig : configuration.nodeArrays()) {
             Map<String, NodeArray.Node> nodeArrayNodes = new HashMap<>();
             for (Node nodeConfig : nodeArrayConfig.nodes()) {
                 GlobalNodeId globalNodeId = new GlobalNodeId(id, nodeArrayConfig, nodeConfig);
                 Host host = hosts.get(globalNodeId.getHostGlobalId());
-                if (host == null)
-                    throw new IllegalStateException("No host launched on " + globalNodeId.getHostname() + " for node '"
-                            + globalNodeId.getNodeId() + "'");
+                if (host == null) {
+                    throw new IllegalStateException(
+                            "No host launched on " + globalNodeId.getHostname() + " for node '" + globalNodeId.getNodeId() + "'");
+                }
                 try {
-                    NodeProcess remoteProcess = (NodeProcess) host.rpcClient.call(
-                            new SpawnNodeCommand(
-                                    nodeArrayConfig.jvm(),
-                                    globalNodeId.getHostname(),
-                                    globalNodeId.getHostId(),
-                                    globalNodeId.getNodeId(),
-                                    host.remoteConnectString,
-                                    healthCheckTimeout),
-                            10,
-                            TimeUnit.SECONDS);
-                    NodeArray.Node node =
-                            new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
+                    NodeProcess remoteProcess = (NodeProcess) host.rpcClient.call(new SpawnNodeCommand(nodeArrayConfig.jvm(),
+                                    globalNodeId.getHostname(), globalNodeId.getHostId(), globalNodeId.getNodeId(),
+                                    host.remoteConnectString, healthCheckTimeout), 10, TimeUnit.SECONDS);
+                    NodeArray.Node node = new NodeArray.Node(globalNodeId, remoteProcess, new RpcClient(zkClient, globalNodeId));
                     host.nodes.add(node);
                     nodeArrayNodes.put(nodeConfig.getId(), node);
                 } catch (Exception e) {
@@ -191,27 +179,29 @@ public class Cluster implements AutoCloseable {
             for (NodeArray.Node node : nodes) {
                 NodeProcess nodeProcess = node.getNodeProcess();
                 try {
-                    if (LOG.isDebugEnabled()) LOG.debug("client checking node {}", node);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("client checking node {}", node);
+                    }
                     // Ask the host node to check the spawned node.
                     rpcClient.call(new CheckNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
                     // Ask the spawned node to check itself. Must happen to create
                     // a heartbeat for the health checks.
                     node.selfCheck();
                 } catch (Exception e) {
-                    if (LOG.isDebugEnabled())
+                    if (LOG.isDebugEnabled()) {
                         LOG.debug("Host {} failed check of {}", globalNodeId.getHostId(), nodeProcess, e);
-                    unsaneHostIds.add(
-                            String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
-                    if (failure == null) failure = e;
-                    else failure.addSuppressed(e);
+                    }
+                    unsaneHostIds.add(String.format(" Host %s failed check of %s", globalNodeId.getHostId(), nodeProcess));
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
                 }
             }
             if (!unsaneHostIds.isEmpty()) {
-                LOG.error(
-                        "Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}",
-                        unsaneHostIds.size(),
-                        String.join("\n", unsaneHostIds),
-                        failure);
+                LOG.error("Forcibly closing the cluster as {} host(s) failed its/their health check:\n{}", unsaneHostIds.size(),
+                        String.join("\n", unsaneHostIds), failure);
                 close();
             }
         }
@@ -223,7 +213,9 @@ public class Cluster implements AutoCloseable {
                 try {
                     rpcClient.call(new KillNodeCommand(nodeProcess), 10, TimeUnit.SECONDS);
                 } catch (Exception e) {
-                    if (LOG.isDebugEnabled()) LOG.debug("Error closing {}", nodeProcess, e);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Error closing {}", nodeProcess, e);
+                    }
                 }
             }
             IOUtil.close(rpcClient);
@@ -233,10 +225,8 @@ public class Cluster implements AutoCloseable {
 
         @Override
         public String toString() {
-            return "Host{" + "globalNodeId='"
-                    + globalNodeId + '\'' + "remoteConnectString='"
-                    + remoteConnectString + '\'' + ", nodes="
-                    + nodes + '}';
+            return "Host{" + "globalNodeId='" + globalNodeId + '\'' + "remoteConnectString='" + remoteConnectString + '\''
+                    + ", nodes=" + nodes + '}';
         }
     }
 }

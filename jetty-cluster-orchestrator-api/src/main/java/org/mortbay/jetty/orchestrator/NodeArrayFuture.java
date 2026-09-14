@@ -44,11 +44,17 @@ public class NodeArrayFuture {
         for (CompletableFuture<Object> future : futures.values()) {
             long begin = System.nanoTime();
             try {
-                if (noTimeout) future.get();
-                else future.get(timeoutLeft, TimeUnit.NANOSECONDS);
+                if (noTimeout) {
+                    future.get();
+                } else {
+                    future.get(timeoutLeft, TimeUnit.NANOSECONDS);
+                }
             } catch (TimeoutException e) {
-                if (timeoutException == null) timeoutException = e;
-                else exceptions.add(e);
+                if (timeoutException == null) {
+                    timeoutException = e;
+                } else {
+                    exceptions.add(e);
+                }
             } catch (ExecutionException e) {
                 exceptions.add(e.getCause());
             } catch (Exception e) {
@@ -89,30 +95,38 @@ public class NodeArrayFuture {
     }
 
     public Set<String> getDoneNodeIds() {
-        return futures.entrySet().stream()
-                .filter(e -> e.getValue().isDone())
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+        return futures
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue().isDone())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
     }
 
     public Set<String> getNotDoneNodeIds() {
-        return futures.entrySet().stream()
-                .filter(e -> !e.getValue().isDone())
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+        return futures
+            .entrySet()
+            .stream()
+            .filter(e -> !e.getValue().isDone())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
     }
 
     public boolean isAllDone() {
-        return futures.values().stream()
-                .map(Future::isDone)
-                .reduce((b1, b2) -> b1 && b2)
-                .orElse(true);
+        return futures
+            .values()
+            .stream()
+            .map(Future::isDone)
+            .reduce((b1, b2) -> b1 && b2)
+            .orElse(true);
     }
 
     public boolean isAnyDone() {
-        return futures.values().stream()
-                .map(Future::isDone)
-                .reduce((b1, b2) -> b1 || b2)
-                .orElse(true);
+        return futures
+            .values()
+            .stream()
+            .map(Future::isDone)
+            .reduce((b1, b2) -> b1 || b2)
+            .orElse(true);
     }
 }

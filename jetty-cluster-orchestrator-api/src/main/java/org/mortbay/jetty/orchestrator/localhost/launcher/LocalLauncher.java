@@ -46,7 +46,6 @@ import org.mortbay.jetty.orchestrator.util.ZooKeeperServer;
  */
 public class LocalLauncher extends AbstractHostLauncher {
     public static final String HOSTNAME = "localhost";
-
     private final Lock lock = new ReentrantLock();
     private Thread thread;
     private GlobalNodeId nodeId;
@@ -64,16 +63,19 @@ public class LocalLauncher extends AbstractHostLauncher {
     }
 
     @Override
-    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs)
-            throws Exception {
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception {
         lock.lock();
         try {
             GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
-            if (!nodeId.equals(globalNodeId))
+            if (!nodeId.equals(globalNodeId)) {
                 throw new IllegalArgumentException("node id is not the one of a host node");
-            if (!HOSTNAME.equals(nodeId.getHostname()))
+            }
+            if (!HOSTNAME.equals(nodeId.getHostname())) {
                 throw new IllegalArgumentException("local launcher can only work with 'localhost' hostname");
-            if (thread != null) throw new IllegalStateException("local launcher already spawned 'localhost' thread");
+            }
+            if (thread != null) {
+                throw new IllegalStateException("local launcher already spawned 'localhost' thread");
+            }
             this.nodeId = nodeId;
 
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
@@ -117,7 +119,9 @@ public class LocalLauncher extends AbstractHostLauncher {
                 Path parentPath = rootPath.getParent();
                 if (!skipDiskCleanup() && IOUtil.deltree(rootPath) && parentPath != null) {
                     try (DirectoryStream<Path> children = Files.newDirectoryStream(parentPath)) {
-                        if (!children.iterator().hasNext()) IOUtil.deltree(parentPath);
+                        if (!children.iterator().hasNext()) {
+                            IOUtil.deltree(parentPath);
+                        }
                     } catch (IOException e) {
                         // parent dir may no longer exist; nothing to clean up
                     }
@@ -146,7 +150,9 @@ public class LocalLauncher extends AbstractHostLauncher {
     }
 
     private static void copyDir(String hostId, Path cpPath, int depth) throws Exception {
-        if (!Files.isDirectory(cpPath)) return;
+        if (!Files.isDirectory(cpPath)) {
+            return;
+        }
 
         try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath)) {
             for (Path file : files) {
