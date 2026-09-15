@@ -73,9 +73,7 @@ import org.slf4j.LoggerFactory;
 public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDependent {
     private static final Logger LOG = LoggerFactory.getLogger(SshRemoteHostLauncher.class);
     private static final List<String> COMMON_WIN_UNAMES = Arrays.asList("Windows", "CYGWIN", "MINGW", "MSYS", "UWIN");
-    private static final List<String> DEFAULT_IDENTITY_FILENAMES =
-            Arrays.asList("id_rsa", "id_ecdsa", "id_ed25519", "id_dsa");
-
+    private static final List<String> DEFAULT_IDENTITY_FILENAMES = Arrays.asList("id_rsa", "id_ecdsa", "id_ed25519", "id_dsa");
     private final Map<String, RemoteNodeHolder> nodes = new ConcurrentHashMap<>();
     private final String username;
     private final char[] password;
@@ -132,12 +130,15 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
     }
 
     @Override
-    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs)
-            throws Exception {
+    protected String launchHost(GlobalNodeId globalNodeId, Node node, String connectString, String... extraArgs) throws Exception {
         long start = System.nanoTime();
         GlobalNodeId nodeId = globalNodeId.getHostGlobalId();
-        if (LOG.isDebugEnabled()) LOG.debug("start launch of node: {}", nodeId.getHostname());
-        if (!nodeId.equals(globalNodeId)) throw new IllegalArgumentException("node id is not the one of a host node");
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("start launch of node: {}", nodeId.getHostname());
+        }
+        if (!nodeId.equals(globalNodeId)) {
+            throw new IllegalArgumentException("node id is not the one of a host node");
+        }
 
         SshClient sshClient = SshClient.setUpDefaultClient();
         FileSystem fileSystem = null;
@@ -145,45 +146,40 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         ClientChannel execChannel = null;
         ClientSession session = null;
         try {
-            sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE); // or a known-hosts verifier instead?
+            // or a known-hosts verifier instead?
+            sshClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
             // The client must also accept incoming "forwarded-tcpip" channels for the remote port forwarding
             // set up below to work: the default forwarding filter is reject-all, independent of the server's own.
             sshClient.setForwardingFilter(AcceptAllForwardingFilter.INSTANCE);
             sshClient.start();
-            session = sshClient
-                    .connect(username, nodeId.getHostname(), port)
-                    .verify()
-                    .getSession();
+            session = sshClient.connect(username, nodeId.getHostname(), port).verify().getSession();
 
-            if (LOG.isDebugEnabled())
-                LOG.debug(
-                        "ssh to {} with username {} and empty password {}",
-                        nodeId.getHostname(),
-                        username,
-                        password == null);
-
-            if (password == null) addDefaultPublicKeyIdentities(session); // public key auth
-            else
-                session.setPasswordIdentityProvider(
-                        PasswordIdentityProvider.wrapPasswords(new String(password))); // pw auth, possibly empty
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("ssh to {} with username {} and empty password {}", nodeId.getHostname(), username, password == null);
+            }
+            if (// public key auth
+            password == null) {
+                // public key auth
+                addDefaultPublicKeyIdentities(session);
+            } else {
+                session.setPasswordIdentityProvider(PasswordIdentityProvider
+                    // pw auth, possibly empty
+                    .wrapPasswords(new String(password)));
+            }
             session.auth().verify();
-
             // detect windows
             boolean windows = isWindows(session);
-
             // do remote port forwarding
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
             forwardingTracker = session.createRemotePortForwardingTracker(
-                    new SshdSocketAddress("localhost", 0), // remote port, dynamically choose one
-                    new SshdSocketAddress("localhost", zkPort));
-            String remoteConnectString =
-                    "localhost:" + forwardingTracker.getBoundAddress().getPort();
+                    // remote port, dynamically choose one
+                    new SshdSocketAddress("localhost", 0), new SshdSocketAddress("localhost", zkPort));
+            String remoteConnectString = "localhost:" + forwardingTracker.getBoundAddress().getPort();
 
             HashMap<String, Object> env = new HashMap<>();
             env.put(SftpClient.class.getName(), SftpClientFactory.instance().createSftpClient(session));
             env.put(SFTPNodeFileSystemFactory.IS_WINDOWS_ENV_PROPERTY, windows);
-            fileSystem = FileSystems.newFileSystem(
-                    URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
+            fileSystem = FileSystems.newFileSystem(URI.create(NodeFileSystemProvider.PREFIX + ":" + nodeId.getHostId()), env);
 
             List<String> remoteClasspathEntries = new ArrayList<>();
             String[] classpathEntries = System.getProperty("java.class.path").split(File.pathSeparator);
@@ -192,27 +188,25 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
                 for (String classpathEntry : classpathEntries) {
                     Path cpPath = Paths.get(classpathEntry);
                     String cpFileName = cpPath.getFileName().toString();
-                    if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar"))
-                        remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId()
-                                + delimiter + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
-                    if (Files.isDirectory(cpPath)) copyDir(sftpClient, nodeId.getHostId(), cpPath, 1);
-                    else copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpPath);
+                    if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
+                        remoteClasspathEntries.add(
+                                "." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter
+                                + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
+                    }
+                    if (Files.isDirectory(cpPath)) {
+                        copyDir(sftpClient, nodeId.getHostId(), cpPath, 1);
+                    } else {
+                        copyFile(sftpClient, nodeId.getHostId(), cpFileName, cpPath);
+                    }
                 }
             }
-            remoteClasspathEntries.add("." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter
+            remoteClasspathEntries.add(
+                    "." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter
                     + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + "*");
 
-            String cmdLine = String.join(
-                    " ",
-                    buildCommandLine(
-                            fileSystem,
-                            jvm,
-                            remoteClasspathEntries,
-                            windows ? ";" : ":",
-                            nodeId.getHostId(),
-                            nodeId.getHostname(),
-                            remoteConnectString,
-                            extraArgs));
+            String cmdLine = String.join(" ",
+                    buildCommandLine(fileSystem, jvm, remoteClasspathEntries, windows ? ";" : ":", nodeId.getHostId(),
+                            nodeId.getHostname(), remoteConnectString, extraArgs));
             execChannel = session.createExecChannel(cmdLine);
             execChannel.setOut(System.out);
             execChannel.setErr(System.err);
@@ -227,23 +221,25 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             sshClient.stop();
             throw new Exception("Error launching host '" + nodeId.getHostname() + "'", e);
         } finally {
-            if (LOG.isDebugEnabled())
-                LOG.debug(
-                        "time to start host {}: {}ms",
-                        nodeId.getHostname(),
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("time to start host {}: {}ms", nodeId.getHostname(),
                         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+            }
         }
     }
 
-    private static void addDefaultPublicKeyIdentities(ClientSession session)
-            throws IOException, GeneralSecurityException {
+    private static void addDefaultPublicKeyIdentities(ClientSession session) throws IOException, GeneralSecurityException {
         Path sshDir = Paths.get(System.getProperty("user.home"), ".ssh");
         for (String filename : DEFAULT_IDENTITY_FILENAMES) {
             Path keyFile = sshDir.resolve(filename);
-            if (!Files.isReadable(keyFile)) continue;
-            for (KeyPair keyPair :
-                    SecurityUtils.getKeyPairResourceParser().loadKeyPairs(session, keyFile, FilePasswordProvider.EMPTY))
+            if (!Files.isReadable(keyFile)) {
+                continue;
+            }
+            for (KeyPair keyPair : SecurityUtils
+                .getKeyPairResourceParser()
+                .loadKeyPairs(session, keyFile, FilePasswordProvider.EMPTY)) {
                 session.addPublicKeyIdentity(keyPair);
+            }
         }
     }
 
@@ -255,47 +251,52 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0L);
             String output = out.toString(StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
             Integer exitStatus = channel.getExitStatus();
-            if (exitStatus == null) throw new IOException("Executing 'uname' command did not provide an exit status");
-
+            if (exitStatus == null) {
+                throw new IOException("Executing 'uname' command did not provide an exit status");
+            }
             // Cannot run "uname -s"? Assume windows.
-            if (exitStatus != 0) return true;
+            if (exitStatus != 0) {
+                return true;
+            }
             // Outputs a well-known windows uname? Assume windows.
-            for (String winUname : COMMON_WIN_UNAMES)
-                if (output.contains(winUname.toLowerCase(Locale.ROOT))) return true;
+            for (String winUname : COMMON_WIN_UNAMES) {
+                if (output.contains(winUname.toLowerCase(Locale.ROOT))) {
+                    return true;
+                }
+            }
             // Assume *nix.
             return false;
         }
     }
 
-    private static List<String> buildCommandLine(
-            FileSystem fileSystem,
-            Jvm jvm,
-            List<String> remoteClasspathEntries,
-            String delimiter,
-            String nodeId,
-            String hostname,
-            String connectString,
-            String... extraArgs) {
+    private static List<String> buildCommandLine(FileSystem fileSystem, Jvm jvm, List<String> remoteClasspathEntries,
+            String delimiter, String nodeId, String hostname, String connectString, String... extraArgs) {
         List<String> cmdLine = new ArrayList<>();
         cmdLine.add("\"" + jvm.executable(fileSystem, hostname) + "\"");
-        for (String opt : filterOutEmptyStrings(jvm.getOpts())) cmdLine.add("\"" + opt + "\"");
+        for (String opt : filterOutEmptyStrings(jvm.getOpts())) {
+            cmdLine.add("\"" + opt + "\"");
+        }
         cmdLine.add("-classpath");
         cmdLine.add("\"" + String.join(delimiter, remoteClasspathEntries) + "\"");
         cmdLine.add(NodeProcess.class.getName());
         cmdLine.add("\"" + nodeId + "\"");
         cmdLine.add("\"" + connectString + "\"");
-        for (String extraArg : extraArgs) cmdLine.add("\"" + extraArg + "\"");
+        for (String extraArg : extraArgs) {
+            cmdLine.add("\"" + extraArg + "\"");
+        }
         return cmdLine;
     }
 
     private static List<String> filterOutEmptyStrings(List<String> opts) {
-        return opts.stream().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+        return opts
+            .stream()
+            .filter(s -> !s.trim().isEmpty())
+            .collect(Collectors.toList());
     }
 
-    private static void copyFile(SftpClient sftpClient, String hostId, String filename, Path localPath)
-            throws IOException {
-        String destFilename = "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/"
-                + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
+    private static void copyFile(SftpClient sftpClient, String hostId, String filename, Path localPath) throws IOException {
+        String destFilename =
+                "." + NodeFileSystemProvider.PREFIX + "/" + hostId + "/" + NodeProcess.CLASSPATH_FOLDER_NAME + "/" + filename;
         String parentFilename = destFilename.substring(0, destFilename.lastIndexOf('/'));
 
         mkdirs(sftpClient, parentFilename);
@@ -309,14 +310,21 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         boolean absolute = path.startsWith("/");
         StringBuilder partial = new StringBuilder();
         for (String segment : path.split("/")) {
-            if (segment.isEmpty()) continue;
-            if (absolute || !partial.isEmpty()) partial.append('/');
+            if (segment.isEmpty()) {
+                continue;
+            }
+            if (absolute || !partial.isEmpty()) {
+                partial.append('/');
+            }
             partial.append(segment);
             try {
-                if (!isDirectory(sftpClient, partial.toString())) sftpClient.mkdir(partial.toString());
+                if (!isDirectory(sftpClient, partial.toString())) {
+                    sftpClient.mkdir(partial.toString());
+                }
             } catch (SftpException e) {
-                if (e.getStatus() != SftpConstants.SSH_FX_FILE_ALREADY_EXISTS)
+                if (e.getStatus() != SftpConstants.SSH_FX_FILE_ALREADY_EXISTS) {
                     throw new IOException("Failed to create remote directory " + path, e);
+                }
             }
         }
     }
@@ -331,7 +339,9 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
     }
 
     private static void copyDir(SftpClient sftpClient, String hostId, Path cpPath, int depth) throws IOException {
-        if (!Files.isDirectory(cpPath)) return;
+        if (!Files.isDirectory(cpPath)) {
+            return;
+        }
 
         try (DirectoryStream<Path> files = Files.newDirectoryStream(cpPath)) {
             for (Path file : files) {
@@ -358,13 +368,8 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         private final ExplicitPortForwardingTracker forwardingTracker;
         private final ClientChannel execChannel;
 
-        private RemoteNodeHolder(
-                GlobalNodeId nodeId,
-                FileSystem fileSystem,
-                SshClient sshClient,
-                ClientSession session,
-                ExplicitPortForwardingTracker forwardingTracker,
-                ClientChannel execChannel) {
+        private RemoteNodeHolder(GlobalNodeId nodeId, FileSystem fileSystem, SshClient sshClient, ClientSession session,
+                ExplicitPortForwardingTracker forwardingTracker, ClientChannel execChannel) {
             this.nodeId = nodeId;
             this.fileSystem = fileSystem;
             this.sshClient = sshClient;
@@ -380,8 +385,9 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
                 try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session)) {
                     deltree(sftpClient, "." + NodeFileSystemProvider.PREFIX + "/" + nodeId.getClusterId());
                 } catch (Exception e) {
-                    if (LOG.isDebugEnabled())
+                    if (LOG.isDebugEnabled()) {
                         LOG.debug("error deleting temporary files using ssh client {}", sshClient, e);
+                    }
                 }
             }
             // close the exec channel and session immediately (rather than gracefully) first, to make sure
@@ -392,17 +398,24 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             try {
                 sshClient.stop();
             } catch (Exception e) {
-                if (LOG.isDebugEnabled()) LOG.debug("error stopping ssh client {}", sshClient, e);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("error stopping ssh client {}", sshClient, e);
+                }
             }
         }
 
         private static void deltree(SftpClient sftpClient, String path) throws IOException {
             for (SftpClient.DirEntry entry : sftpClient.readDir(path)) {
                 String name = entry.getFilename();
-                if (".".equals(name) || "..".equals(name)) continue;
+                if (".".equals(name) || "..".equals(name)) {
+                    continue;
+                }
                 String childPath = path + "/" + name;
-                if (entry.getAttributes().isDirectory()) deltree(sftpClient, childPath);
-                else sftpClient.remove(childPath);
+                if (entry.getAttributes().isDirectory()) {
+                    deltree(sftpClient, childPath);
+                } else {
+                    sftpClient.remove(childPath);
+                }
             }
             sftpClient.rmdir(path);
         }

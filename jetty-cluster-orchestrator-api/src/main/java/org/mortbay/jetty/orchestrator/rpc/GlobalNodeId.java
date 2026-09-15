@@ -107,11 +107,7 @@ public class GlobalNodeId {
 
     @Override
     public String toString() {
-        return "GlobalNodeId{" + "clusterId='"
-                + clusterId + '\'' + ", hostname='"
-                + hostname + '\'' + ", hostId='"
-                + hostId + '\'' + ", nodeId='"
-                + nodeId + '\'' + ", local="
-                + local + '}';
+        return "GlobalNodeId{" + "clusterId='" + clusterId + '\'' + ", hostname='" + hostname + '\'' + ", hostId='" + hostId + '\''
+                + ", nodeId='" + nodeId + '\'' + ", local=" + local + '}';
     }
 }
