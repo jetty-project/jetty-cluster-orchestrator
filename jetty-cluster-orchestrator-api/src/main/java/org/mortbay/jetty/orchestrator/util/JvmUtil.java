@@ -21,13 +21,15 @@ import org.mortbay.jetty.orchestrator.configuration.Jvm;
 
 public class JvmUtil {
     public static Jvm currentJvm(String... opts) {
-        return new Jvm((fileSystem, hostname) -> {
-            Path javaExec = JvmUtil.findCurrentJavaExecutable();
-            if (javaExec == null) {
-                throw new IllegalStateException("Cannot find executable java command of current JVM");
-            }
-            return javaExec.toAbsolutePath().toString();
-        }, opts);
+        return new Jvm(new FilenameSupplier.CurrentJvm(), opts);
+    }
+
+    public static Jvm mavenToolchains(String version, String... opts) {
+        return new Jvm(new FilenameSupplier.MavenToolchains(version), opts);
+    }
+
+    public static Jvm mavenToolchainsOrJavaOnPath(String version, String... opts) {
+        return new Jvm(new FilenameSupplier.Combined(new FilenameSupplier.MavenToolchains(version), (fs, h) -> "java"), opts);
     }
 
     public static Path findCurrentJavaExecutable() {

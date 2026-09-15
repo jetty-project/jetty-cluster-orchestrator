@@ -36,4 +36,9 @@ public class Jvm implements Serializable {
     public List<String> getOpts() {
         return opts;
     }
+
+    @Override
+    public String toString() {
+        return "Jvm{" + "executableSupplier=" + executableSupplier + ", opts=" + opts + '}';
+    }
 }

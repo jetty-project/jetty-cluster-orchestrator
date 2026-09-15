@@ -30,4 +30,9 @@ public class CheckNodeCommand implements Command {
         }
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "CheckNodeCommand{" + "process=" + process + '}';
+    }
 }

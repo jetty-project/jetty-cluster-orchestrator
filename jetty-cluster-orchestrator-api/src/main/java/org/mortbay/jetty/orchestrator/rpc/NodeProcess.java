@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -236,7 +237,7 @@ public class NodeProcess implements Serializable, AutoCloseable {
             try (DirectoryStream<Path> entries = Files.newDirectoryStream(libPath)) {
                 for (Path entry : entries) {
                     String path = entry.toString();
-                    if (!path.endsWith(".jar") && !path.endsWith(".JAR")) {
+                    if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) {
                         sb.append(path).append(File.pathSeparator);
                     }
                 }

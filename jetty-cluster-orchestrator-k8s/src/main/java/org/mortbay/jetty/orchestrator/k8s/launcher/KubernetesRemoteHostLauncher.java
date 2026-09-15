@@ -404,7 +404,7 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
             for (String classpathEntry : classpathEntries) {
                 Path cpPath = Paths.get(classpathEntry);
                 String cpFileName = cpPath.getFileName().toString();
-                if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR")) {
+                if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
                     remoteClasspathEntries.add(classpathDir + "/" + cpFileName);
                 }
                 if (Files.isDirectory(cpPath)) {
@@ -642,5 +642,13 @@ public class KubernetesRemoteHostLauncher extends AbstractHostLauncher implement
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "KubernetesRemoteHostLauncher{" + "pods=" + pods + ", launcherId='" + launcherId + '\'' + ", namespace='" + namespace
+                + '\'' + ", image='" + image + '\'' + ", jvm=" + jvm + ", zkServiceName='" + zkServiceName + '\''
+                + ", headlessServiceName='" + headlessServiceName + '\'' + ", headlessServiceCreated=" + headlessServiceCreated
+                + ", zkPodName='" + zkPodName + '\'' + '}';
     }
 }

@@ -188,7 +188,7 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
                 for (String classpathEntry : classpathEntries) {
                     Path cpPath = Paths.get(classpathEntry);
                     String cpFileName = cpPath.getFileName().toString();
-                    if (!cpFileName.endsWith(".jar") && !cpFileName.endsWith(".JAR")) {
+                    if (!cpFileName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
                         remoteClasspathEntries.add(
                                 "." + NodeFileSystemProvider.PREFIX + delimiter + nodeId.getHostId() + delimiter
                                 + NodeProcess.CLASSPATH_FOLDER_NAME + delimiter + cpFileName);
@@ -313,17 +313,28 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             if (segment.isEmpty()) {
                 continue;
             }
-            if (absolute || partial.length() > 0) {
+            if (absolute || !partial.isEmpty()) {
                 partial.append('/');
             }
             partial.append(segment);
             try {
-                sftpClient.mkdir(partial.toString());
+                if (!isDirectory(sftpClient, partial.toString())) {
+                    sftpClient.mkdir(partial.toString());
+                }
             } catch (SftpException e) {
                 if (e.getStatus() != SftpConstants.SSH_FX_FILE_ALREADY_EXISTS) {
-                    throw e;
+                    throw new IOException("Failed to create remote directory " + path, e);
                 }
             }
+        }
+    }
+
+    private static boolean isDirectory(SftpClient sftpClient, String path) {
+        try {
+            SftpClient.Attributes lstat = sftpClient.lstat(path);
+            return lstat.isDirectory();
+        } catch (IOException e) {
+            return false;
         }
     }
 

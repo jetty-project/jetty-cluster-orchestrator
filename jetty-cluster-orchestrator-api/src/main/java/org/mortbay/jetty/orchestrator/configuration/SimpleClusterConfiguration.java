@@ -19,9 +19,10 @@ import java.util.Map;
 
 import org.mortbay.jetty.orchestrator.launcher.HostLauncher;
 import org.mortbay.jetty.orchestrator.localhost.launcher.LocalLauncher;
+import org.mortbay.jetty.orchestrator.util.JvmUtil;
 
 public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDependent {
-    private static final Jvm DEFAULT_JVM = new Jvm((f, h) -> "java");
+    private static final Jvm DEFAULT_JVM = JvmUtil.mavenToolchainsOrJavaOnPath("[17");
     private Jvm jvm = DEFAULT_JVM;
     private final Map<String, NodeArrayConfiguration> nodeArrayConfigurations = new HashMap<>();
     private long healthCheckTimeout = 30_000L;
@@ -96,5 +97,12 @@ public class SimpleClusterConfiguration implements ClusterConfiguration, JvmDepe
                 jvmDependent.jvm(jvm);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "SimpleClusterConfiguration{" + "jvm=" + jvm + ", nodeArrayConfigurations=" + nodeArrayConfigurations
+                + ", healthCheckTimeout=" + healthCheckTimeout + ", healthCheckDelay=" + healthCheckDelay + ", hostLauncher="
+                + hostLauncher + '}';
     }
 }
