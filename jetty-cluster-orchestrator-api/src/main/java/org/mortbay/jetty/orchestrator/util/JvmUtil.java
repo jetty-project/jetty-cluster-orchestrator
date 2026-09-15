@@ -29,8 +29,7 @@ public class JvmUtil {
     }
 
     public static Jvm mavenToolchainsOrJavaOnPath(String version, String... opts) {
-        return new Jvm(
-                new FilenameSupplier.Combined(new FilenameSupplier.MavenToolchains(version), (fs, h) -> "java"), opts);
+        return new Jvm(new FilenameSupplier.Combined(new FilenameSupplier.MavenToolchains(version), (fs, h) -> "java"), opts);
     }
 
     public static Path findCurrentJavaExecutable() {
@@ -40,16 +39,23 @@ public class JvmUtil {
     }
 
     public static Path findJavaExecutable(Path javaHomePath) {
-        Path javaExec = javaHomePath.resolve("bin").resolve("java"); // *nix
-        if (!Files.isExecutable(javaExec))
+        // *nix
+        Path javaExec = javaHomePath.resolve("bin").resolve("java");
+        if (!Files.isExecutable(javaExec)) {
             javaExec = javaHomePath
-                    .resolve("Contents")
-                    .resolve("Home")
-                    .resolve("bin")
-                    .resolve("java"); // OSX
-        if (!Files.isExecutable(javaExec))
-            javaExec = javaHomePath.resolve("bin").resolve("java.exe"); // Windows
-        if (!Files.isExecutable(javaExec)) return null;
+                .resolve("Contents")
+                .resolve("Home")
+                .resolve("bin")
+                // OSX
+                .resolve("java");
+        }
+        if (!Files.isExecutable(javaExec)) {
+            // Windows
+            javaExec = javaHomePath.resolve("bin").resolve("java.exe");
+        }
+        if (!Files.isExecutable(javaExec)) {
+            return null;
+        }
         return javaExec;
     }
 }

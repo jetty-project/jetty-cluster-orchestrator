@@ -48,12 +48,7 @@ public class SpawnNodeCommand implements Command {
 
     @Override
     public String toString() {
-        return "SpawnNodeCommand{" + "jvm="
-                + jvm + ", hostname='"
-                + hostname + '\'' + ", hostId='"
-                + hostId + '\'' + ", nodeId='"
-                + nodeId + '\'' + ", connectString='"
-                + connectString + '\'' + ", extraArgs="
-                + Arrays.toString(extraArgs) + '}';
+        return "SpawnNodeCommand{" + "jvm=" + jvm + ", hostname='" + hostname + '\'' + ", hostId='" + hostId + '\'' + ", nodeId='"
+                + nodeId + '\'' + ", connectString='" + connectString + '\'' + ", extraArgs=" + Arrays.toString(extraArgs) + '}';
     }
 }

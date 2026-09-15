@@ -13,12 +13,6 @@
 
 package org.mortbay.jetty.orchestrator.util;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-
 import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.file.FileSystem;
@@ -27,6 +21,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,9 @@ public interface FilenameSupplier extends Serializable {
         @Override
         public String get(FileSystem fileSystem, String hostname) {
             Path javaExec = JvmUtil.findCurrentJavaExecutable();
-            if (javaExec == null) throw new IllegalStateException("Cannot find executable java command of current JVM");
+            if (javaExec == null) {
+                throw new IllegalStateException("Cannot find executable java command of current JVM");
+            }
             return javaExec.toAbsolutePath().toString();
         }
 
@@ -54,7 +56,6 @@ public interface FilenameSupplier extends Serializable {
 
     class MavenToolchains implements FilenameSupplier {
         private static final Logger LOG = LoggerFactory.getLogger(MavenToolchains.class);
-
         private final String version;
 
         public MavenToolchains(String version) {
@@ -71,15 +72,15 @@ public interface FilenameSupplier extends Serializable {
                     if (javaExec != null) {
                         // it's coming from toolchains so we trust the result
                         String absolutePath = javaExec.toAbsolutePath().toString();
-                        if (LOG.isDebugEnabled())
+                        if (LOG.isDebugEnabled()) {
                             LOG.debug("host '{}' will use java executable {}", hostname, absolutePath);
+                        }
                         return absolutePath;
                     }
                 }
                 throw new RuntimeException("Toolchains JDK '" + version + "' not found for host " + hostname);
             } catch (Exception x) {
-                throw new RuntimeException(
-                        "Error looking for toolchains JDK '" + version + "' for host " + hostname, x);
+                throw new RuntimeException("Error looking for toolchains JDK '" + version + "' for host " + hostname, x);
             }
         }
 
@@ -87,9 +88,9 @@ public interface FilenameSupplier extends Serializable {
             Path toolchainsPath = fileSystem.getPath(System.getProperty("user.home"), ".m2", "toolchains.xml");
             // This file is generated from sdkman installations by: mvn
             // org.apache.maven.plugins:maven-toolchains-plugin:3.2.0:generate-jdk-toolchains-xml
-            if (!Files.exists(toolchainsPath))
-                toolchainsPath = fileSystem.getPath(
-                        System.getProperty("user.home"), ".m2", "discovered-jdk-toolchains-cache.xml");
+            if (!Files.exists(toolchainsPath)) {
+                toolchainsPath = fileSystem.getPath(System.getProperty("user.home"), ".m2", "discovered-jdk-toolchains-cache.xml");
+            }
 
             if (Files.exists(toolchainsPath)) {
                 try (InputStream is = Files.newInputStream(toolchainsPath)) {
@@ -97,18 +98,17 @@ public interface FilenameSupplier extends Serializable {
                     DocumentBuilder builder = builderFactory.newDocumentBuilder();
                     Document xmlDocument = builder.parse(is);
                     XPath xPath = XPathFactory.newInstance().newXPath();
-                    NodeList nodeList = (NodeList)
-                            xPath.compile("/toolchains/toolchain").evaluate(xmlDocument, XPathConstants.NODESET);
+                    NodeList nodeList =
+                            (NodeList) xPath.compile("/toolchains/toolchain").evaluate(xmlDocument, XPathConstants.NODESET);
                     for (int i = 0; i < nodeList.getLength(); i++) {
                         Node node = nodeList.item(i);
-                        String version =
-                                (String) xPath.compile("provides/version").evaluate(node, XPathConstants.STRING);
+                        String version = (String) xPath.compile("provides/version").evaluate(node, XPathConstants.STRING);
 
                         if (versionMatch(this.version, version)) {
-                            String jdkHome = (String)
-                                    xPath.compile("configuration/jdkHome").evaluate(node, XPathConstants.STRING);
-                            if (LOG.isDebugEnabled())
+                            String jdkHome = (String) xPath.compile("configuration/jdkHome").evaluate(node, XPathConstants.STRING);
+                            if (LOG.isDebugEnabled()) {
                                 LOG.debug("Found matching JDK: version {} at {}", version, jdkHome);
+                            }
                             return jdkHome;
                         }
                     }
@@ -148,19 +148,24 @@ public interface FilenameSupplier extends Serializable {
 
             public boolean matches(String givenVersion) {
                 MavenVersion given = new MavenVersion(givenVersion);
-                if (atLeast) return matchesAtLeast(given);
+                if (atLeast) {
+                    return matchesAtLeast(given);
+                }
                 return matchesExactly(given);
             }
 
             private boolean matchesExactly(MavenVersion given) {
-                return componentEquals(rawMajor, given.rawMajor)
-                        && componentEquals(rawMinor, given.rawMinor)
+                return componentEquals(rawMajor, given.rawMajor) && componentEquals(rawMinor, given.rawMinor)
                         && componentEquals(rawMicro, given.rawMicro);
             }
 
             private static boolean componentEquals(String expected, String given) {
-                if (expected == null) return true;
-                if (given == null) return false;
+                if (expected == null) {
+                    return true;
+                }
+                if (given == null) {
+                    return false;
+                }
                 return leadingInt(expected) == leadingInt(given);
             }
 
@@ -168,29 +173,33 @@ public interface FilenameSupplier extends Serializable {
                 String[] expectedComponents = {rawMajor, rawMinor, rawMicro};
                 String[] givenComponents = {given.rawMajor, given.rawMinor, given.rawMicro};
                 for (int i = 0; i < expectedComponents.length; i++) {
-                    if (expectedComponents[i] == null) return true;
+                    if (expectedComponents[i] == null) {
+                        return true;
+                    }
                     int expected = leadingInt(expectedComponents[i]);
                     int actual = leadingInt(givenComponents[i]);
-                    if (expected != actual) return actual > expected;
+                    if (expected != actual) {
+                        return actual > expected;
+                    }
                 }
                 return true;
             }
 
             private static int leadingInt(String s) {
-                if (s == null) return 0;
+                if (s == null) {
+                    return 0;
+                }
                 int i = 0;
-                while (i < s.length() && Character.isDigit(s.charAt(i))) i++;
+                while (i < s.length() && Character.isDigit(s.charAt(i))) {
+                    i++;
+                }
                 return i == 0 ? 0 : Integer.parseInt(s.substring(0, i));
             }
 
             @Override
             public String toString() {
-                return "MavenVersion{" + "atLeast="
-                        + atLeast + ", rawMajor='"
-                        + rawMajor + '\'' + ", rawMinor='"
-                        + rawMinor + '\'' + ", rawMicro='"
-                        + rawMicro + '\'' + ", rawRemaining='"
-                        + rawRemaining + '\'' + '}';
+                return "MavenVersion{" + "atLeast=" + atLeast + ", rawMajor='" + rawMajor + '\'' + ", rawMinor='" + rawMinor + '\''
+                        + ", rawMicro='" + rawMicro + '\'' + ", rawRemaining='" + rawRemaining + '\'' + '}';
             }
         }
 
@@ -212,7 +221,9 @@ public interface FilenameSupplier extends Serializable {
         @Override
         public String get(FileSystem fileSystem, String hostname) {
             String path = filenameSupplier1.get(fileSystem, hostname);
-            if (path != null) return path;
+            if (path != null) {
+                return path;
+            }
             return filenameSupplier2.get(fileSystem, hostname);
         }
 
