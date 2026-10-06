@@ -95,6 +95,11 @@ class HomeProcessShell extends AbstractLoggingBean implements InvertedShell {
                         cmdValue, e.getMessage(), e);
             }
         }
+        // JVMs started over ssh must see our home as user.home, as they would on a real host
+        String userHome = "-Duser.home=" + Paths.get(homePath).toAbsolutePath();
+        builder
+            .environment()
+            .merge("JAVA_TOOL_OPTIONS", userHome, (current, added) -> current + " " + added);
 
         if (log.isDebugEnabled()) {
             log.debug("start({}): command='{}', env={}", channel, builder.command(), builder.environment());

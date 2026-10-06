@@ -170,15 +170,11 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             // detect windows
             boolean windows = isWindows(session);
             // do remote port forwarding
-            // Use 127.0.0.1, not "localhost": some SSH servers bind the forwarded port on one loopback
-            // address only, and when "localhost" also maps to ::1 the ZooKeeper client randomly tries it,
-            // gets refused and backs off, which slows down every remote JVM.
             int zkPort = Integer.parseInt(connectString.split(":")[1]);
-            String remoteLoopback = SshdSocketAddress.LOCALHOST_IPV4;
             forwardingTracker = session.createRemotePortForwardingTracker(
                     // remote port, dynamically choose one
-                    new SshdSocketAddress(remoteLoopback, 0), new SshdSocketAddress("localhost", zkPort));
-            String remoteConnectString = remoteLoopback + ":" + forwardingTracker.getBoundAddress().getPort();
+                    new SshdSocketAddress("localhost", 0), new SshdSocketAddress("localhost", zkPort));
+            String remoteConnectString = "localhost:" + forwardingTracker.getBoundAddress().getPort();
 
             HashMap<String, Object> env = new HashMap<>();
             env.put(SftpClient.class.getName(), SftpClientFactory.instance().createSftpClient(session));
