@@ -15,6 +15,8 @@ package sshd;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -41,7 +43,8 @@ public class TestSshServer implements AutoCloseable {
     private SshServer sshd;
 
     public TestSshServer() throws Exception {
-        this(System.getProperty("user.home"));
+        // the home of our fake remote host, kept in the build folder
+        this("target/ssh-home");
     }
 
     public TestSshServer(String homeDir) throws Exception {
@@ -62,6 +65,7 @@ public class TestSshServer implements AutoCloseable {
     }
 
     private void init(KeyPair keyPair, String homePath) throws Exception {
+        Files.createDirectories(Paths.get(homePath));
         sshd = SshServer.setUpDefaultServer();
         // configure server keys
         sshd.setKeyPairProvider(new AbstractResourceKeyPairProvider<Object>() {
@@ -75,6 +79,8 @@ public class TestSshServer implements AutoCloseable {
         sshd.setPasswordAuthenticator((username, password, session) -> true);
         // enable TCP port forwarding
         sshd.setForwardingFilter(new AcceptAllForwardingFilter());
+        // forward localhost on both IPv4 and IPv6, like OpenSSH
+        sshd.setForwarderFactory(new AllLoopbacksForwarderFactory());
         // enable SFTP
         SftpSubsystemFactory factory = new SftpSubsystemFactory() {
             @Override
