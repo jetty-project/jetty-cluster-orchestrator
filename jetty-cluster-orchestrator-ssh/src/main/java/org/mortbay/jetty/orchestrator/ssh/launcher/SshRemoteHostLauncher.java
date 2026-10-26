@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.sshd.agent.SshAgent;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.auth.password.PasswordIdentityProvider;
 import org.apache.sshd.client.channel.ClientChannel;
@@ -151,20 +152,25 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
             // The client must also accept incoming "forwarded-tcpip" channels for the remote port forwarding
             // set up below to work: the default forwarding filter is reject-all, independent of the server's own.
             sshClient.setForwardingFilter(AcceptAllForwardingFilter.INSTANCE);
+            Path agentSocket = password == null ? usableAgentSocket() : null;
+            if (agentSocket != null) {
+                sshClient.setAgentFactory(new UnixSocketAgentFactory(agentSocket));
+            }
             sshClient.start();
             session = sshClient.connect(username, nodeId.getHostname(), port).verify().getSession();
 
             if (LOG.isDebugEnabled()) {
-                LOG.debug("ssh to {} with username {} and empty password {}", nodeId.getHostname(), username, password == null);
+                LOG.debug("ssh to {} with username {} and empty password {}, ssh-agent socket {}", nodeId.getHostname(), username,
+                        password == null, agentSocket);
             }
-            if (// public key auth
-            password == null) {
-                // public key auth
-                addDefaultPublicKeyIdentities(session);
+            if (password == null) {
+                // public key auth, with the keys held by the ssh-agent or else the ones from the identity files in ~/.ssh
+                if (agentSocket == null) {
+                    addDefaultPublicKeyIdentities(session);
+                }
             } else {
-                session.setPasswordIdentityProvider(PasswordIdentityProvider
-                    // pw auth, possibly empty
-                    .wrapPasswords(new String(password)));
+                // pw auth, possibly empty
+                session.setPasswordIdentityProvider(PasswordIdentityProvider.wrapPasswords(new String(password)));
             }
             session.auth().verify();
             // detect windows
@@ -228,16 +234,39 @@ public class SshRemoteHostLauncher extends AbstractHostLauncher implements JvmDe
         }
     }
 
-    private static void addDefaultPublicKeyIdentities(ClientSession session) throws IOException, GeneralSecurityException {
+    private static Path usableAgentSocket() {
+        String agentSocket = System.getenv(SshAgent.SSH_AUTHSOCKET_ENV_NAME);
+        if (agentSocket == null || agentSocket.isEmpty()) {
+            return null;
+        }
+        Path socketPath = Paths.get(agentSocket);
+        if (!UnixSocketAgentFactory.isUsable(socketPath)) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("ssh-agent socket {} is not usable, falling back to the identity files", socketPath);
+            }
+            return null;
+        }
+        return socketPath;
+    }
+
+    private static void addDefaultPublicKeyIdentities(ClientSession session) {
         Path sshDir = Paths.get(System.getProperty("user.home"), ".ssh");
         for (String filename : DEFAULT_IDENTITY_FILENAMES) {
             Path keyFile = sshDir.resolve(filename);
             if (!Files.isReadable(keyFile)) {
                 continue;
             }
-            for (KeyPair keyPair : SecurityUtils
-                .getKeyPairResourceParser()
-                .loadKeyPairs(session, keyFile, FilePasswordProvider.EMPTY)) {
+            Iterable<KeyPair> keyPairs;
+            try {
+                keyPairs = SecurityUtils.getKeyPairResourceParser().loadKeyPairs(session, keyFile, FilePasswordProvider.EMPTY);
+            } catch (IOException | GeneralSecurityException e) {
+                // most likely a passphrase-protected key, which cannot be used without an ssh-agent
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("skipping identity file {} that cannot be loaded without a passphrase", keyFile, e);
+                }
+                continue;
+            }
+            for (KeyPair keyPair : keyPairs) {
                 session.addPublicKeyIdentity(keyPair);
             }
         }
