@@ -109,6 +109,34 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 git config blame.markIgnoredLines true
 ----
 
+== Releasing to Maven Central
+
+Releases are published with the https://github.com/maveniverse/njord[njord] extension. Add this server to your
+`~/.m2/settings.xml`, with a user token generated on https://central.sonatype.com[central.sonatype.com]:
+
+[source,xml]
+----
+<server>
+  <id>sonatype-cp</id>
+  <username>TOKEN_USERNAME</username>
+  <password>TOKEN_PASSWORD</password>
+  <configuration>
+    <njord.publisher>sonatype-cp</njord.publisher>
+    <njord.releaseUrl>njord:template:release-sca</njord.releaseUrl>
+  </configuration>
+</server>
+----
+
+You also need a GPG key to sign the artifacts. `mvn -N njord:status` tells you if the setup is picked up. Then release with:
+
+[source,bash]
+----
+mvn release:prepare release:perform
+----
+
+njord stages the signed artifacts locally and publishes them to Central at the end of the build.
+Snapshots are deployed by Jenkins from `main`.
+
 == Cluster Orchestrator API
 
 === A word of warning
