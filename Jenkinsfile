@@ -16,7 +16,8 @@ pipeline {
             mavenBuild("jdk17", "clean install")
             script {
               if (env.BRANCH_NAME == 'main') {
-                mavenBuild("jdk17", "deploy")
+                // oss-deploy has the Central credentials
+                mavenBuild("jdk17", "deploy -DskipTests -DdeployAtEnd=true", "oss-deploy")
               }
             }
           }
@@ -40,16 +41,17 @@ pipeline {
  *
  * @param jdk the jdk tool name (in jenkins) to use for this build
  * @param cmdline the command line in "<profiles> <goals> <properties>"`format.
+ * @param settingsId the Jenkins maven settings file
  * @return the Jenkinsfile step representing a maven build
  */
-def mavenBuild(jdk, cmdline) {
+def mavenBuild(jdk, cmdline, settingsId = 'oss-settings.xml') {
   def mvnName = 'maven3'
   script {
     try {
       withEnv(["JAVA_HOME=${ tool "$jdk" }",
                "PATH+MAVEN=${ tool "$jdk" }/bin:${tool "$mvnName"}/bin",
                "MAVEN_OPTS=-Xms2g -Xmx4g -Djava.awt.headless=true"]) {
-        configFileProvider([configFile(fileId: 'oss-settings.xml', variable: 'GLOBAL_MVN_SETTINGS')]) {
+        configFileProvider([configFile(fileId: settingsId, variable: 'GLOBAL_MVN_SETTINGS')]) {
           sh "mvn --no-transfer-progress -s $GLOBAL_MVN_SETTINGS -B -V -e $cmdline"
         }
       }
