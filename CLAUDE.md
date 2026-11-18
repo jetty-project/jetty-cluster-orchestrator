@@ -32,7 +32,11 @@ The surefire config in the root `pom.xml` sets test-only system properties: shor
 CI:
 - GitHub Actions (`.github/workflows/ci.yml`): JDK 17, 21, 25 on Ubuntu, plain `mvn clean install`.
 - Jenkins (`Jenkinsfile`): `linux-dind` agents, JDK 17 and JDK 21 (the stage called "JDK25" really runs
-  jdk21). Snapshots get deployed from `main` on the JDK 17 leg.
+  jdk21). Snapshots get deployed from `main` on the JDK 17 leg, to the Central Portal snapshots repo
+  (server id `sonatype-cp`, credentials in the Jenkins managed settings `oss-deploy`).
+- Releases go through the njord extension (`eu.maveniverse.maven.njord:extension3`, as in cometd):
+  `mvn release:prepare release:perform` stages the signed artifacts locally and auto-publishes them to
+  Central with the `sonatype-cp` server from your own `~/.m2/settings.xml`.
 - Both run the k3s-backed Kubernetes tests, so the agent needs Docker. That adds about 2.5 min.
 
 ## Project Overview
